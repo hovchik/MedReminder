@@ -10,7 +10,7 @@
 /.idea/deviceStreaming.xml
 /.idea/caches/
 .DS_Store
-/build
+build/
 /captures
 .externalNativeBuild
 .cxx
