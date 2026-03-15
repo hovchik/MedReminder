@@ -42,4 +42,10 @@ interface ScheduleDao {
     @Transaction
     @Query("SELECT * FROM schedules WHERE id = :id")
     suspend fun getScheduleWithMedication(id: Long): ScheduleWithMedication?
+
+    @Query("SELECT * FROM schedules")
+    suspend fun getAllSchedulesSync(): List<ScheduleEntity>
+
+    @Query("DELETE FROM schedules")
+    suspend fun deleteAllSchedules()
 }

@@ -1,12 +1,15 @@
 package com.medreminder.presentation.screens.home
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.medreminder.R
 import com.medreminder.alarm.AlarmScheduler
 import com.medreminder.domain.model.*
 import com.medreminder.domain.repository.MedicationRepository
 import com.medreminder.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,7 +29,8 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: MedicationRepository,
-    private val alarmScheduler: AlarmScheduler
+    private val alarmScheduler: AlarmScheduler,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -97,9 +101,9 @@ class HomeViewModel @Inject constructor(
     private fun updateGreeting() {
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
         val greeting = when {
-            hour < 12 -> "Good morning"
-            hour < 17 -> "Good afternoon"
-            else -> "Good evening"
+            hour < 12 -> context.getString(R.string.greeting_morning)
+            hour < 17 -> context.getString(R.string.greeting_afternoon)
+            else -> context.getString(R.string.greeting_evening)
         }
         _uiState.update { it.copy(greeting = greeting) }
     }

@@ -11,12 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.medreminder.R
 import com.medreminder.domain.model.Caregiver
 import com.medreminder.domain.model.toEntity
 import com.medreminder.domain.repository.MedicationRepository
@@ -70,12 +72,12 @@ fun CaregiverScreen(viewModel: CaregiverViewModel = hiltViewModel()) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Family & Caregivers", style = MaterialTheme.typography.headlineMedium,
+                Text(stringResource(R.string.family_caregivers), style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold)
                 FilledTonalButton(onClick = { showAddDialog = true }) {
                     Icon(Icons.Default.PersonAdd, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add")
+                    Text(stringResource(R.string.add))
                 }
             }
         }
@@ -91,7 +93,7 @@ fun CaregiverScreen(viewModel: CaregiverViewModel = hiltViewModel()) {
                     Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        "Caregivers will be notified when you miss a dose. They can also view your adherence reports.",
+                        stringResource(R.string.caregiver_info),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -108,10 +110,10 @@ fun CaregiverScreen(viewModel: CaregiverViewModel = hiltViewModel()) {
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("👨‍👩‍👧‍👦", style = MaterialTheme.typography.displayLarge)
+                        Text("\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66", style = MaterialTheme.typography.displayLarge)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("No caregivers added yet", style = MaterialTheme.typography.titleMedium)
-                        Text("Add family members who should be notified",
+                        Text(stringResource(R.string.no_caregivers_yet), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.add_family_members),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -170,16 +172,16 @@ fun CaregiverCard(
                     }
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.Delete, stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                 }
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Notify on missed", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.notify_on_missed), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Switch(checked = caregiver.notifyOnMissed, onCheckedChange = { onToggleMissed() })
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Notify on taken", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.notify_on_taken), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Switch(checked = caregiver.notifyOnTaken, onCheckedChange = { onToggleTaken() })
             }
         }
@@ -194,22 +196,22 @@ fun AddCaregiverDialog(onDismiss: () -> Unit, onAdd: (Caregiver) -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add caregiver") },
+        title = { Text(stringResource(R.string.add_caregiver)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
-                    label = { Text("Name") }, singleLine = true,
+                    label = { Text(stringResource(R.string.name)) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)
                 )
                 OutlinedTextField(
                     value = phone, onValueChange = { phone = it },
-                    label = { Text("Phone (optional)") }, singleLine = true,
+                    label = { Text(stringResource(R.string.phone_optional)) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)
                 )
                 OutlinedTextField(
                     value = relationship, onValueChange = { relationship = it },
-                    label = { Text("Relationship (optional)") }, singleLine = true,
+                    label = { Text(stringResource(R.string.relationship_optional)) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)
                 )
             }
@@ -222,8 +224,8 @@ fun AddCaregiverDialog(onDismiss: () -> Unit, onAdd: (Caregiver) -> Unit) {
                     }
                 },
                 enabled = name.isNotBlank()
-            ) { Text("Add") }
+            ) { Text(stringResource(R.string.add)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }

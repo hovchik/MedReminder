@@ -38,9 +38,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideMedicationRepository(
+        database: AppDatabase,
         medicationDao: MedicationDao,
         scheduleDao: ScheduleDao,
         doseLogDao: DoseLogDao,
         caregiverDao: CaregiverDao
-    ): MedicationRepository = MedicationRepositoryImpl(medicationDao, scheduleDao, doseLogDao, caregiverDao)
+    ): MedicationRepository = MedicationRepositoryImpl(database, medicationDao, scheduleDao, doseLogDao, caregiverDao)
 }

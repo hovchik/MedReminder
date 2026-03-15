@@ -41,4 +41,9 @@ interface MedicationRepository {
     suspend fun updateCaregiver(caregiver: Caregiver)
     suspend fun deleteCaregiver(caregiver: Caregiver)
     suspend fun getCaregiversForMissedAlert(): List<Caregiver>
+
+    // Data management
+    suspend fun clearAllData()
+    suspend fun exportAllData(): String
+    suspend fun importAllData(json: String)
 }

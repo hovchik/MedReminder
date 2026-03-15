@@ -15,11 +15,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.medreminder.R
 import com.medreminder.domain.model.MedicationForm
 import com.medreminder.domain.model.ScheduleFrequency
 import com.medreminder.presentation.theme.MedicationColors
@@ -31,6 +33,9 @@ import java.util.*
 fun AddEditMedicationScreen(
     medicationId: Long?,
     onNavigateBack: () -> Unit,
+    onScanMedication: () -> Unit = {},
+    scannedName: String? = null,
+    scannedDosage: String? = null,
     viewModel: AddEditMedicationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -40,6 +45,23 @@ fun AddEditMedicationScreen(
         medicationId?.let { viewModel.loadMedication(it) }
     }
 
+    LaunchedEffect(scannedName, scannedDosage) {
+        if (!scannedName.isNullOrBlank()) viewModel.updateName(scannedName)
+        if (!scannedDosage.isNullOrBlank()) {
+            // Try to parse dosage and unit from scanned text (e.g., "500mg" -> "500", "mg")
+            val regex = Regex("""(\d+\.?\d*)\s*(mg|g|ml|mcg|IU|units|drops|puffs|tablets)?""", RegexOption.IGNORE_CASE)
+            val match = regex.find(scannedDosage)
+            if (match != null) {
+                viewModel.updateDosage(match.groupValues[1])
+                if (match.groupValues[2].isNotBlank()) {
+                    viewModel.updateDosageUnit(match.groupValues[2].lowercase())
+                }
+            } else {
+                viewModel.updateDosage(scannedDosage)
+            }
+        }
+    }
+
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) onNavigateBack()
     }
@@ -47,31 +69,31 @@ fun AddEditMedicationScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete medication?") },
-            text = { Text("This will remove the medication and all its history. This cannot be undone.") },
+            title = { Text(stringResource(R.string.delete_medication_title)) },
+            text = { Text(stringResource(R.string.delete_medication_message)) },
             confirmButton = {
                 TextButton(
                     onClick = { viewModel.deleteMedication(); showDeleteDialog = false },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text("Delete") }
+                ) { Text(stringResource(R.string.delete)) }
             },
-            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (uiState.isEditing) "Edit medication" else "Add medication") },
+                title = { Text(if (uiState.isEditing) stringResource(R.string.edit_medication) else stringResource(R.string.add_medication)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
+                        Icon(Icons.Default.ArrowBack, stringResource(R.string.back))
                     }
                 },
                 actions = {
                     if (uiState.isEditing) {
                         IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -92,11 +114,24 @@ fun AddEditMedicationScreen(
                 }
             }
 
+            // OCR scan button
+            if (!uiState.isEditing) {
+                OutlinedButton(
+                    onClick = onScanMedication,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.CameraAlt, null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.scan_with_camera))
+                }
+            }
+
             // Name
             OutlinedTextField(
                 value = uiState.name,
                 onValueChange = viewModel::updateName,
-                label = { Text("Medication name") },
+                label = { Text(stringResource(R.string.medication_name)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp)
@@ -107,7 +142,7 @@ fun AddEditMedicationScreen(
                 OutlinedTextField(
                     value = uiState.dosage,
                     onValueChange = viewModel::updateDosage,
-                    label = { Text("Dosage") },
+                    label = { Text(stringResource(R.string.dosage)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
@@ -122,7 +157,7 @@ fun AddEditMedicationScreen(
                         value = uiState.dosageUnit,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Unit") },
+                        label = { Text(stringResource(R.string.unit)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(unitExpanded) },
                         modifier = Modifier.menuAnchor(),
                         shape = RoundedCornerShape(12.dp)
@@ -139,7 +174,7 @@ fun AddEditMedicationScreen(
             }
 
             // Form selector
-            Text("Form", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.form), style = MaterialTheme.typography.labelLarge)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -157,7 +192,7 @@ fun AddEditMedicationScreen(
             }
 
             // Color picker
-            Text("Color", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.color), style = MaterialTheme.typography.labelLarge)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -182,7 +217,7 @@ fun AddEditMedicationScreen(
             HorizontalDivider()
 
             // Schedules
-            Text("Schedules", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.schedules), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
 
             uiState.schedules.forEachIndexed { index, schedule ->
                 ScheduleCard(
@@ -204,7 +239,7 @@ fun AddEditMedicationScreen(
             ) {
                 Icon(Icons.Default.Add, null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Add another time")
+                Text(stringResource(R.string.add_another_time))
             }
 
             HorizontalDivider()
@@ -213,19 +248,19 @@ fun AddEditMedicationScreen(
             OutlinedTextField(
                 value = uiState.instructions,
                 onValueChange = viewModel::updateInstructions,
-                label = { Text("Instructions (e.g., take with food)") },
+                label = { Text(stringResource(R.string.instructions_hint)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 shape = RoundedCornerShape(12.dp)
             )
 
             // Stock tracking
-            Text("Stock tracking", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.stock_tracking), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = uiState.currentStock,
                     onValueChange = viewModel::updateStock,
-                    label = { Text("Current stock") },
+                    label = { Text(stringResource(R.string.current_stock)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
@@ -233,7 +268,7 @@ fun AddEditMedicationScreen(
                 OutlinedTextField(
                     value = uiState.refillThreshold,
                     onValueChange = viewModel::updateRefillThreshold,
-                    label = { Text("Refill at") },
+                    label = { Text(stringResource(R.string.refill_at)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
@@ -245,14 +280,14 @@ fun AddEditMedicationScreen(
                     onCheckedChange = viewModel::updateRefillReminder
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Remind me to refill", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.remind_to_refill), style = MaterialTheme.typography.bodyLarge)
             }
 
             // Notes
             OutlinedTextField(
                 value = uiState.notes,
                 onValueChange = viewModel::updateNotes,
-                label = { Text("Notes") },
+                label = { Text(stringResource(R.string.notes)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 shape = RoundedCornerShape(12.dp)
@@ -273,7 +308,7 @@ fun AddEditMedicationScreen(
                     Icon(Icons.Default.Check, null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        if (uiState.isEditing) "Save changes" else "Add medication",
+                        if (uiState.isEditing) stringResource(R.string.save_changes) else stringResource(R.string.add_medication),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -304,10 +339,10 @@ fun ScheduleCard(
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Schedule ${index + 1}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.schedule_number, index + 1), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                 if (canRemove) {
                     IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Close, "Remove", modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Close, stringResource(R.string.remove), modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -376,7 +411,7 @@ fun ScheduleCard(
             // Interval selector
             if (schedule.frequency == ScheduleFrequency.INTERVAL) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Every", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.every), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.width(8.dp))
                     OutlinedTextField(
                         value = schedule.intervalDays.toString(),
@@ -386,7 +421,7 @@ fun ScheduleCard(
                         shape = RoundedCornerShape(8.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("days", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.days), style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }

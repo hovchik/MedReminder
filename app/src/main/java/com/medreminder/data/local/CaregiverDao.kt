@@ -27,4 +27,10 @@ interface CaregiverDao {
 
     @Query("SELECT COUNT(*) FROM caregivers WHERE isActive = 1")
     fun getActiveCaregiverCount(): Flow<Int>
+
+    @Query("SELECT * FROM caregivers")
+    suspend fun getAllCaregiversSync(): List<CaregiverEntity>
+
+    @Query("DELETE FROM caregivers")
+    suspend fun deleteAllCaregivers()
 }
