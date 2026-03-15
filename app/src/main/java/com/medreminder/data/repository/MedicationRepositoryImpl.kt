@@ -1,5 +1,6 @@
 package com.medreminder.data.repository
 
+import androidx.room.withTransaction
 import com.medreminder.data.local.*
 import com.medreminder.data.local.entity.MedicationEntity
 import com.medreminder.domain.model.*
@@ -14,6 +15,7 @@ import javax.inject.Singleton
 
 @Singleton
 class MedicationRepositoryImpl @Inject constructor(
+    private val database: AppDatabase,
     private val medicationDao: MedicationDao,
     private val scheduleDao: ScheduleDao,
     private val doseLogDao: DoseLogDao,
@@ -339,92 +341,94 @@ class MedicationRepositoryImpl @Inject constructor(
     override suspend fun importAllData(json: String) {
         val root = JSONObject(json)
 
-        // Clear existing data first
-        clearAllData()
+        database.withTransaction {
+            // Clear existing data first
+            clearAllData()
 
-        // Import medications
-        val meds = root.optJSONArray("medications")
-        if (meds != null) {
-            for (i in 0 until meds.length()) {
-                val m = meds.getJSONObject(i)
-                medicationDao.insertMedication(MedicationEntity(
-                    id = m.getLong("id"),
-                    name = m.getString("name"),
-                    dosage = m.getString("dosage"),
-                    dosageUnit = m.getString("dosageUnit"),
-                    form = m.getString("form"),
-                    instructions = m.optString("instructions", ""),
-                    color = m.optString("color", "#4A90D9"),
-                    iconName = m.optString("iconName", "pill"),
-                    currentStock = m.optInt("currentStock", 0),
-                    refillThreshold = m.optInt("refillThreshold", 5),
-                    refillReminder = m.optBoolean("refillReminder", true),
-                    notes = m.optString("notes", ""),
-                    isActive = m.optBoolean("isActive", true),
-                    createdAt = m.optLong("createdAt", System.currentTimeMillis()),
-                    updatedAt = m.optLong("updatedAt", System.currentTimeMillis())
-                ))
+            // Import medications
+            val meds = root.optJSONArray("medications")
+            if (meds != null) {
+                for (i in 0 until meds.length()) {
+                    val m = meds.getJSONObject(i)
+                    medicationDao.insertMedication(MedicationEntity(
+                        id = m.getLong("id"),
+                        name = m.getString("name"),
+                        dosage = m.getString("dosage"),
+                        dosageUnit = m.getString("dosageUnit"),
+                        form = m.getString("form"),
+                        instructions = m.optString("instructions", ""),
+                        color = m.optString("color", "#4A90D9"),
+                        iconName = m.optString("iconName", "pill"),
+                        currentStock = m.optInt("currentStock", 0),
+                        refillThreshold = m.optInt("refillThreshold", 5),
+                        refillReminder = m.optBoolean("refillReminder", true),
+                        notes = m.optString("notes", ""),
+                        isActive = m.optBoolean("isActive", true),
+                        createdAt = m.optLong("createdAt", System.currentTimeMillis()),
+                        updatedAt = m.optLong("updatedAt", System.currentTimeMillis())
+                    ))
+                }
             }
-        }
 
-        // Import schedules
-        val schedules = root.optJSONArray("schedules")
-        if (schedules != null) {
-            for (i in 0 until schedules.length()) {
-                val s = schedules.getJSONObject(i)
-                scheduleDao.insertSchedule(com.medreminder.data.local.entity.ScheduleEntity(
-                    id = s.getLong("id"),
-                    medicationId = s.getLong("medicationId"),
-                    timeHour = s.getInt("timeHour"),
-                    timeMinute = s.getInt("timeMinute"),
-                    frequency = s.getString("frequency"),
-                    daysOfWeek = s.optString("daysOfWeek", ""),
-                    intervalDays = s.optInt("intervalDays", 1),
-                    startDate = s.optLong("startDate", System.currentTimeMillis()),
-                    endDate = if (s.isNull("endDate")) null else s.optLong("endDate"),
-                    isEnabled = s.optBoolean("isEnabled", true),
-                    createdAt = s.optLong("createdAt", System.currentTimeMillis())
-                ))
+            // Import schedules
+            val schedules = root.optJSONArray("schedules")
+            if (schedules != null) {
+                for (i in 0 until schedules.length()) {
+                    val s = schedules.getJSONObject(i)
+                    scheduleDao.insertSchedule(com.medreminder.data.local.entity.ScheduleEntity(
+                        id = s.getLong("id"),
+                        medicationId = s.getLong("medicationId"),
+                        timeHour = s.getInt("timeHour"),
+                        timeMinute = s.getInt("timeMinute"),
+                        frequency = s.getString("frequency"),
+                        daysOfWeek = s.optString("daysOfWeek", ""),
+                        intervalDays = s.optInt("intervalDays", 1),
+                        startDate = s.optLong("startDate", System.currentTimeMillis()),
+                        endDate = if (s.isNull("endDate")) null else s.optLong("endDate"),
+                        isEnabled = s.optBoolean("isEnabled", true),
+                        createdAt = s.optLong("createdAt", System.currentTimeMillis())
+                    ))
+                }
             }
-        }
 
-        // Import dose logs
-        val logs = root.optJSONArray("doseLogs")
-        if (logs != null) {
-            for (i in 0 until logs.length()) {
-                val l = logs.getJSONObject(i)
-                doseLogDao.insertDoseLog(com.medreminder.data.local.entity.DoseLogEntity(
-                    id = l.getLong("id"),
-                    medicationId = l.getLong("medicationId"),
-                    scheduleId = l.getLong("scheduleId"),
-                    scheduledTime = l.getLong("scheduledTime"),
-                    actionTime = if (l.isNull("actionTime")) null else l.optLong("actionTime"),
-                    status = l.getString("status"),
-                    snoozedUntil = if (l.isNull("snoozedUntil")) null else l.optLong("snoozedUntil"),
-                    snoozeCount = l.optInt("snoozeCount", 0),
-                    notes = l.optString("notes", ""),
-                    createdAt = l.optLong("createdAt", System.currentTimeMillis())
-                ))
+            // Import dose logs
+            val logs = root.optJSONArray("doseLogs")
+            if (logs != null) {
+                for (i in 0 until logs.length()) {
+                    val l = logs.getJSONObject(i)
+                    doseLogDao.insertDoseLog(com.medreminder.data.local.entity.DoseLogEntity(
+                        id = l.getLong("id"),
+                        medicationId = l.getLong("medicationId"),
+                        scheduleId = l.getLong("scheduleId"),
+                        scheduledTime = l.getLong("scheduledTime"),
+                        actionTime = if (l.isNull("actionTime")) null else l.optLong("actionTime"),
+                        status = l.getString("status"),
+                        snoozedUntil = if (l.isNull("snoozedUntil")) null else l.optLong("snoozedUntil"),
+                        snoozeCount = l.optInt("snoozeCount", 0),
+                        notes = l.optString("notes", ""),
+                        createdAt = l.optLong("createdAt", System.currentTimeMillis())
+                    ))
+                }
             }
-        }
 
-        // Import caregivers
-        val caregivers = root.optJSONArray("caregivers")
-        if (caregivers != null) {
-            for (i in 0 until caregivers.length()) {
-                val c = caregivers.getJSONObject(i)
-                caregiverDao.insertCaregiver(com.medreminder.data.local.entity.CaregiverEntity(
-                    id = c.getLong("id"),
-                    name = c.getString("name"),
-                    phone = c.optString("phone", ""),
-                    email = c.optString("email", ""),
-                    relationship = c.optString("relationship", ""),
-                    notifyOnMissed = c.optBoolean("notifyOnMissed", true),
-                    notifyOnTaken = c.optBoolean("notifyOnTaken", false),
-                    notifyDelay = c.optInt("notifyDelay", 30),
-                    isActive = c.optBoolean("isActive", true),
-                    createdAt = c.optLong("createdAt", System.currentTimeMillis())
-                ))
+            // Import caregivers
+            val caregivers = root.optJSONArray("caregivers")
+            if (caregivers != null) {
+                for (i in 0 until caregivers.length()) {
+                    val c = caregivers.getJSONObject(i)
+                    caregiverDao.insertCaregiver(com.medreminder.data.local.entity.CaregiverEntity(
+                        id = c.getLong("id"),
+                        name = c.getString("name"),
+                        phone = c.optString("phone", ""),
+                        email = c.optString("email", ""),
+                        relationship = c.optString("relationship", ""),
+                        notifyOnMissed = c.optBoolean("notifyOnMissed", true),
+                        notifyOnTaken = c.optBoolean("notifyOnTaken", false),
+                        notifyDelay = c.optInt("notifyDelay", 30),
+                        isActive = c.optBoolean("isActive", true),
+                        createdAt = c.optLong("createdAt", System.currentTimeMillis())
+                    ))
+                }
             }
         }
     }

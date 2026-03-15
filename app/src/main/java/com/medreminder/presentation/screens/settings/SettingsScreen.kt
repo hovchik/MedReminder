@@ -117,10 +117,20 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     ) { uri ->
         if (uri != null) {
             try {
+                // Take persistable read permission so content provider doesn't revoke access
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                } catch (_: SecurityException) {
+                    // Not all providers support persistable permissions — transient access still works
+                }
                 val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()
                 if (json != null) {
                     pendingImportJson = json
                     showImportConfirmDialog = true
+                } else {
+                    Toast.makeText(context, context.getString(R.string.import_error), Toast.LENGTH_SHORT).show()
                 }
             } catch (_: Exception) {
                 Toast.makeText(context, context.getString(R.string.import_error), Toast.LENGTH_SHORT).show()
