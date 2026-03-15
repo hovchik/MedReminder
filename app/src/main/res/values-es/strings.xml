@@ -147,11 +147,50 @@
     <string name="download_failed">Error de descarga. Comprueba tu conexión a internet.</string>
     <string name="try_again">Intentar de nuevo</string>
 
+    <!-- User Profile -->
+    <string name="user_profile">Usuario</string>
+    <string name="age_display">Edad: %1$d</string>
+    <string name="tap_to_edit_profile">Toca para editar tu perfil</string>
+
     <!-- Onboarding -->
     <string name="welcome_title">Bienvenido a MedReminder</string>
+    <string name="tell_us_about_yourself">Cuéntanos sobre ti</string>
+    <string name="personalize_experience">Esto nos ayuda a personalizar tu experiencia</string>
+    <string name="your_name">Tu nombre</string>
+    <string name="your_age">Tu edad</string>
+    <string name="name_required">Por favor ingresa tu nombre</string>
+    <string name="age_invalid">Por favor ingresa una edad válida</string>
     <string name="welcome_subtitle">Tu recordatorio personal de medicamentos con análisis de IA</string>
     <string name="get_started">Comenzar</string>
     <string name="ai_powered_insights">Análisis con IA</string>
+    <string name="onboarding_continue">Continuar</string>
+    <string name="onboarding_ai_description">MedReminder usa IA para analizar tus patrones de medicación y brindarte información personalizada. Puedes ejecutar la IA directamente en tu dispositivo para total privacidad.</string>
+    <string name="best_for_device">Mejor para tu dispositivo</string>
+    <string name="cloud_ai_recommended">Se recomienda IA en la nube</string>
+    <string name="cloud_ai_no_compatible">No se encontraron modelos de IA local compatibles con tu dispositivo. Puedes usar IA en la nube para el análisis de medicamentos.</string>
+    <string name="local_ai_privacy_note">La IA local mantiene todos tus datos de salud en tu dispositivo. Nada se envía a servidores externos.</string>
+    <string name="skip_use_cloud_ai">Omitir (usar IA en la nube)</string>
+    <string name="gpu_accelerated">Aceleración GPU</string>
+    <string name="choose_a_model">Elige un modelo</string>
+    <string name="models_ranked">Modelos clasificados por compatibilidad con tu dispositivo:</string>
+    <string name="download_model_name">Descargar %1$s</string>
+    <string name="connecting">Conectando…</string>
+    <string name="retry_attempt">Intento %1$d</string>
+    <string name="downloading_model">Descargando %1$s</string>
+    <string name="pause">Pausar</string>
+    <string name="download_paused">Descarga pausada</string>
+    <string name="resume">Reanudar</string>
+    <string name="continue_bg_finish">Continuar en segundo plano y finalizar configuración</string>
+    <string name="verifying_download">Verificando descarga…</string>
+    <string name="model_ready">¡%1$s está listo!</string>
+    <string name="ai_analyze_locally">La IA analizará tus patrones de medicación localmente en tu dispositivo.</string>
+    <string name="download_failed_title">Error de descarga</string>
+    <string name="retry">Reintentar</string>
+    <string name="go_back">Volver</string>
+    <string name="preparing">Preparando…</string>
+    <string name="all_set_name">¡Todo listo, %1$s!</string>
+    <string name="start_adding_meds">Comienza a agregar tus medicamentos y MedReminder te ayudará a mantenerte al día.</string>
+    <string name="no_wifi_download_warning">Descargar %1$s (%2$d MB) usará datos móviles. Recomendamos conectarte a WiFi.</string>
 
     <!-- SMS Failure -->
     <string name="sms_failure_channel_name">Fallos de SMS</string>
@@ -166,6 +205,8 @@
     <string name="caregiver_notif_title">Notificaciones a cuidadores</string>
     <string name="caregiver_notif_desc">Notifica a familiares y cuidadores por SMS o correo electrónico cuando se toman o se pierden dosis.</string>
     <string name="ai_insights_desc">Obtén análisis personalizados de medicamentos con IA en tu dispositivo. Tus datos permanecen privados.</string>
+    <string name="phone_call_title">Llamada al cuidador</string>
+    <string name="phone_call_desc">Cuando el SMS no llega al cuidador, toca la notificación para llamarle directamente y asegurarte de que esté informado.</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Texto</string>

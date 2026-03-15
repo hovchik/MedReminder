@@ -147,11 +147,50 @@
     <string name="download_failed">下载失败，请检查网络连接。</string>
     <string name="try_again">重试</string>
 
+    <!-- User Profile -->
+    <string name="user_profile">用户</string>
+    <string name="age_display">年龄：%1$d</string>
+    <string name="tap_to_edit_profile">点击编辑个人资料</string>
+
     <!-- Onboarding -->
     <string name="welcome_title">欢迎使用 MedReminder</string>
+    <string name="tell_us_about_yourself">介绍一下您自己</string>
+    <string name="personalize_experience">这有助于我们为您提供个性化体验</string>
+    <string name="your_name">您的姓名</string>
+    <string name="your_age">您的年龄</string>
+    <string name="name_required">请输入您的姓名</string>
+    <string name="age_invalid">请输入有效年龄</string>
     <string name="welcome_subtitle">您的个人用药提醒助手，配备 AI 智能分析</string>
     <string name="get_started">开始使用</string>
     <string name="ai_powered_insights">AI 智能分析</string>
+    <string name="onboarding_continue">继续</string>
+    <string name="onboarding_ai_description">MedReminder 使用 AI 分析您的用药模式并提供个性化建议。您可以直接在设备上运行 AI，完全保护隐私。</string>
+    <string name="best_for_device">最适合您的设备</string>
+    <string name="cloud_ai_recommended">推荐使用云端 AI</string>
+    <string name="cloud_ai_no_compatible">未找到与您设备兼容的本地 AI 模型。您可以使用云端 AI 进行药物分析。</string>
+    <string name="local_ai_privacy_note">本地 AI 将所有健康数据保存在您的设备上。不会发送到外部服务器。</string>
+    <string name="skip_use_cloud_ai">暂时跳过（使用云端 AI）</string>
+    <string name="gpu_accelerated">GPU 加速</string>
+    <string name="choose_a_model">选择模型</string>
+    <string name="models_ranked">按与您设备的兼容性排列的模型：</string>
+    <string name="download_model_name">下载 %1$s</string>
+    <string name="connecting">连接中…</string>
+    <string name="retry_attempt">重试第 %1$d 次</string>
+    <string name="downloading_model">正在下载 %1$s</string>
+    <string name="pause">暂停</string>
+    <string name="download_paused">下载已暂停</string>
+    <string name="resume">继续</string>
+    <string name="continue_bg_finish">后台继续并完成设置</string>
+    <string name="verifying_download">正在验证下载…</string>
+    <string name="model_ready">%1$s 已就绪！</string>
+    <string name="ai_analyze_locally">AI 将在您的设备上本地分析您的用药模式。</string>
+    <string name="download_failed_title">下载失败</string>
+    <string name="retry">重试</string>
+    <string name="go_back">返回</string>
+    <string name="preparing">准备中…</string>
+    <string name="all_set_name">一切就绪，%1$s！</string>
+    <string name="start_adding_meds">开始添加您的药物，MedReminder 将帮助您按时服药。</string>
+    <string name="no_wifi_download_warning">下载 %1$s（%2$d MB）将使用移动数据。建议连接 WiFi。</string>
 
     <!-- SMS Failure -->
     <string name="sms_failure_channel_name">短信发送失败</string>
@@ -166,6 +205,8 @@
     <string name="caregiver_notif_title">看护人通知</string>
     <string name="caregiver_notif_desc">通过短信或电子邮件通知家人和看护人用药或错过用药的情况。</string>
     <string name="ai_insights_desc">获取设备上 AI 驱动的个性化药物分析。您的数据保持私密。</string>
+    <string name="phone_call_title">拨打看护人电话</string>
+    <string name="phone_call_desc">当短信无法送达看护人时，点击通知直接拨打电话，确保他们得到通知。</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">文字</string>

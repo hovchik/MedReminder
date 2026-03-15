@@ -147,11 +147,50 @@
     <string name="download_failed">Загрузка не удалась. Проверьте подключение к интернету.</string>
     <string name="try_again">Попробовать снова</string>
 
+    <!-- User Profile -->
+    <string name="user_profile">Пользователь</string>
+    <string name="age_display">Возраст: %1$d</string>
+    <string name="tap_to_edit_profile">Нажмите для редактирования профиля</string>
+
     <!-- Onboarding -->
     <string name="welcome_title">Добро пожаловать в MedReminder</string>
+    <string name="tell_us_about_yourself">Расскажите о себе</string>
+    <string name="personalize_experience">Это поможет нам персонализировать ваш опыт</string>
+    <string name="your_name">Ваше имя</string>
+    <string name="your_age">Ваш возраст</string>
+    <string name="name_required">Пожалуйста, введите ваше имя</string>
+    <string name="age_invalid">Пожалуйста, введите корректный возраст</string>
     <string name="welcome_subtitle">Ваш персональный помощник по лекарствам с аналитикой на базе ИИ</string>
     <string name="get_started">Начать</string>
     <string name="ai_powered_insights">Аналитика ИИ</string>
+    <string name="onboarding_continue">Продолжить</string>
+    <string name="onboarding_ai_description">MedReminder использует ИИ для анализа ваших привычек приёма лекарств и предоставления персонализированных рекомендаций. Вы можете запустить ИИ прямо на вашем устройстве для полной конфиденциальности.</string>
+    <string name="best_for_device">Лучшее для вашего устройства</string>
+    <string name="cloud_ai_recommended">Рекомендуется облачный ИИ</string>
+    <string name="cloud_ai_no_compatible">Совместимые модели локального ИИ для вашего устройства не найдены. Вы можете использовать облачный ИИ для анализа лекарств.</string>
+    <string name="local_ai_privacy_note">Локальный ИИ хранит все ваши данные о здоровье на устройстве. Ничего не отправляется на внешние серверы.</string>
+    <string name="skip_use_cloud_ai">Пропустить (использовать облачный ИИ)</string>
+    <string name="gpu_accelerated">Ускорение GPU</string>
+    <string name="choose_a_model">Выберите модель</string>
+    <string name="models_ranked">Модели отсортированы по совместимости с вашим устройством:</string>
+    <string name="download_model_name">Скачать %1$s</string>
+    <string name="connecting">Подключение…</string>
+    <string name="retry_attempt">Попытка %1$d</string>
+    <string name="downloading_model">Загрузка %1$s</string>
+    <string name="pause">Пауза</string>
+    <string name="download_paused">Загрузка приостановлена</string>
+    <string name="resume">Продолжить</string>
+    <string name="continue_bg_finish">Продолжить в фоне и завершить настройку</string>
+    <string name="verifying_download">Проверка загрузки…</string>
+    <string name="model_ready">%1$s готова!</string>
+    <string name="ai_analyze_locally">ИИ будет анализировать ваши привычки приёма лекарств локально на вашем устройстве.</string>
+    <string name="download_failed_title">Ошибка загрузки</string>
+    <string name="retry">Повторить</string>
+    <string name="go_back">Назад</string>
+    <string name="preparing">Подготовка…</string>
+    <string name="all_set_name">Всё готово, %1$s!</string>
+    <string name="start_adding_meds">Начните добавлять лекарства, и MedReminder поможет вам не пропустить приём.</string>
+    <string name="no_wifi_download_warning">Загрузка %1$s (%2$d МБ) будет использовать мобильные данные. Рекомендуем подключиться к WiFi.</string>
 
     <!-- SMS Failure -->
     <string name="sms_failure_channel_name">Ошибки SMS</string>
@@ -166,6 +205,8 @@
     <string name="caregiver_notif_title">Уведомления опекунам</string>
     <string name="caregiver_notif_desc">Уведомляйте семью и опекунов по SMS или электронной почте о приёме или пропуске лекарств.</string>
     <string name="ai_insights_desc">Получайте персонализированный анализ лекарств с помощью ИИ на вашем устройстве. Ваши данные остаются конфиденциальными.</string>
+    <string name="phone_call_title">Звонок опекуну</string>
+    <string name="phone_call_desc">Если SMS не удалось доставить опекуну, нажмите на уведомление, чтобы позвонить ему напрямую.</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Текст</string>

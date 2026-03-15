@@ -6,6 +6,7 @@ import com.medreminder.ai.capability.DeviceAiCapabilityDetector
 import com.medreminder.ai.local.AiProviderSelector
 import com.medreminder.ai.AiProviderType
 import com.medreminder.ai.modelmanager.*
+import com.medreminder.R
 import com.medreminder.data.preferences.UserPreferencesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -16,8 +17,8 @@ data class OnboardingState(
     val currentStep: OnboardingStep = OnboardingStep.WELCOME,
     val userName: String = "",
     val userAge: String = "",
-    val nameError: String? = null,
-    val ageError: String? = null,
+    val nameError: Int? = null,
+    val ageError: Int? = null,
     val recommendations: List<ModelRecommendation> = emptyList(),
     val selectedRecommendation: ModelRecommendation? = null,
     val bestFitRecommendation: ModelRecommendation? = null,
@@ -89,13 +90,13 @@ class OnboardingViewModel @Inject constructor(
         var hasError = false
 
         if (name.isBlank()) {
-            _state.update { it.copy(nameError = "Please enter your name") }
+            _state.update { it.copy(nameError = R.string.name_required) }
             hasError = true
         }
 
         val age = ageText.toIntOrNull()
         if (age == null || age < 1 || age > 150) {
-            _state.update { it.copy(ageError = "Please enter a valid age") }
+            _state.update { it.copy(ageError = R.string.age_invalid) }
             hasError = true
         }
 

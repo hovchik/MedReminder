@@ -234,6 +234,34 @@
     <string name="continue_in_background">Continue in background</string>
     <string name="no_wifi_title">No WiFi Connection</string>
     <string name="download_anyway">Download Anyway</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_ai_description">MedReminder uses AI to analyze your medication patterns and provide personalized insights. You can run AI directly on your device for complete privacy.</string>
+    <string name="best_for_device">Best for your device</string>
+    <string name="cloud_ai_recommended">Cloud AI recommended</string>
+    <string name="cloud_ai_no_compatible">No compatible local AI models found for your device. You can use Cloud AI for medication analysis.</string>
+    <string name="local_ai_privacy_note">Local AI keeps all your health data on your device. Nothing is sent to external servers.</string>
+    <string name="skip_use_cloud_ai">Skip for now (use Cloud AI)</string>
+    <string name="gpu_accelerated">GPU accelerated</string>
+    <string name="choose_a_model">Choose a Model</string>
+    <string name="models_ranked">Models ranked by compatibility with your device:</string>
+    <string name="download_model_name">Download %1$s</string>
+    <string name="connecting">Connecting…</string>
+    <string name="retry_attempt">Retry attempt %1$d</string>
+    <string name="downloading_model">Downloading %1$s</string>
+    <string name="pause">Pause</string>
+    <string name="download_paused">Download Paused</string>
+    <string name="resume">Resume</string>
+    <string name="continue_bg_finish">Continue in background &amp; finish setup</string>
+    <string name="verifying_download">Verifying download…</string>
+    <string name="model_ready">%1$s is ready!</string>
+    <string name="ai_analyze_locally">AI will analyze your medication patterns locally on your device.</string>
+    <string name="download_failed_title">Download Failed</string>
+    <string name="retry">Retry</string>
+    <string name="go_back">Go Back</string>
+    <string name="preparing">Preparing…</string>
+    <string name="all_set_name">You\'re all set, %1$s!</string>
+    <string name="start_adding_meds">Start adding your medications and MedReminder will help you stay on track.</string>
+    <string name="no_wifi_download_warning">Downloading %1$s (%2$d MB) will use mobile data. We recommend connecting to WiFi first.</string>
     <string name="you_are_all_set">You\'re all set!</string>
     <string name="start_using_app">Start Using MedReminder</string>
 
@@ -250,6 +278,8 @@
     <string name="caregiver_notif_title">Caregiver Notifications</string>
     <string name="caregiver_notif_desc">Notify family and caregivers via SMS or email when doses are taken or missed.</string>
     <string name="ai_insights_desc">Get personalized medication analysis powered by on-device AI. Your data stays private.</string>
+    <string name="phone_call_title">Phone Call to Caregiver</string>
+    <string name="phone_call_desc">When SMS fails to reach a caregiver, tap the notification to call them directly and ensure they are informed.</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Text</string>

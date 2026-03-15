@@ -296,6 +296,40 @@ private fun WelcomeStep(onContinue: () -> Unit) {
             }
         }
 
+        // Phone call to caregiver feature
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(
+                    Icons.Default.Phone,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        stringResource(R.string.phone_call_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        stringResource(R.string.phone_call_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
@@ -338,14 +372,14 @@ private fun UserInfoStep(
         )
 
         Text(
-            "Tell us about yourself",
+            stringResource(R.string.tell_us_about_yourself),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
 
         Text(
-            "This helps us personalize your experience",
+            stringResource(R.string.personalize_experience),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -356,10 +390,10 @@ private fun UserInfoStep(
         OutlinedTextField(
             value = state.userName,
             onValueChange = onNameChange,
-            label = { Text("Your name") },
+            label = { Text(stringResource(R.string.your_name)) },
             leadingIcon = { Icon(Icons.Default.Person, null) },
             isError = state.nameError != null,
-            supportingText = state.nameError?.let { { Text(it) } },
+            supportingText = state.nameError?.let { resId -> { Text(stringResource(resId)) } },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             keyboardActions = KeyboardActions(
@@ -376,10 +410,10 @@ private fun UserInfoStep(
                     onAgeChange(value)
                 }
             },
-            label = { Text("Your age") },
+            label = { Text(stringResource(R.string.your_age)) },
             leadingIcon = { Icon(Icons.Default.Cake, null) },
             isError = state.ageError != null,
-            supportingText = state.ageError?.let { { Text(it) } },
+            supportingText = state.ageError?.let { resId -> { Text(stringResource(resId)) } },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
@@ -401,7 +435,7 @@ private fun UserInfoStep(
             modifier = Modifier.fillMaxWidth(),
             enabled = state.userName.isNotBlank() && state.userAge.isNotBlank()
         ) {
-            Text("Continue")
+            Text(stringResource(R.string.onboarding_continue))
             Spacer(modifier = Modifier.width(8.dp))
             Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp))
         }
@@ -444,15 +478,14 @@ private fun AiModelChoiceStep(
         )
 
         Text(
-            "AI-Powered Insights",
+            stringResource(R.string.ai_powered_insights),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
 
         Text(
-            "MedReminder uses AI to analyze your medication patterns and provide personalized insights. " +
-                    "You can run AI directly on your device for complete privacy.",
+            stringResource(R.string.onboarding_ai_description),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -481,7 +514,7 @@ private fun AiModelChoiceStep(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "Best for your device",
+                            stringResource(R.string.best_for_device),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -521,7 +554,7 @@ private fun AiModelChoiceStep(
                         )
                         if (bestFit.performanceEstimate.willUseGpu) {
                             Text(
-                                "GPU accelerated",
+                                stringResource(R.string.gpu_accelerated),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -540,7 +573,7 @@ private fun AiModelChoiceStep(
             ) {
                 Icon(Icons.Default.Download, null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Download automatically")
+                Text(stringResource(R.string.download_automatically))
             }
         } else {
             // No compatible models
@@ -559,14 +592,13 @@ private fun AiModelChoiceStep(
                         Icon(Icons.Default.Cloud, null, tint = MaterialTheme.colorScheme.tertiary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "Cloud AI recommended",
+                            stringResource(R.string.cloud_ai_recommended),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
                     Text(
-                        "No compatible local AI models found for your device. " +
-                                "You can use Cloud AI for medication analysis.",
+                        stringResource(R.string.cloud_ai_no_compatible),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -581,7 +613,7 @@ private fun AiModelChoiceStep(
             ) {
                 Icon(Icons.Default.Tune, null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Choose model manually")
+                Text(stringResource(R.string.choose_model_manually))
             }
         }
 
@@ -602,7 +634,7 @@ private fun AiModelChoiceStep(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "Local AI keeps all your health data on your device. Nothing is sent to external servers.",
+                    stringResource(R.string.local_ai_privacy_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
@@ -612,7 +644,7 @@ private fun AiModelChoiceStep(
         Spacer(modifier = Modifier.weight(1f))
 
         TextButton(onClick = onSkip) {
-            Text("Skip for now (use Cloud AI)")
+            Text(stringResource(R.string.skip_use_cloud_ai))
         }
     }
 }
@@ -659,13 +691,13 @@ private fun ManualModelSelectionStep(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            "Choose a Model",
+            stringResource(R.string.choose_a_model),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
 
         Text(
-            "Models ranked by compatibility with your device:",
+            stringResource(R.string.models_ranked),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -685,14 +717,14 @@ private fun ManualModelSelectionStep(
             Button(onClick = onDownload, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Download ${state.selectedRecommendation.model.displayName}")
+                Text(stringResource(R.string.download_model_name, state.selectedRecommendation.model.displayName))
             }
         }
 
         Spacer(modifier = Modifier.weight(1f))
 
         TextButton(onClick = onSkip) {
-            Text("Skip for now")
+            Text(stringResource(R.string.skip_for_now))
         }
     }
 }
@@ -816,19 +848,19 @@ private fun DownloadProgressStep(
                 CircularProgressIndicator(modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    "Connecting...",
+                    stringResource(R.string.connecting),
                     style = MaterialTheme.typography.titleMedium
                 )
                 if (ds.retryCount > 0) {
                     Text(
-                        "Retry attempt ${ds.retryCount}",
+                        stringResource(R.string.retry_attempt, ds.retryCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
                 OutlinedButton(onClick = onCancel) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
 
@@ -841,7 +873,7 @@ private fun DownloadProgressStep(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "Downloading $modelName",
+                    stringResource(R.string.downloading_model, modelName),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -890,25 +922,25 @@ private fun DownloadProgressStep(
                     OutlinedButton(onClick = onPause, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Default.Pause, null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Pause")
+                        Text(stringResource(R.string.pause))
                     }
                     OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Default.Close, null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
                 TextButton(onClick = onContinueInBackground) {
-                    Text("Continue in background & finish setup")
+                    Text(stringResource(R.string.continue_bg_finish))
                 }
             }
 
             DownloadStatus.PAUSED -> {
                 Icon(Icons.Default.PauseCircle, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.secondary)
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Download Paused", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.download_paused), style = MaterialTheme.typography.titleMedium)
                 Text(
                     "${ds.downloadedMb} / ${ds.totalMb} MB",
                     style = MaterialTheme.typography.bodyMedium,
@@ -918,17 +950,17 @@ private fun DownloadProgressStep(
                 Button(onClick = onResume, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Resume")
+                    Text(stringResource(R.string.resume))
                 }
                 OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
 
             DownloadStatus.VERIFYING -> {
                 CircularProgressIndicator(modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Verifying download...", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.verifying_download), style = MaterialTheme.typography.titleMedium)
             }
 
             DownloadStatus.COMPLETED -> {
@@ -940,20 +972,20 @@ private fun DownloadProgressStep(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    "$modelName is ready!",
+                    stringResource(R.string.model_ready, modelName),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    "AI will analyze your medication patterns locally on your device.",
+                    stringResource(R.string.ai_analyze_locally),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(32.dp))
                 Button(onClick = onFinish, modifier = Modifier.fillMaxWidth()) {
-                    Text("Get Started")
+                    Text(stringResource(R.string.get_started))
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp))
                 }
@@ -962,7 +994,7 @@ private fun DownloadProgressStep(
             DownloadStatus.FAILED -> {
                 Icon(Icons.Default.Error, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.error)
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Download Failed", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.download_failed_title), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
                 Text(
                     ds.message,
                     style = MaterialTheme.typography.bodyMedium,
@@ -971,17 +1003,17 @@ private fun DownloadProgressStep(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
-                    Text("Retry")
+                    Text(stringResource(R.string.retry))
                 }
                 OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
-                    Text("Go Back")
+                    Text(stringResource(R.string.go_back))
                 }
             }
 
             DownloadStatus.CANCELLED, DownloadStatus.IDLE -> {
                 CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Preparing...", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.preparing), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
@@ -1009,7 +1041,7 @@ private fun DoneStep(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            "You're all set, ${state.userName}!",
+            stringResource(R.string.all_set_name, state.userName),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
@@ -1018,7 +1050,7 @@ private fun DoneStep(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            "Start adding your medications and MedReminder will help you stay on track.",
+            stringResource(R.string.start_adding_meds),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1030,7 +1062,7 @@ private fun DoneStep(
             onClick = onFinish,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Start Using MedReminder")
+            Text(stringResource(R.string.start_using_app))
             Spacer(modifier = Modifier.width(8.dp))
             Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp))
         }
@@ -1047,21 +1079,18 @@ private fun WifiWarningDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.WifiOff, null) },
-        title = { Text("No WiFi Connection") },
+        title = { Text(stringResource(R.string.no_wifi_title)) },
         text = {
-            Text(
-                "Downloading $modelName ($sizeMb MB) will use mobile data. " +
-                        "We recommend connecting to WiFi first."
-            )
+            Text(stringResource(R.string.no_wifi_download_warning, modelName, sizeMb))
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Download Anyway")
+                Text(stringResource(R.string.download_anyway))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

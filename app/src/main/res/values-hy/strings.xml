@@ -147,11 +147,51 @@
     <string name="download_failed">Ներբեռնումը ձախողվեց. Ստուգեք ինտերնետ կապը.</string>
     <string name="try_again">Փորձեք կրկին</string>
 
+    <!-- User Profile -->
+    <string name="user_profile">Օգտատեր</string>
+    <string name="age_display">Տարիք՝ %1$d</string>
+    <string name="tap_to_edit_profile">Սեղմեք պրոֆիլը խմբագրելու համար</string>
+
     <!-- Onboarding -->
     <string name="welcome_title">Բարի գալուստ MedReminder</string>
+    <string name="tell_us_about_yourself">Պատմեք ձեր մասին</string>
+    <string name="personalize_experience">Սա օգնում է մեզ անհատականացնել ձեր փորձը</string>
+    <string name="your_name">Ձեր անունը</string>
+    <string name="your_age">Ձեր տարիքը</string>
+    <string name="name_required">Խնդրում ենք մուտքագրեք ձեր անունը</string>
+    <string name="age_invalid">Խնդրում ենք մուտքագրեք վավեր տարիք</string>
+
     <string name="welcome_subtitle">Ձեր անձնական դեղերի հիշեցողը արհեստական բանականությամբ</string>
     <string name="get_started">Սկսել</string>
     <string name="ai_powered_insights">Արհեստական բանականության վերլուծություն</string>
+    <string name="onboarding_continue">Շարունակել</string>
+    <string name="onboarding_ai_description">MedReminder-ը օգտագործում է արհեստական բանականությունը ձեր դեղերի ընդունման սովորությունները վերլուծելու և անհատական խորհուրդներ տալու համար։ Կարող եք գործարկել արհեստական բանականությունը ձեր սարքի վրա։</string>
+    <string name="best_for_device">Լավագույնը ձեր սարքի համար</string>
+    <string name="cloud_ai_recommended">Ամպային արհեստական բանականություն</string>
+    <string name="cloud_ai_no_compatible">Ձեր սարքի հետ համատեղելի տեղական մոդելներ չեն գտնվել։ Կարող եք օգտագործել ամպային արհեստական բանականությունը։</string>
+    <string name="local_ai_privacy_note">Տեղական արհեստական բանականությունը պահում է ձեր առողջապահական տվյալները սարքում։ Ոչինչ չի ուղարկվում արտաքին սերվերներ։</string>
+    <string name="skip_use_cloud_ai">Բաց թողնել (օգտագործել ամպային արհեստական բանականություն)</string>
+    <string name="gpu_accelerated">GPU արագացում</string>
+    <string name="choose_a_model">Ընտրեք մոդել</string>
+    <string name="models_ranked">Մոդելները դասավորված են ձեր սարքի հետ համատեղելիությամբ՝</string>
+    <string name="download_model_name">Ներբեռնել %1$s</string>
+    <string name="connecting">Միանում…</string>
+    <string name="retry_attempt">Փորձ %1$d</string>
+    <string name="downloading_model">Ներբեռնում է %1$s</string>
+    <string name="pause">Դադար</string>
+    <string name="download_paused">Ներբեռնումը դադարեցված է</string>
+    <string name="resume">Շարունակել</string>
+    <string name="continue_bg_finish">Շարունակել ֆոնին և ավարտել կարգավորումը</string>
+    <string name="verifying_download">Ստուգվում է…</string>
+    <string name="model_ready">%1$s պատրաստ է։</string>
+    <string name="ai_analyze_locally">Արհեստական բանականությունը կվերլուծի ձեր դեղերի սովորությունները ձեր սարքի վրա։</string>
+    <string name="download_failed_title">Ներբեռնումը ձախողվեց</string>
+    <string name="retry">Կրկնել</string>
+    <string name="go_back">Հետ</string>
+    <string name="preparing">Պատրաստվում…</string>
+    <string name="all_set_name">Ամեն ինչ պատրաստ է, %1$s։</string>
+    <string name="start_adding_meds">Սկսեք ավելացնել ձեր դեղերը, և MedReminder-ը կօգնի ձեզ չմոռանալ ընդունման ժամանակը։</string>
+    <string name="no_wifi_download_warning">%1$s-ի (%2$d ՄԲ) ներբեռնումը կօգտագործի բջջային տվյալներ։ Խորհուրդ ենք տալիս WiFi-ին միանալ։</string>
 
     <!-- SMS Failure -->
     <string name="sms_failure_channel_name">Սմս սխալներ</string>
@@ -166,6 +206,8 @@
     <string name="caregiver_notif_title">Ծանուցումներ խնամակալներին</string>
     <string name="caregiver_notif_desc">Վնակեք ընտանիքին և խնամակալներին SMS կամ էլ. փոստով դեղերը ընդունելիս կամ բաց թողնելիս։</string>
     <string name="ai_insights_desc">Ստացեք անհատական դեղերի վերլուծություն արհեստական բանականությամբՍ ձեր սարքի վրա։ Տվյալները մնում են գաղտնի։</string>
+    <string name="phone_call_title">Հեռախոսազանգ խնամակալին</string>
+    <string name="phone_call_desc">Երբ SMS-ը չի հաջողվում խնամակալին, սեղմեք ծանուցումը ուղղակի զանգելու համար։</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">\u054f\u0565\u0584\u057d\u057f</string>
