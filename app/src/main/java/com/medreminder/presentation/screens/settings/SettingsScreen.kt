@@ -30,6 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.medreminder.BuildConfig
 import com.medreminder.R
 import com.medreminder.ai.AiProviderType
 import com.medreminder.ai.local.AiProviderSelector
@@ -346,7 +347,7 @@ fun SettingsScreen(
                     Text(stringResource(R.string.active_medications, medCount),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                    Text(stringResource(R.string.version, com.medreminder.BuildConfig.VERSION_NAME),
+                    Text(stringResource(R.string.version, BuildConfig.VERSION_NAME),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f))
                 }
