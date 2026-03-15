@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -478,9 +479,7 @@ fun OcrScannerScreen(
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = Color.Black.copy(alpha = 0.6f)
                         ),
-                        border = AssistChipDefaults.assistChipBorder(
-                            borderColor = Color.White.copy(alpha = 0.4f)
-                        ),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
                         shape = RoundedCornerShape(20.dp)
                     )
 
