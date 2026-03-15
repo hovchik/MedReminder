@@ -293,6 +293,55 @@ fun AddEditMedicationScreen(
                 shape = RoundedCornerShape(12.dp)
             )
 
+            HorizontalDivider()
+
+            // Caregiver notifications
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.notify_caregivers),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        stringResource(R.string.notify_caregivers_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = uiState.notifyCaregivers,
+                    onCheckedChange = viewModel::updateNotifyCaregivers
+                )
+            }
+
+            // Emergency medication
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.emergency_medication),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Text(
+                        stringResource(R.string.emergency_medication_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = uiState.isEmergency,
+                    onCheckedChange = viewModel::updateIsEmergency,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.error,
+                        checkedTrackColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                )
+            }
+
             // Save button
             Button(
                 onClick = { viewModel.save() },

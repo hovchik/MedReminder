@@ -273,6 +273,8 @@ class MedicationRepositoryImpl @Inject constructor(
                 put("refillThreshold", med.refillThreshold)
                 put("refillReminder", med.refillReminder)
                 put("notes", med.notes)
+                put("notifyCaregivers", med.notifyCaregivers)
+                put("isEmergency", med.isEmergency)
                 put("isActive", med.isActive)
                 put("createdAt", med.createdAt)
                 put("updatedAt", med.updatedAt)
@@ -363,6 +365,8 @@ class MedicationRepositoryImpl @Inject constructor(
                         refillThreshold = m.optInt("refillThreshold", 5),
                         refillReminder = m.optBoolean("refillReminder", true),
                         notes = m.optString("notes", ""),
+                        notifyCaregivers = m.optBoolean("notifyCaregivers", false),
+                        isEmergency = m.optBoolean("isEmergency", false),
                         isActive = m.optBoolean("isActive", true),
                         createdAt = m.optLong("createdAt", System.currentTimeMillis()),
                         updatedAt = m.optLong("updatedAt", System.currentTimeMillis())

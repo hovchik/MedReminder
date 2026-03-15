@@ -87,10 +87,16 @@
     <string name="add_family_members">اعضای خانواده را اضافه کنید</string>
     <string name="add_caregiver">افزودن مراقب</string>
     <string name="name">نام</string>
+    <string name="phone">تلفن</string>
+    <string name="email">ایمیل</string>
     <string name="phone_optional">تلفن (اختیاری)</string>
     <string name="relationship_optional">نسبت (اختیاری)</string>
     <string name="notify_on_missed">اطلاع در صورت فراموشی</string>
     <string name="notify_on_taken">اطلاع در صورت مصرف</string>
+    <string name="notify_caregivers">اطلاع‌رسانی به مراقبان</string>
+    <string name="notify_caregivers_description">اطلاع‌رسانی به مراقبان درباره این دارو از طریق پیامک یا ایمیل</string>
+    <string name="emergency_medication">داروی اضطراری</string>
+    <string name="emergency_medication_description">در صورت فراموشی، مراقبان پیامکی با موقعیت مکانی شما دریافت می‌کنند</string>
     <string name="settings">تنظیمات</string>
     <string name="active_medications">%1$d داروی فعال</string>
     <string name="version">نسخه 1.0.0</string>
@@ -140,6 +146,26 @@
     <string name="downloading_language_data">در حال دانلود داده‌های زبان…</string>
     <string name="download_failed">دانلود ناموفق بود. اتصال اینترنت خود را بررسی کنید.</string>
     <string name="try_again">تلاش مجدد</string>
+
+    <!-- Onboarding -->
+    <string name="welcome_title">به MedReminder خوش آمدید</string>
+    <string name="welcome_subtitle">یادآور شخصی دارو با تحلیل هوش مصنوعی</string>
+    <string name="get_started">شروع کنید</string>
+    <string name="ai_powered_insights">تحلیل هوش مصنوعی</string>
+
+    <!-- SMS Failure -->
+    <string name="sms_failure_channel_name">خطاهای پیامک</string>
+    <string name="sms_failure_channel_desc">هشدار در صورت ارسال ناموفق پیامک به مراقبان</string>
+    <string name="sms_failed_title">ارسال پیامک ناموفق - برای تماس لمس کنید</string>
+    <string name="sms_failed_body">ارسال پیامک به %1$s درباره %2$s ناموفق بود. برای تماس مستقیم لمس کنید.</string>
+
+    <!-- Welcome Screen Features -->
+    <string name="free_features">امکانات رایگان</string>
+    <string name="emergency_alerts_title">هشدارهای داروی اضطراری</string>
+    <string name="emergency_alerts_desc">داروهای حیاتی را به عنوان اضطراری علامت بزنید. در صورت فراموشی، مراقبان پیامکی با موقعیت مکانی شما دریافت می‌کنند تا فوراً به شما کمک کنند.</string>
+    <string name="caregiver_notif_title">اطلاع‌رسانی به مراقبان</string>
+    <string name="caregiver_notif_desc">خانواده و مراقبان را از طریق پیامک یا ایمیل از مصرف یا فراموشی دارو مطلع کنید.</string>
+    <string name="ai_insights_desc">تحلیل شخصی‌سازی شده داروها با هوش مصنوعی روی دستگاه شما. داده‌های شما خصوصی می‌ماند.</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">متن</string>

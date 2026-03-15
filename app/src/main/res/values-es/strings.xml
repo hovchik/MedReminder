@@ -87,10 +87,16 @@
     <string name="add_family_members">Agrega familiares que deben ser notificados</string>
     <string name="add_caregiver">Agregar cuidador</string>
     <string name="name">Nombre</string>
+    <string name="phone">Teléfono</string>
+    <string name="email">Correo electrónico</string>
     <string name="phone_optional">Teléfono (opcional)</string>
     <string name="relationship_optional">Relación (opcional)</string>
     <string name="notify_on_missed">Notificar al perder</string>
     <string name="notify_on_taken">Notificar al tomar</string>
+    <string name="notify_caregivers">Notificar a cuidadores</string>
+    <string name="notify_caregivers_description">Informar a los cuidadores sobre este medicamento por SMS o correo electrónico</string>
+    <string name="emergency_medication">Medicamento de emergencia</string>
+    <string name="emergency_medication_description">Al perder una dosis, los cuidadores reciben un SMS con tu ubicación</string>
     <string name="settings">Ajustes</string>
     <string name="active_medications">%1$d medicamentos activos</string>
     <string name="version">Versión 1.0.0</string>
@@ -140,6 +146,26 @@
     <string name="downloading_language_data">Descargando datos de idioma…</string>
     <string name="download_failed">Error de descarga. Comprueba tu conexión a internet.</string>
     <string name="try_again">Intentar de nuevo</string>
+
+    <!-- Onboarding -->
+    <string name="welcome_title">Bienvenido a MedReminder</string>
+    <string name="welcome_subtitle">Tu recordatorio personal de medicamentos con análisis de IA</string>
+    <string name="get_started">Comenzar</string>
+    <string name="ai_powered_insights">Análisis con IA</string>
+
+    <!-- SMS Failure -->
+    <string name="sms_failure_channel_name">Fallos de SMS</string>
+    <string name="sms_failure_channel_desc">Alertas cuando falla el envío de SMS a cuidadores</string>
+    <string name="sms_failed_title">SMS fallido - toca para llamar</string>
+    <string name="sms_failed_body">No se pudo enviar SMS a %1$s sobre %2$s. Toca para llamar directamente.</string>
+
+    <!-- Welcome Screen Features -->
+    <string name="free_features">Funciones gratuitas</string>
+    <string name="emergency_alerts_title">Alertas de medicamentos de emergencia</string>
+    <string name="emergency_alerts_desc">Marca medicamentos críticos como emergencia. Al perder una dosis, los cuidadores reciben un SMS con tu ubicación en vivo para que puedan ayudarte de inmediato.</string>
+    <string name="caregiver_notif_title">Notificaciones a cuidadores</string>
+    <string name="caregiver_notif_desc">Notifica a familiares y cuidadores por SMS o correo electrónico cuando se toman o se pierden dosis.</string>
+    <string name="ai_insights_desc">Obtén análisis personalizados de medicamentos con IA en tu dispositivo. Tus datos permanecen privados.</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Texto</string>

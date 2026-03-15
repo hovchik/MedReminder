@@ -87,10 +87,16 @@
     <string name="add_family_members">Ավելացրեք ընտանիքի անդամներ</string>
     <string name="add_caregiver">Ավելացնել խնամակալ</string>
     <string name="name">Անուն</string>
+    <string name="phone">Հեռախոս</string>
+    <string name="email">Էլ. փոստ</string>
     <string name="phone_optional">Հեռախոս (կամավոր)</string>
     <string name="relationship_optional">Կապ (կամավոր)</string>
     <string name="notify_on_missed">Ծանուցել բաց թողնելիս</string>
     <string name="notify_on_taken">Ծանուցել ընդունելիս</string>
+    <string name="notify_caregivers">Ծանուցել խնամակալներին</string>
+    <string name="notify_caregivers_description">Տեղեկացնել խնամակալներին այս դեղի մասին SMS կամ էլ. փոստով</string>
+    <string name="emergency_medication">Արտակարգ դեղ</string>
+    <string name="emergency_medication_description">Բաց թողնելիս խնամակալները կստանան SMS ձեր տեղադրությամբ</string>
     <string name="settings">Կարգավորումներ</string>
     <string name="active_medications">%1$d ակտիվ դեղեր</string>
     <string name="version">Տարբերակ 1.0.0</string>
@@ -140,6 +146,26 @@
     <string name="downloading_language_data">Լեզվական տվյալների ներբեռնում…</string>
     <string name="download_failed">Ներբեռնումը ձախողվեց. Ստուգեք ինտերնետ կապը.</string>
     <string name="try_again">Փորձեք կրկին</string>
+
+    <!-- Onboarding -->
+    <string name="welcome_title">Բարի գալուստ MedReminder</string>
+    <string name="welcome_subtitle">Ձեր անձնական դեղերի հիշեցողը արհեստական բանականությամբ</string>
+    <string name="get_started">Սկսել</string>
+    <string name="ai_powered_insights">Արհեստական բանականության վերլուծություն</string>
+
+    <!-- SMS Failure -->
+    <string name="sms_failure_channel_name">Սմս սխալներ</string>
+    <string name="sms_failure_channel_desc">Ծանուցում երբ խնամակալներին SMS չի ուղարկվում</string>
+    <string name="sms_failed_title">SMS չի ուղարկվել - սեղմեք զանգելու համար</string>
+    <string name="sms_failed_body">Չհաջողվեց SMS ուղարկել %1$s-ին %2$s-ի մասին։ Սեղմեք ուղղակի զանգի համար։</string>
+
+    <!-- Welcome Screen Features -->
+    <string name="free_features">Անվճար հնարավորություններ</string>
+    <string name="emergency_alerts_title">Արտակարգ դեղի ահազանգեր</string>
+    <string name="emergency_alerts_desc">Նշեք կարեւոր դեղերը որպես արտակարգ։ Բաց թողնելիս խնամակալները կստանան SMS ձեր տեղադրությամբՍ որպեսզի անմիջապես օգնեն։</string>
+    <string name="caregiver_notif_title">Ծանուցումներ խնամակալներին</string>
+    <string name="caregiver_notif_desc">Վնակեք ընտանիքին և խնամակալներին SMS կամ էլ. փոստով դեղերը ընդունելիս կամ բաց թողնելիս։</string>
+    <string name="ai_insights_desc">Ստացեք անհատական դեղերի վերլուծություն արհեստական բանականությամբՍ ձեր սարքի վրա։ Տվյալները մնում են գաղտնի։</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">\u054f\u0565\u0584\u057d\u057f</string>

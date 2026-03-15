@@ -25,6 +25,8 @@ data class AddEditUiState(
     val refillThreshold: String = "5",
     val refillReminder: Boolean = true,
     val notes: String = "",
+    val notifyCaregivers: Boolean = false,
+    val isEmergency: Boolean = false,
     val schedules: List<ScheduleInput> = listOf(ScheduleInput()),
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
@@ -68,6 +70,8 @@ class AddEditMedicationViewModel @Inject constructor(
                     refillThreshold = med.refillThreshold.toString(),
                     refillReminder = med.refillReminder,
                     notes = med.notes,
+                    notifyCaregivers = med.notifyCaregivers,
+                    isEmergency = med.isEmergency,
                     schedules = med.schedules.map { s ->
                         ScheduleInput(
                             hour = s.timeHour,
@@ -93,6 +97,8 @@ class AddEditMedicationViewModel @Inject constructor(
     fun updateRefillThreshold(t: String) { _uiState.update { it.copy(refillThreshold = t) } }
     fun updateRefillReminder(r: Boolean) { _uiState.update { it.copy(refillReminder = r) } }
     fun updateNotes(notes: String) { _uiState.update { it.copy(notes = notes) } }
+    fun updateNotifyCaregivers(notify: Boolean) { _uiState.update { it.copy(notifyCaregivers = notify) } }
+    fun updateIsEmergency(emergency: Boolean) { _uiState.update { it.copy(isEmergency = emergency) } }
 
     fun addSchedule() {
         _uiState.update { it.copy(schedules = it.schedules + ScheduleInput()) }
@@ -160,7 +166,9 @@ class AddEditMedicationViewModel @Inject constructor(
                     currentStock = state.currentStock.toIntOrNull() ?: 0,
                     refillThreshold = state.refillThreshold.toIntOrNull() ?: 5,
                     refillReminder = state.refillReminder,
-                    notes = state.notes.trim()
+                    notes = state.notes.trim(),
+                    notifyCaregivers = state.notifyCaregivers,
+                    isEmergency = state.isEmergency
                 )
 
                 val schedules = state.schedules.map {

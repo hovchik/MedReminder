@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.medreminder.R
-import com.medreminder.ai.AnalysisResult
-import com.medreminder.ai.local.DailyAnalysisUseCase
 import com.medreminder.alarm.AlarmScheduler
 import com.medreminder.domain.model.*
 import com.medreminder.domain.repository.MedicationRepository
@@ -25,16 +23,13 @@ data class HomeUiState(
     val currentStreak: Int = 0,
     val refillAlerts: List<Medication> = emptyList(),
     val greeting: String = "",
-    val isLoading: Boolean = true,
-    val aiAnalysis: AnalysisResult? = null,
-    val isAnalyzing: Boolean = false
+    val isLoading: Boolean = true
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: MedicationRepository,
     private val alarmScheduler: AlarmScheduler,
-    private val dailyAnalysisUseCase: DailyAnalysisUseCase,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -130,18 +125,6 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val snoozeUntil = System.currentTimeMillis() + 10 * 60 * 1000
             repository.snoozeDose(logId, snoozeUntil)
-        }
-    }
-
-    fun runDailyAnalysis() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isAnalyzing = true) }
-            try {
-                val result = dailyAnalysisUseCase.analyze()
-                _uiState.update { it.copy(aiAnalysis = result, isAnalyzing = false) }
-            } catch (_: Exception) {
-                _uiState.update { it.copy(isAnalyzing = false) }
-            }
         }
     }
 

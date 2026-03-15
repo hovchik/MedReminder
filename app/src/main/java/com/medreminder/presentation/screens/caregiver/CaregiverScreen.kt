@@ -170,6 +170,10 @@ fun CaregiverCard(
                         Text(caregiver.phone, style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    if (caregiver.email.isNotBlank()) {
+                        Text(caregiver.email, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
                 IconButton(onClick = onDelete) {
                     Icon(Icons.Default.Delete, stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
@@ -192,7 +196,10 @@ fun CaregiverCard(
 fun AddCaregiverDialog(onDismiss: () -> Unit, onAdd: (Caregiver) -> Unit) {
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var relationship by remember { mutableStateOf("") }
+
+    val isValid = name.isNotBlank() && phone.isNotBlank() && email.isNotBlank()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -206,7 +213,12 @@ fun AddCaregiverDialog(onDismiss: () -> Unit, onAdd: (Caregiver) -> Unit) {
                 )
                 OutlinedTextField(
                     value = phone, onValueChange = { phone = it },
-                    label = { Text(stringResource(R.string.phone_optional)) }, singleLine = true,
+                    label = { Text(stringResource(R.string.phone)) }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)
+                )
+                OutlinedTextField(
+                    value = email, onValueChange = { email = it },
+                    label = { Text(stringResource(R.string.email)) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)
                 )
                 OutlinedTextField(
@@ -219,11 +231,16 @@ fun AddCaregiverDialog(onDismiss: () -> Unit, onAdd: (Caregiver) -> Unit) {
         confirmButton = {
             Button(
                 onClick = {
-                    if (name.isNotBlank()) {
-                        onAdd(Caregiver(name = name.trim(), phone = phone.trim(), relationship = relationship.trim()))
+                    if (isValid) {
+                        onAdd(Caregiver(
+                            name = name.trim(),
+                            phone = phone.trim(),
+                            email = email.trim(),
+                            relationship = relationship.trim()
+                        ))
                     }
                 },
-                enabled = name.isNotBlank()
+                enabled = isValid
             ) { Text(stringResource(R.string.add)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }

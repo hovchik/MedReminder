@@ -62,7 +62,12 @@ class TakenReceiver : BroadcastReceiver() {
                 db.doseLogDao().updateDoseStatus(doseLogId, "taken")
 
                 val log = db.doseLogDao().getDoseLogById(doseLogId)
-                log?.let { db.medicationDao().decrementStock(it.medicationId) }
+                log?.let {
+                    db.medicationDao().decrementStock(it.medicationId)
+                    CaregiverNotificationHelper.notifyCaregiversOnTaken(
+                        context.applicationContext, db, it.medicationId, name
+                    )
+                }
 
                 val nm = context.getSystemService(NotificationManager::class.java)
                 nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogId.toInt())

@@ -63,9 +63,19 @@ class DailyDoseWorker @AssistedInject constructor(
         return try {
             Log.d(TAG, "Running daily dose generation")
 
-            // Mark yesterday's pending as missed
+            // Mark yesterday's pending as missed and notify caregivers
             val startOfToday = DateUtils.getStartOfDay()
+            val pendingBeforeCutoff = database.doseLogDao().getPendingDoses(startOfToday - 3600000)
             database.doseLogDao().markOverdueDosesAsMissed(startOfToday - 3600000)
+
+            for (dose in pendingBeforeCutoff) {
+                val med = database.medicationDao().getMedicationById(dose.medicationId)
+                if (med != null) {
+                    CaregiverNotificationHelper.notifyCaregiversOnMissed(
+                        applicationContext, database, med.id, med.name
+                    )
+                }
+            }
 
             // Generate today's doses
             generateTodayDoses()

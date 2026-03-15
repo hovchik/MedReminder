@@ -26,8 +26,6 @@ import androidx.core.graphics.toColorInt
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.medreminder.R
-import com.medreminder.ai.AnalysisResult
-import com.medreminder.ai.RiskLevel
 import com.medreminder.domain.model.DoseLog
 import com.medreminder.domain.model.DoseStatus
 import com.medreminder.util.DateUtils
@@ -73,15 +71,6 @@ fun HomeScreen(
                 total = uiState.totalCount,
                 rate = uiState.adherenceRate,
                 streak = uiState.currentStreak
-            )
-        }
-
-        // AI Analysis card
-        item {
-            AiInsightCard(
-                analysis = uiState.aiAnalysis,
-                isAnalyzing = uiState.isAnalyzing,
-                onRunAnalysis = { viewModel.runDailyAnalysis() }
             )
         }
 
@@ -443,95 +432,3 @@ fun EmptyStateCard(onAdd: () -> Unit) {
     }
 }
 
-@Composable
-fun AiInsightCard(
-    analysis: AnalysisResult?,
-    isAnalyzing: Boolean,
-    onRunAnalysis: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    Icons.Default.Psychology,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    stringResource(R.string.ai_daily_insight),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f)
-                )
-                if (analysis != null) {
-                    val providerLabel = when (analysis.providerUsed) {
-                        com.medreminder.ai.AiProviderType.CLOUD -> "Cloud"
-                        com.medreminder.ai.AiProviderType.SYSTEM_AI -> "On-Device"
-                        com.medreminder.ai.AiProviderType.CUSTOM_LOCAL -> "Local"
-                        com.medreminder.ai.AiProviderType.AUTO -> "Auto"
-                    }
-                    Text(
-                        providerLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            if (isAnalyzing) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        stringResource(R.string.analyzing),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else if (analysis != null) {
-                Text(analysis.summary, style = MaterialTheme.typography.bodyMedium)
-
-                if (analysis.recommendations.isNotEmpty()) {
-                    val topRec = analysis.recommendations.first()
-                    Row(verticalAlignment = Alignment.Top) {
-                        Icon(
-                            Icons.Default.Lightbulb,
-                            null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            topRec,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            } else {
-                OutlinedButton(
-                    onClick = onRunAnalysis,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.get_ai_insight))
-                }
-            }
-        }
-    }
-}
