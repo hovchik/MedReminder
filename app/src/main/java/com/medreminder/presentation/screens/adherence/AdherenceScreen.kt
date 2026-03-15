@@ -23,7 +23,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.medreminder.R
+import com.medreminder.ai.AiProviderType
 import com.medreminder.ai.AnalysisResult
+import com.medreminder.ai.local.DailyAnalysisUseCase
 import com.medreminder.ai.local.WeeklyReportUseCase
 import com.medreminder.domain.model.AdherenceStats
 import com.medreminder.domain.model.DayAdherence
@@ -37,6 +39,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AdherenceViewModel @Inject constructor(
     private val repository: MedicationRepository,
+    private val dailyAnalysisUseCase: DailyAnalysisUseCase,
     private val weeklyReportUseCase: WeeklyReportUseCase
 ) : ViewModel() {
 
@@ -46,11 +49,17 @@ class AdherenceViewModel @Inject constructor(
     private val _period = MutableStateFlow("week")
     val period: StateFlow<String> = _period.asStateFlow()
 
+    private val _dailyAiReport = MutableStateFlow<AnalysisResult?>(null)
+    val dailyAiReport: StateFlow<AnalysisResult?> = _dailyAiReport.asStateFlow()
+
+    private val _isDailyAnalyzing = MutableStateFlow(false)
+    val isDailyAnalyzing: StateFlow<Boolean> = _isDailyAnalyzing.asStateFlow()
+
     private val _weeklyAiReport = MutableStateFlow<AnalysisResult?>(null)
     val weeklyAiReport: StateFlow<AnalysisResult?> = _weeklyAiReport.asStateFlow()
 
-    private val _isAnalyzing = MutableStateFlow(false)
-    val isAnalyzing: StateFlow<Boolean> = _isAnalyzing.asStateFlow()
+    private val _isWeeklyAnalyzing = MutableStateFlow(false)
+    val isWeeklyAnalyzing: StateFlow<Boolean> = _isWeeklyAnalyzing.asStateFlow()
 
     init { loadStats() }
 
@@ -59,15 +68,27 @@ class AdherenceViewModel @Inject constructor(
         loadStats()
     }
 
+    fun runDailyAnalysis() {
+        viewModelScope.launch {
+            _isDailyAnalyzing.value = true
+            try {
+                _dailyAiReport.value = dailyAnalysisUseCase.analyze()
+            } catch (_: Exception) {
+                // Analysis failed silently
+            }
+            _isDailyAnalyzing.value = false
+        }
+    }
+
     fun runWeeklyAnalysis() {
         viewModelScope.launch {
-            _isAnalyzing.value = true
+            _isWeeklyAnalyzing.value = true
             try {
                 _weeklyAiReport.value = weeklyReportUseCase.analyze()
             } catch (_: Exception) {
                 // Analysis failed silently
             }
-            _isAnalyzing.value = false
+            _isWeeklyAnalyzing.value = false
         }
     }
 
@@ -90,8 +111,10 @@ class AdherenceViewModel @Inject constructor(
 fun AdherenceScreen(viewModel: AdherenceViewModel = hiltViewModel()) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val period by viewModel.period.collectAsStateWithLifecycle()
+    val dailyReport by viewModel.dailyAiReport.collectAsStateWithLifecycle()
+    val isDailyAnalyzing by viewModel.isDailyAnalyzing.collectAsStateWithLifecycle()
     val weeklyReport by viewModel.weeklyAiReport.collectAsStateWithLifecycle()
-    val isAnalyzing by viewModel.isAnalyzing.collectAsStateWithLifecycle()
+    val isWeeklyAnalyzing by viewModel.isWeeklyAnalyzing.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -184,6 +207,13 @@ fun AdherenceScreen(viewModel: AdherenceViewModel = hiltViewModel()) {
             }
         }
 
+        // AI Daily Insight
+        AiDailyInsightCard(
+            analysis = dailyReport,
+            isAnalyzing = isDailyAnalyzing,
+            onRunAnalysis = { viewModel.runDailyAnalysis() }
+        )
+
         // AI Weekly Report
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -211,7 +241,7 @@ fun AdherenceScreen(viewModel: AdherenceViewModel = hiltViewModel()) {
                     )
                 }
 
-                if (isAnalyzing) {
+                if (isWeeklyAnalyzing) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -280,6 +310,99 @@ fun StatCard(label: String, value: String, icon: androidx.compose.ui.graphics.ve
             Spacer(modifier = Modifier.height(8.dp))
             Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = color)
             Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+fun AiDailyInsightCard(
+    analysis: AnalysisResult?,
+    isAnalyzing: Boolean,
+    onRunAnalysis: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    Icons.Default.Psychology,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.ai_daily_insight),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                if (analysis != null) {
+                    val providerLabel = when (analysis.providerUsed) {
+                        AiProviderType.CLOUD -> "Cloud"
+                        AiProviderType.SYSTEM_AI -> "On-Device"
+                        AiProviderType.CUSTOM_LOCAL -> "Local"
+                        AiProviderType.AUTO -> "Auto"
+                    }
+                    Text(
+                        providerLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            if (isAnalyzing) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.analyzing),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else if (analysis != null) {
+                Text(analysis.summary, style = MaterialTheme.typography.bodyMedium)
+
+                if (analysis.recommendations.isNotEmpty()) {
+                    val topRec = analysis.recommendations.first()
+                    Row(verticalAlignment = Alignment.Top) {
+                        Icon(
+                            Icons.Default.Lightbulb,
+                            null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            topRec,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                OutlinedButton(
+                    onClick = onRunAnalysis,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.get_ai_insight))
+                }
+            }
         }
     }
 }
