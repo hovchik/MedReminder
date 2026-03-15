@@ -278,8 +278,8 @@
     <string name="caregiver_notif_title">Caregiver Notifications</string>
     <string name="caregiver_notif_desc">Notify family and caregivers via SMS or email when doses are taken or missed.</string>
     <string name="ai_insights_desc">Get personalized medication analysis powered by on-device AI. Your data stays private.</string>
-    <string name="phone_call_title">Phone Call to Caregiver</string>
-    <string name="phone_call_desc">When SMS fails to reach a caregiver, tap the notification to call them directly and ensure they are informed.</string>
+    <string name="phone_call_title">Automatic Call to Caregiver</string>
+    <string name="phone_call_desc">When SMS fails to reach a caregiver, the app automatically calls them to ensure they are informed without any action needed from you.</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Text</string>
@@ -291,4 +291,16 @@
     <string name="no_barcode_detected">No barcode detected. Try again.</string>
     <string name="no_qr_detected">No QR code detected. Try again.</string>
     <string name="barcode_no_match">No medication found for this barcode. You can enter the name manually.</string>
+
+    <!-- Theme -->
+    <string name="appearance">Appearance</string>
+    <string name="theme">Theme</string>
+    <string name="theme_subtitle">Choose light, dark, or system theme</string>
+    <string name="select_theme">Select theme</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system">System default</string>
+
+    <!-- Settings extras -->
+    <string name="not_available_device">Not available on this device</string>
 </resources>

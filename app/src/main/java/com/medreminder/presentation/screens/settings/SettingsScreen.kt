@@ -56,6 +56,9 @@ class SettingsViewModel @Inject constructor(
     private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
+    val themeMode: StateFlow<String> = userPreferencesManager.themeMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "system")
+
     val medCount = repository.getActiveMedicationCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
@@ -68,6 +71,12 @@ class SettingsViewModel @Inject constructor(
     fun saveUserProfile(name: String, age: Int) {
         viewModelScope.launch {
             userPreferencesManager.saveUserProfile(name, age)
+        }
+    }
+
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch {
+            userPreferencesManager.setThemeMode(mode)
         }
     }
 
@@ -285,6 +294,19 @@ fun SettingsScreen(
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val userAge by viewModel.userAge.collectAsStateWithLifecycle()
     var showEditProfileDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
+    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+
+    if (showThemeDialog) {
+        ThemeDialog(
+            currentTheme = themeMode,
+            onDismiss = { showThemeDialog = false },
+            onThemeSelected = { mode ->
+                showThemeDialog = false
+                viewModel.setThemeMode(mode)
+            }
+        )
+    }
 
     if (showEditProfileDialog) {
         EditProfileDialog(
@@ -467,6 +489,24 @@ fun SettingsScreen(
             title = stringResource(R.string.language),
             subtitle = stringResource(R.string.language_subtitle),
             onClick = { showLanguageDialog = true }
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        // Appearance section
+        Text(stringResource(R.string.appearance), style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsItem(
+            icon = Icons.Default.Palette,
+            title = stringResource(R.string.theme),
+            subtitle = when (themeMode) {
+                "light" -> stringResource(R.string.theme_light)
+                "dark" -> stringResource(R.string.theme_dark)
+                else -> stringResource(R.string.theme_system)
+            },
+            onClick = { showThemeDialog = true }
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -752,7 +792,7 @@ fun AiProviderDialog(
                                 )
                                 if (!provider.isAvailable) {
                                     Text(
-                                        "Not available on this device",
+                                        stringResource(R.string.not_available_device),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.error
                                     )
@@ -852,6 +892,7 @@ fun EditProfileDialog(
     onDismiss: () -> Unit,
     onSave: (String, Int) -> Unit
 ) {
+    val context = LocalContext.current
     var name by remember { mutableStateOf(currentName) }
     var ageText by remember { mutableStateOf(if (currentAge > 0) currentAge.toString() else "") }
     var nameError by remember { mutableStateOf<String?>(null) }
@@ -890,11 +931,11 @@ fun EditProfileDialog(
                     var hasError = false
 
                     if (trimmedName.isBlank()) {
-                        nameError = "Please enter your name"
+                        nameError = context.getString(R.string.name_required)
                         hasError = true
                     }
                     if (age == null || age < 1 || age > 150) {
-                        ageError = "Please enter a valid age"
+                        ageError = context.getString(R.string.age_invalid)
                         hasError = true
                     }
                     if (!hasError) {
@@ -908,5 +949,67 @@ fun EditProfileDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
+    )
+}
+
+@Composable
+fun ThemeDialog(
+    currentTheme: String,
+    onDismiss: () -> Unit,
+    onThemeSelected: (String) -> Unit
+) {
+    val themeOptions = listOf(
+        Triple("system", R.string.theme_system, Icons.Default.SettingsBrightness),
+        Triple("light", R.string.theme_light, Icons.Default.LightMode),
+        Triple("dark", R.string.theme_dark, Icons.Default.DarkMode)
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.select_theme)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                themeOptions.forEach { (mode, labelRes, icon) ->
+                    val isSelected = currentTheme == mode
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onThemeSelected(mode) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                icon, null,
+                                tint = if (isSelected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                stringResource(labelRes),
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (isSelected) {
+                                Icon(
+                                    Icons.Default.CheckCircle, null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }

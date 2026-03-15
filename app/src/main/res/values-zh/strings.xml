@@ -205,8 +205,8 @@
     <string name="caregiver_notif_title">看护人通知</string>
     <string name="caregiver_notif_desc">通过短信或电子邮件通知家人和看护人用药或错过用药的情况。</string>
     <string name="ai_insights_desc">获取设备上 AI 驱动的个性化药物分析。您的数据保持私密。</string>
-    <string name="phone_call_title">拨打看护人电话</string>
-    <string name="phone_call_desc">当短信无法送达看护人时，点击通知直接拨打电话，确保他们得到通知。</string>
+    <string name="phone_call_title">自动拨打看护人电话</string>
+    <string name="phone_call_desc">当短信无法送达看护人时，应用会自动拨打电话通知他们，无需您进行任何操作。</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">文字</string>
@@ -237,4 +237,27 @@
     <string name="import_confirm_title">导入数据？</string>
     <string name="import_confirm_message">这将用导入的数据替换所有现有数据。此操作无法撤消。</string>
     <string name="confirm">确认</string>
+
+    <!-- Missing onboarding strings -->
+    <string name="download_automatically">自动下载</string>
+    <string name="choose_model_manually">手动选择模型</string>
+    <string name="start_using_app">开始使用 MedReminder</string>
+    <string name="you_are_all_set">一切就绪！</string>
+    <string name="skip_for_now">暂时跳过</string>
+    <string name="continue_in_background">后台继续</string>
+    <string name="no_wifi_title">未连接 WiFi</string>
+    <string name="download_anyway">仍然下载</string>
+    <string name="edit_profile">编辑个人资料</string>
+
+    <!-- Theme -->
+    <string name="appearance">外观</string>
+    <string name="theme">主题</string>
+    <string name="theme_subtitle">选择浅色、深色或系统主题</string>
+    <string name="select_theme">选择主题</string>
+    <string name="theme_light">浅色</string>
+    <string name="theme_dark">深色</string>
+    <string name="theme_system">跟随系统</string>
+
+    <!-- Settings extras -->
+    <string name="not_available_device">此设备不可用</string>
 </resources>

@@ -73,6 +73,24 @@ class SmsSentReceiver : BroadcastReceiver() {
         caregiverName: String,
         medicationName: String
     ) {
+        // Always attempt an automatic call first
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            try {
+                val callIntent = Intent(Intent.ACTION_CALL).apply {
+                    data = Uri.parse("tel:$phone")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(callIntent)
+                Log.d(TAG, "Automatic call initiated to $phone from notification fallback")
+                return // Call started successfully, no need for notification
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to initiate automatic call to $phone", e)
+            }
+        }
+
+        // Only show notification if automatic call is not possible
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -86,13 +104,13 @@ class SmsSentReceiver : BroadcastReceiver() {
             nm.createNotificationChannel(channel)
         }
 
-        // Create a dial intent so user can tap the notification to call
-        val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+        // Create a call intent so user can tap the notification to call
+        val callIntent = Intent(Intent.ACTION_CALL).apply {
             data = Uri.parse("tel:$phone")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        val pendingDialIntent = android.app.PendingIntent.getActivity(
-            context, phone.hashCode(), dialIntent,
+        val pendingCallIntent = android.app.PendingIntent.getActivity(
+            context, phone.hashCode(), callIntent,
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -106,7 +124,7 @@ class SmsSentReceiver : BroadcastReceiver() {
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(pendingDialIntent)
+            .setContentIntent(pendingCallIntent)
             .setAutoCancel(true)
             .build()
 

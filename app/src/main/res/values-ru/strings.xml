@@ -205,8 +205,8 @@
     <string name="caregiver_notif_title">Уведомления опекунам</string>
     <string name="caregiver_notif_desc">Уведомляйте семью и опекунов по SMS или электронной почте о приёме или пропуске лекарств.</string>
     <string name="ai_insights_desc">Получайте персонализированный анализ лекарств с помощью ИИ на вашем устройстве. Ваши данные остаются конфиденциальными.</string>
-    <string name="phone_call_title">Звонок опекуну</string>
-    <string name="phone_call_desc">Если SMS не удалось доставить опекуну, нажмите на уведомление, чтобы позвонить ему напрямую.</string>
+    <string name="phone_call_title">Автоматический звонок опекуну</string>
+    <string name="phone_call_desc">Если SMS не удалось доставить опекуну, приложение автоматически позвонит ему, чтобы он был проинформирован без каких-либо действий с вашей стороны.</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Текст</string>
@@ -237,4 +237,27 @@
     <string name="import_confirm_title">Импортировать данные?</string>
     <string name="import_confirm_message">Это заменит все существующие данные импортированными. Это действие нельзя отменить.</string>
     <string name="confirm">Подтвердить</string>
+
+    <!-- Missing onboarding strings -->
+    <string name="download_automatically">Скачать автоматически</string>
+    <string name="choose_model_manually">Выбрать модель вручную</string>
+    <string name="start_using_app">Начать использовать MedReminder</string>
+    <string name="you_are_all_set">Всё готово!</string>
+    <string name="skip_for_now">Пропустить</string>
+    <string name="continue_in_background">Продолжить в фоне</string>
+    <string name="no_wifi_title">Нет подключения WiFi</string>
+    <string name="download_anyway">Скачать всё равно</string>
+    <string name="edit_profile">Редактировать профиль</string>
+
+    <!-- Theme -->
+    <string name="appearance">Оформление</string>
+    <string name="theme">Тема</string>
+    <string name="theme_subtitle">Выберите светлую, тёмную или системную тему</string>
+    <string name="select_theme">Выберите тему</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="theme_system">По умолчанию системы</string>
+
+    <!-- Settings extras -->
+    <string name="not_available_device">Недоступно на этом устройстве</string>
 </resources>

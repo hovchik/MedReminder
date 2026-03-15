@@ -21,6 +21,7 @@ class UserPreferencesManager @Inject constructor(
         private val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         private val KEY_USER_NAME = stringPreferencesKey("user_name")
         private val KEY_USER_AGE = intPreferencesKey("user_age")
+        private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
     }
 
     val isOnboardingCompleted: Flow<Boolean> =
@@ -31,6 +32,15 @@ class UserPreferencesManager @Inject constructor(
 
     val userAge: Flow<Int> =
         context.userPrefsDataStore.data.map { it[KEY_USER_AGE] ?: 0 }
+
+    val themeMode: Flow<String> =
+        context.userPrefsDataStore.data.map { it[KEY_THEME_MODE] ?: "system" }
+
+    suspend fun setThemeMode(mode: String) {
+        context.userPrefsDataStore.edit { prefs ->
+            prefs[KEY_THEME_MODE] = mode
+        }
+    }
 
     suspend fun saveUserProfile(name: String, age: Int) {
         context.userPrefsDataStore.edit { prefs ->

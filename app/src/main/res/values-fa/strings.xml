@@ -206,8 +206,8 @@
     <string name="caregiver_notif_title">اطلاع‌رسانی به مراقبان</string>
     <string name="caregiver_notif_desc">خانواده و مراقبان را از طریق پیامک یا ایمیل از مصرف یا فراموشی دارو مطلع کنید.</string>
     <string name="ai_insights_desc">تحلیل شخصی‌سازی شده داروها با هوش مصنوعی روی دستگاه شما. داده‌های شما خصوصی می‌ماند.</string>
-    <string name="phone_call_title">تماس با مراقب</string>
-    <string name="phone_call_desc">وقتی پیامک به مراقب نمی‌رسد، اعلان را لمس کنید تا مستقیماً تماس بگیرید.</string>
+    <string name="phone_call_title">تماس خودکار با مراقب</string>
+    <string name="phone_call_desc">وقتی پیامک به مراقب نمی‌رسد، برنامه به طور خودکار با آنها تماس می‌گیرد تا بدون نیاز به اقدام شما مطلع شوند.</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">متن</string>
@@ -238,4 +238,27 @@
     <string name="import_confirm_title">داده‌ها ورودی شود؟</string>
     <string name="import_confirm_message">این کار همه داده‌های موجود را با داده‌های ورودی جایگزین می‌کند. این عمل قابل بازگشت نیست.</string>
     <string name="confirm">تأیید</string>
+
+    <!-- Missing onboarding strings -->
+    <string name="download_automatically">دانلود خودکار</string>
+    <string name="choose_model_manually">انتخاب دستی مدل</string>
+    <string name="start_using_app">شروع استفاده از MedReminder</string>
+    <string name="you_are_all_set">همه چیز آماده است!</string>
+    <string name="skip_for_now">فعلاً رد شود</string>
+    <string name="continue_in_background">ادامه در پس‌زمینه</string>
+    <string name="no_wifi_title">بدون اتصال WiFi</string>
+    <string name="download_anyway">به هر حال دانلود شود</string>
+    <string name="edit_profile">ویرایش پروفایل</string>
+
+    <!-- Theme -->
+    <string name="appearance">ظاهر</string>
+    <string name="theme">تم</string>
+    <string name="theme_subtitle">انتخاب تم روشن، تاریک یا سیستمی</string>
+    <string name="select_theme">انتخاب تم</string>
+    <string name="theme_light">روشن</string>
+    <string name="theme_dark">تاریک</string>
+    <string name="theme_system">پیش‌فرض سیستم</string>
+
+    <!-- Settings extras -->
+    <string name="not_available_device">در این دستگاه موجود نیست</string>
 </resources>
