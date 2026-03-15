@@ -22,6 +22,9 @@ import com.medreminder.ai.AiProviderType
 import com.medreminder.ai.capability.DevicePerformanceClass
 import com.medreminder.ai.capability.RecommendedAiMode
 import com.medreminder.ai.local.InstallState
+import com.medreminder.ai.modelmanager.CompatibilityTag
+import com.medreminder.ai.modelmanager.DownloadStatus
+import com.medreminder.ai.modelmanager.ModelRecommendation
 
 @Composable
 fun LocalAiSetupWizard(
@@ -45,7 +48,7 @@ fun LocalAiSetupWizard(
             onSelectMode = { type ->
                 viewModel.selectAiMode(type)
                 when (type) {
-                    AiProviderType.CUSTOM_LOCAL -> viewModel.loadAvailableModels()
+                    AiProviderType.CUSTOM_LOCAL -> viewModel.loadRecommendations()
                     else -> viewModel.navigateTo(WizardStep.READY)
                 }
             },
@@ -53,15 +56,19 @@ fun LocalAiSetupWizard(
         )
         WizardStep.MODEL_INSTALL_OPTIONS -> ModelInstallOptionsScreen(
             state = state,
-            onSelectModel = { model -> viewModel.selectModel(model) },
-            onDownload = { viewModel.downloadSelectedModel() },
+            onSelectRecommendation = { rec -> viewModel.selectRecommendation(rec) },
+            onDownload = { viewModel.startDownload() },
             onImport = { viewModel.navigateTo(WizardStep.IMPORT_MODEL) },
             onDismiss = onDismiss
         )
         WizardStep.MODEL_DOWNLOAD -> ModelDownloadScreen(
             state = state,
+            onPause = { viewModel.pauseDownload() },
+            onResume = { viewModel.resumeDownload() },
+            onCancel = { viewModel.cancelDownload() },
+            onBackgroundDownload = { viewModel.startBackgroundDownload() },
             onComplete = { viewModel.navigateTo(WizardStep.READY) },
-            onRetry = { viewModel.downloadSelectedModel() },
+            onRetry = { viewModel.startDownload() },
             onDismiss = onDismiss
         )
         WizardStep.IMPORT_MODEL -> ImportModelScreen(
@@ -188,8 +195,10 @@ fun DeviceCompatibilityScreen(
                     CompatibilityRow("Android Version", "API ${caps.androidVersion}", true)
                     CompatibilityRow("AICore (Gemini Nano)", if (caps.hasAiCore) "Available" else "Not available", caps.hasAiCore)
                     CompatibilityRow("ML Kit GenAI", if (caps.hasMlKitGenAi) "Available" else "Not available", caps.hasMlKitGenAi)
-                    CompatibilityRow("RAM", caps.ramTier.displayName, caps.ramTier.minRamMb >= 4096)
+                    CompatibilityRow("RAM", "${caps.totalRamMb} MB (${caps.ramTier.displayName})", caps.ramTier.minRamMb >= 4096)
                     CompatibilityRow("Available Storage", "${caps.availableStorageMb} MB", caps.availableStorageMb > 500)
+                    CompatibilityRow("GPU", caps.gpuRenderer.ifBlank { "Unknown" }, caps.hasGpuCompute)
+                    CompatibilityRow("CPU Cores", "${caps.cpuCoreCount}", caps.cpuCoreCount >= 4)
                     CompatibilityRow("Performance Class", caps.performanceClass.displayName,
                         caps.performanceClass >= DevicePerformanceClass.MEDIUM)
                 }
@@ -290,7 +299,6 @@ fun RecommendedAiModeScreen(
         val isSystemRecommended = state.recommendedMode == RecommendedAiMode.SYSTEM_AI
         val isLocalRecommended = state.recommendedMode == RecommendedAiMode.CUSTOM_LOCAL
 
-        // System AI option
         AiModeCard(
             title = "System AI",
             description = "Use your device's built-in AI engine (Gemini Nano / AICore)",
@@ -301,7 +309,6 @@ fun RecommendedAiModeScreen(
             onClick = { onSelectMode(AiProviderType.SYSTEM_AI) }
         )
 
-        // Custom Local Model option
         AiModeCard(
             title = "Local Model",
             description = "Download or import a compatible AI model to run on your device",
@@ -314,7 +321,6 @@ fun RecommendedAiModeScreen(
             onClick = { onSelectMode(AiProviderType.CUSTOM_LOCAL) }
         )
 
-        // Cloud AI option
         AiModeCard(
             title = "Cloud AI (Claude)",
             description = "Use Claude AI via the cloud for advanced analysis",
@@ -388,7 +394,7 @@ private fun AiModeCard(
 @Composable
 fun ModelInstallOptionsScreen(
     state: SetupWizardState,
-    onSelectModel: (com.medreminder.ai.local.LocalAiModel) -> Unit,
+    onSelectRecommendation: (ModelRecommendation) -> Unit,
     onDownload: () -> Unit,
     onImport: () -> Unit,
     onDismiss: () -> Unit
@@ -401,31 +407,49 @@ fun ModelInstallOptionsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Install Local Model", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Choose a model to install:", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            "Models are ranked by compatibility with your device:",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
-        state.availableModels.forEach { model ->
-            val isSelected = state.selectedModel?.modelId == model.modelId
+        if (!state.isWifiConnected) {
             Card(
-                onClick = { onSelectModel(model) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
                 )
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(model.displayName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("Runtime: ${model.runtimeType.name} | Format: ${model.fileFormat}", style = MaterialTheme.typography.bodySmall)
-                    Text("Size: ${model.sizeMb} MB | RAM: ${model.requiredRamMb}+ MB", style = MaterialTheme.typography.bodySmall)
-                    Text("Quantization: ${model.quantization}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.WifiOff, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "No WiFi connection. Large model downloads may use mobile data.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
                 }
             }
         }
 
-        if (state.availableModels.isEmpty()) {
+        state.recommendations.forEach { rec ->
+            val isSelected = state.selectedRecommendation?.model?.modelId == rec.model.modelId
+            RecommendationCard(
+                recommendation = rec,
+                isSelected = isSelected,
+                onClick = { onSelectRecommendation(rec) }
+            )
+        }
+
+        if (state.recommendations.isEmpty()) {
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text("No compatible models found for this device", style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -433,11 +457,11 @@ fun ModelInstallOptionsScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (state.selectedModel != null) {
+        if (state.selectedRecommendation != null) {
             Button(onClick = onDownload, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Download ${state.selectedModel.displayName}")
+                Text("Download ${state.selectedRecommendation.model.displayName}")
             }
         }
 
@@ -456,13 +480,194 @@ fun ModelInstallOptionsScreen(
 }
 
 @Composable
+private fun RecommendationCard(
+    recommendation: ModelRecommendation,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val model = recommendation.model
+    val perf = recommendation.performanceEstimate
+
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    model.displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                CompatibilityChip(recommendation.compatibilityTag)
+            }
+
+            if (model.description.isNotBlank()) {
+                Text(
+                    model.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Divider(modifier = Modifier.padding(vertical = 4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("Size: ${model.sizeMb} MB", style = MaterialTheme.typography.bodySmall)
+                    Text("Params: ${model.parameterCount}", style = MaterialTheme.typography.bodySmall)
+                }
+                Column {
+                    Text("Quant: ${model.quantization}", style = MaterialTheme.typography.bodySmall)
+                    Text("Format: ${model.fileFormat}", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            // Performance estimates
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "~${String.format("%.0f", perf.estimatedTokensPerSec)} tok/s",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "~${perf.estimatedRamUsageMb} MB RAM",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (perf.willUseGpu) {
+                    Text(
+                        "GPU",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
+
+            // Score bar
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Score: ", style = MaterialTheme.typography.bodySmall)
+                LinearProgressIndicator(
+                    progress = { recommendation.compatibilityScore / 100f },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(6.dp),
+                    color = when {
+                        recommendation.compatibilityScore >= 80 -> MaterialTheme.colorScheme.primary
+                        recommendation.compatibilityScore >= 60 -> MaterialTheme.colorScheme.tertiary
+                        recommendation.compatibilityScore >= 40 -> MaterialTheme.colorScheme.secondary
+                        else -> MaterialTheme.colorScheme.error
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "${recommendation.compatibilityScore}/100",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            // Warnings
+            recommendation.warnings.forEach { warning ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Warning,
+                        null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        warning,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompatibilityChip(tag: CompatibilityTag) {
+    val (containerColor, contentColor) = when (tag) {
+        CompatibilityTag.BEST_FIT -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        CompatibilityTag.RECOMMENDED -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        CompatibilityTag.COMPATIBLE -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        CompatibilityTag.MARGINAL -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        CompatibilityTag.INCOMPATIBLE -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onError
+    }
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = containerColor
+    ) {
+        Text(
+            tag.label,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
 fun ModelDownloadScreen(
     state: SetupWizardState,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onCancel: () -> Unit,
+    onBackgroundDownload: () -> Unit,
     onComplete: () -> Unit,
     onRetry: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val ds = state.downloadState
     val progress = state.installProgress
+    val modelName = state.selectedRecommendation?.model?.displayName ?: "Model"
+
+    // WiFi warning dialog
+    if (state.showWifiWarning) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("No WiFi Connection") },
+            text = {
+                Text(
+                    "You are not connected to WiFi. Downloading ${modelName} " +
+                            "(${state.selectedRecommendation?.model?.sizeMb ?: 0} MB) " +
+                            "will use mobile data. Continue?"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = onRetry) {
+                    Text("Download Anyway")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onCancel) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -471,32 +676,177 @@ fun ModelDownloadScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        when (progress.state) {
-            InstallState.DOWNLOADING, InstallState.INSTALLING, InstallState.VALIDATING -> {
+        when (ds.status) {
+            DownloadStatus.CONNECTING -> {
                 CircularProgressIndicator(modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(progress.message, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-                Spacer(modifier = Modifier.height(16.dp))
-                LinearProgressIndicator(
-                    progress = { progress.progress },
-                    modifier = Modifier.fillMaxWidth()
+                Text(
+                    ds.message.ifBlank { "Connecting..." },
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("${(progress.progress * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+                if (ds.retryCount > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Retry attempt ${ds.retryCount}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            InstallState.INSTALLED -> {
+
+            DownloadStatus.DOWNLOADING -> {
+                Text(
+                    "Downloading $modelName",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+
+                LinearProgressIndicator(
+                    progress = { ds.progressFraction },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "${ds.progressPercent}%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        "${ds.downloadedMb} / ${ds.totalMb} MB",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        String.format("%.1f MB/s", ds.speedMbPerSec),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (ds.etaSeconds > 0) {
+                        Text(
+                            formatEta(ds.etaSeconds),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onPause,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Pause, null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Pause")
+                    }
+                    OutlinedButton(
+                        onClick = onCancel,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Close, null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Cancel")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TextButton(onClick = onBackgroundDownload) {
+                    Text("Continue in background")
+                }
+            }
+
+            DownloadStatus.PAUSED -> {
+                Icon(Icons.Default.PauseCircle, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.secondary)
+                Spacer(modifier = Modifier.height(24.dp))
+                Text("Download Paused", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "${ds.downloadedMb} / ${ds.totalMb} MB downloaded",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(onClick = onResume, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Resume Download")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+                    Text("Cancel")
+                }
+            }
+
+            DownloadStatus.VERIFYING -> {
+                CircularProgressIndicator(modifier = Modifier.size(64.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+                Text("Verifying download...", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                Text(
+                    "Checking file integrity",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            DownloadStatus.COMPLETED -> {
                 Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(progress.message, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                Text("$modelName Ready", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                Text(
+                    ds.message.ifBlank { "Model downloaded and verified successfully" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(onClick = onComplete, modifier = Modifier.fillMaxWidth()) {
                     Text("Continue")
                 }
             }
-            InstallState.FAILED -> {
+
+            DownloadStatus.FAILED -> {
                 Icon(Icons.Default.Error, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.error)
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(progress.message, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
+                Text(
+                    "Download Failed",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    ds.message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (ds.retryCount > 0) {
+                    Text(
+                        "Failed after ${ds.retryCount} retries",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
                     Text("Retry")
@@ -506,12 +856,70 @@ fun ModelDownloadScreen(
                     Text("Cancel")
                 }
             }
-            else -> {
-                CircularProgressIndicator()
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Preparing...", style = MaterialTheme.typography.bodyMedium)
+
+            DownloadStatus.CANCELLED -> {
+                Icon(Icons.Default.Cancel, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(24.dp))
+                Text("Download Cancelled", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(24.dp))
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                    Text("Go Back")
+                }
+            }
+
+            DownloadStatus.IDLE -> {
+                // Fallback to install progress (for import or background download)
+                when (progress.state) {
+                    InstallState.DOWNLOADING, InstallState.INSTALLING, InstallState.VALIDATING -> {
+                        CircularProgressIndicator(modifier = Modifier.size(64.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(progress.message, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        LinearProgressIndicator(
+                            progress = { progress.progress },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("${(progress.progress * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    InstallState.INSTALLED -> {
+                        Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(progress.message, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(onClick = onComplete, modifier = Modifier.fillMaxWidth()) {
+                            Text("Continue")
+                        }
+                    }
+                    InstallState.FAILED -> {
+                        Icon(Icons.Default.Error, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(progress.message, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+                            Text("Retry")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                            Text("Cancel")
+                        }
+                    }
+                    else -> {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Preparing...", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         }
+    }
+}
+
+private fun formatEta(seconds: Long): String {
+    return when {
+        seconds < 60 -> "${seconds}s remaining"
+        seconds < 3600 -> "${seconds / 60}m ${seconds % 60}s remaining"
+        else -> "${seconds / 3600}h ${(seconds % 3600) / 60}m remaining"
     }
 }
 
@@ -542,7 +950,7 @@ fun ImportModelScreen(
         Text("Import Model", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
         Text(
-            "Select a compatible model file from your device. Supported formats: .tflite, .bin, .gguf, .onnx",
+            "Select a compatible model file from your device. Supported formats: .tflite, .bin, .gguf, .onnx, .task",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

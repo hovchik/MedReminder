@@ -3,6 +3,8 @@ package com.medreminder.ai.capability
 import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.opengl.EGL14
+import android.opengl.GLES20
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
@@ -15,9 +17,15 @@ data class DeviceAiCapabilities(
     val hasAiCore: Boolean,
     val hasMlKitGenAi: Boolean,
     val ramTier: RamTier,
+    val totalRamMb: Long,
+    val availableRamMb: Long,
     val availableStorageMb: Long,
     val performanceClass: DevicePerformanceClass,
-    val supportedRuntimes: List<String>
+    val supportedRuntimes: List<String>,
+    val supportedAbis: List<String>,
+    val gpuRenderer: String,
+    val hasGpuCompute: Boolean,
+    val cpuCoreCount: Int
 )
 
 enum class RamTier(val displayName: String, val minRamMb: Long) {
@@ -43,14 +51,27 @@ class DeviceAiCapabilityDetector @Inject constructor(
     fun detectCapabilities(): DeviceAiCapabilities {
         cachedCapabilities?.let { return it }
 
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val memInfo = ActivityManager.MemoryInfo()
+        activityManager.getMemoryInfo(memInfo)
+
+        val totalMb = memInfo.totalMem / (1024 * 1024)
+        val availMb = memInfo.availMem / (1024 * 1024)
+
         val caps = DeviceAiCapabilities(
             androidVersion = Build.VERSION.SDK_INT,
             hasAiCore = checkAiCoreAvailability(),
             hasMlKitGenAi = checkMlKitGenAiAvailability(),
             ramTier = detectRamTier(),
+            totalRamMb = totalMb,
+            availableRamMb = availMb,
             availableStorageMb = getAvailableStorageMb(),
             performanceClass = determinePerformanceClass(),
-            supportedRuntimes = detectSupportedRuntimes()
+            supportedRuntimes = detectSupportedRuntimes(),
+            supportedAbis = Build.SUPPORTED_ABIS.toList(),
+            gpuRenderer = detectGpuRenderer(),
+            hasGpuCompute = detectGpuComputeSupport(),
+            cpuCoreCount = Runtime.getRuntime().availableProcessors()
         )
 
         cachedCapabilities = caps
@@ -91,14 +112,18 @@ class DeviceAiCapabilityDetector @Inject constructor(
         }
     }
 
+    /** Maximum model size in MB that the device can reasonably load into RAM. */
+    fun getMaxModelSizeMb(): Long {
+        val caps = detectCapabilities()
+        // Allow roughly 40% of total RAM for the model (rest for OS + app)
+        return (caps.totalRamMb * 40) / 100
+    }
+
     private fun checkAiCoreAvailability(): Boolean {
-        // Check if Android AICore service is available (Android 14+)
         if (Build.VERSION.SDK_INT < 34) return false
 
         return try {
-            val pm = context.packageManager
-            // AICore is provided by Google Play Services or a system package
-            pm.getPackageInfo("com.google.android.aicore", 0)
+            context.packageManager.getPackageInfo("com.google.android.aicore", 0)
             true
         } catch (_: PackageManager.NameNotFoundException) {
             false
@@ -106,18 +131,14 @@ class DeviceAiCapabilityDetector @Inject constructor(
     }
 
     private fun checkMlKitGenAiAvailability(): Boolean {
-        // Check if ML Kit GenAI inference is available via Google Play Services
         return try {
-            val pm = context.packageManager
-            val gmsInfo = pm.getPackageInfo("com.google.android.gms", 0)
-            // ML Kit GenAI requires GMS version 24.26+ (approximate)
+            val gmsInfo = context.packageManager.getPackageInfo("com.google.android.gms", 0)
             val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 gmsInfo.longVersionCode
             } else {
                 @Suppress("DEPRECATION")
                 gmsInfo.versionCode.toLong()
             }
-            // GMS version code pattern: XXYYZZ where XX=major
             versionCode >= 242600000L
         } catch (_: PackageManager.NameNotFoundException) {
             false
@@ -164,11 +185,25 @@ class DeviceAiCapabilityDetector @Inject constructor(
         if (checkMlKitGenAiAvailability()) {
             runtimes.add("ML Kit GenAI")
         }
-        // LiteRT and MediaPipe are bundled, always available if the app includes them
         runtimes.add("LiteRT")
         runtimes.add("MediaPipe LLM Inference")
 
         return runtimes
+    }
+
+    private fun detectGpuRenderer(): String {
+        return try {
+            // Best-effort GPU name extraction from system properties
+            val gpuRenderer = android.opengl.GLES20.glGetString(android.opengl.GLES20.GL_RENDERER)
+            gpuRenderer ?: Build.HARDWARE
+        } catch (_: Exception) {
+            Build.HARDWARE
+        }
+    }
+
+    private fun detectGpuComputeSupport(): Boolean {
+        // OpenCL or Vulkan compute support indicates GPU-accelerated inference
+        return Build.VERSION.SDK_INT >= 28 // Vulkan 1.1 required from API 28
     }
 
     fun invalidateCache() {

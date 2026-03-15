@@ -8,11 +8,7 @@ import com.medreminder.ai.capability.DeviceAiCapabilities
 import com.medreminder.ai.capability.DeviceAiCapabilityDetector
 import com.medreminder.ai.capability.RecommendedAiMode
 import com.medreminder.ai.local.*
-import com.medreminder.ai.modelmanager.InstallProgress
-import com.medreminder.ai.modelmanager.LocalModelManager
-import com.medreminder.ai.modelmanager.ModelCompatibilityValidator
-import com.medreminder.ai.modelmanager.ModelInstaller
-import com.medreminder.ai.modelmanager.ValidationResult
+import com.medreminder.ai.modelmanager.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -23,15 +19,17 @@ data class SetupWizardState(
     val capabilities: DeviceAiCapabilities? = null,
     val recommendedMode: RecommendedAiMode = RecommendedAiMode.CLOUD,
     val deviceMessage: String = "",
-    val availableModels: List<LocalAiModel> = emptyList(),
-    val selectedModel: LocalAiModel? = null,
+    val recommendations: List<ModelRecommendation> = emptyList(),
+    val selectedRecommendation: ModelRecommendation? = null,
     val installProgress: InstallProgress = InstallProgress(),
-    val validationResult: ValidationResult? = null,
+    val downloadState: DownloadState = DownloadState(),
     val benchmarkResult: BenchmarkResult? = null,
     val isRunningBenchmark: Boolean = false,
     val testPromptResult: String = "",
     val isTestingPrompt: Boolean = false,
-    val setupComplete: Boolean = false
+    val setupComplete: Boolean = false,
+    val isWifiConnected: Boolean = false,
+    val showWifiWarning: Boolean = false
 )
 
 enum class WizardStep {
@@ -47,9 +45,9 @@ enum class WizardStep {
 @HiltViewModel
 class SetupWizardViewModel @Inject constructor(
     private val capabilityDetector: DeviceAiCapabilityDetector,
-    private val modelManager: LocalModelManager,
     private val modelInstaller: ModelInstaller,
-    private val validator: ModelCompatibilityValidator,
+    private val recommendationEngine: ModelRecommendationEngine,
+    private val downloadManager: ModelDownloadManager,
     private val providerSelector: AiProviderSelector,
     private val benchmarkRunner: LocalAiBenchmarkRunner
 ) : ViewModel() {
@@ -61,6 +59,11 @@ class SetupWizardViewModel @Inject constructor(
         viewModelScope.launch {
             modelInstaller.installProgress.collect { progress ->
                 _state.update { it.copy(installProgress = progress) }
+            }
+        }
+        viewModelScope.launch {
+            downloadManager.downloadState.collect { ds ->
+                _state.update { it.copy(downloadState = ds) }
             }
         }
     }
@@ -79,47 +82,96 @@ class SetupWizardViewModel @Inject constructor(
                 capabilities = caps,
                 recommendedMode = recommended,
                 deviceMessage = message,
-                currentStep = WizardStep.DEVICE_COMPATIBILITY
+                currentStep = WizardStep.DEVICE_COMPATIBILITY,
+                isWifiConnected = modelInstaller.isWifiAvailable()
             )
         }
     }
 
-    fun loadAvailableModels() {
-        val catalog = modelManager.getAvailableModelsCatalog()
-        val compatibleModels = catalog.map { model ->
-            val validation = validator.validate(model)
-            model to validation
-        }
+    fun loadRecommendations() {
+        val recommendations = recommendationEngine.getCompatibleRecommendations()
+
+        // Auto-select the best one
+        val best = recommendations.firstOrNull()
 
         _state.update {
             it.copy(
-                availableModels = compatibleModels.filter { (_, v) -> v.isCompatible }.map { (m, _) -> m },
-                currentStep = WizardStep.MODEL_INSTALL_OPTIONS
+                recommendations = recommendations,
+                selectedRecommendation = best,
+                currentStep = WizardStep.MODEL_INSTALL_OPTIONS,
+                isWifiConnected = modelInstaller.isWifiAvailable()
             )
         }
     }
 
-    fun selectModel(model: LocalAiModel) {
-        val validation = validator.validate(model)
-        _state.update {
-            it.copy(
-                selectedModel = model,
-                validationResult = validation
-            )
-        }
+    fun selectRecommendation(recommendation: ModelRecommendation) {
+        _state.update { it.copy(selectedRecommendation = recommendation) }
     }
 
-    fun downloadSelectedModel() {
-        val model = _state.value.selectedModel ?: return
+    fun startDownload() {
+        val rec = _state.value.selectedRecommendation ?: return
+        val model = rec.model
+
         _state.update { it.copy(currentStep = WizardStep.MODEL_DOWNLOAD) }
 
-        viewModelScope.launch {
-            modelInstaller.downloadModel(model)
+        // Check WiFi for large models
+        if (model.sizeMb > 500 && !modelInstaller.isWifiAvailable()) {
+            _state.update { it.copy(showWifiWarning = true) }
+            return
         }
+
+        modelInstaller.downloadModel(model, viewModelScope)
+    }
+
+    fun startDownloadAnyway() {
+        val rec = _state.value.selectedRecommendation ?: return
+        _state.update { it.copy(showWifiWarning = false) }
+        modelInstaller.downloadModel(rec.model, viewModelScope)
+    }
+
+    fun dismissWifiWarning() {
+        _state.update { it.copy(showWifiWarning = false) }
+    }
+
+    fun startBackgroundDownload() {
+        val rec = _state.value.selectedRecommendation ?: return
+        modelInstaller.downloadModelInBackground(rec.model)
+    }
+
+    fun pauseDownload() {
+        modelInstaller.pauseDownload()
+    }
+
+    fun resumeDownload() {
+        val rec = _state.value.selectedRecommendation ?: return
+        modelInstaller.resumeDownload(rec.model, viewModelScope)
+    }
+
+    fun cancelDownload() {
+        val rec = _state.value.selectedRecommendation ?: return
+        modelInstaller.cancelDownload(rec.model)
+        _state.update { it.copy(currentStep = WizardStep.MODEL_INSTALL_OPTIONS) }
     }
 
     fun importModel(uri: Uri) {
-        val model = _state.value.selectedModel ?: return
+        val rec = _state.value.selectedRecommendation
+        val model = rec?.model ?: LocalAiModel(
+            modelId = "imported-${System.currentTimeMillis()}",
+            displayName = "Imported Model",
+            runtimeType = RuntimeType.MEDIA_PIPE,
+            fileFormat = "bin",
+            quantization = "unknown",
+            requiredRamMb = 2048,
+            recommendedRamMb = 4096,
+            sizeMb = 0,
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "1.0",
+            supportsStructuredJson = false,
+            supportsStreaming = false,
+            supportsTextGeneration = true
+        )
 
         viewModelScope.launch {
             modelInstaller.importModelFromUri(uri, model)
@@ -146,17 +198,11 @@ class SetupWizardViewModel @Inject constructor(
                 )
                 val result = provider.generateAnalysis(input)
                 _state.update {
-                    it.copy(
-                        isTestingPrompt = false,
-                        testPromptResult = result.summary
-                    )
+                    it.copy(isTestingPrompt = false, testPromptResult = result.summary)
                 }
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(
-                        isTestingPrompt = false,
-                        testPromptResult = "Test failed: ${e.message}"
-                    )
+                    it.copy(isTestingPrompt = false, testPromptResult = "Test failed: ${e.message}")
                 }
             }
         }
@@ -170,10 +216,7 @@ class SetupWizardViewModel @Inject constructor(
                 val provider = providerSelector.selectProvider()
                 val result = benchmarkRunner.runBenchmark(provider)
                 _state.update {
-                    it.copy(
-                        isRunningBenchmark = false,
-                        benchmarkResult = result
-                    )
+                    it.copy(isRunningBenchmark = false, benchmarkResult = result)
                 }
             } catch (e: Exception) {
                 _state.update {

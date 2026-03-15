@@ -22,7 +22,8 @@ object AppModule {
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(
             context, AppDatabase::class.java, AppDatabase.DATABASE_NAME
-        ).fallbackToDestructiveMigration().build()
+        ).addMigrations(AppDatabase.MIGRATION_2_3)
+            .fallbackToDestructiveMigration().build()
 
     @Provides
     fun provideMedicationDao(db: AppDatabase): MedicationDao = db.medicationDao()
