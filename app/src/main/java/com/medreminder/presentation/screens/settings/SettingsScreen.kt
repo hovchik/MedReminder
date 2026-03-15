@@ -1,15 +1,14 @@
 package com.medreminder.presentation.screens.settings
 
-import android.app.LocaleManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.os.LocaleList
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.FileProvider
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -112,28 +111,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     var showClearDialog by remember { mutableStateOf(false) }
     var showImportConfirmDialog by remember { mutableStateOf(false) }
     var pendingImportJson by remember { mutableStateOf<String?>(null) }
-    var pendingExportJson by remember { mutableStateOf<String?>(null) }
-
-    // Export file picker — writes pre-generated JSON immediately when URI is returned
-    val exportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        if (uri != null) {
-            val json = pendingExportJson
-            pendingExportJson = null
-            if (json != null) {
-                try {
-                    context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
-                    Toast.makeText(context, context.getString(R.string.export_success), Toast.LENGTH_SHORT).show()
-                } catch (_: Exception) {
-                    Toast.makeText(context, context.getString(R.string.export_error), Toast.LENGTH_SHORT).show()
-                }
-            }
-        } else {
-            pendingExportJson = null
-        }
-    }
-
     // Import file picker
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -333,9 +310,27 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             onClick = {
                 viewModel.exportData { json ->
                     if (json != null) {
-                        pendingExportJson = json
-                        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-                        exportLauncher.launch("medreminder_backup_$timestamp.json")
+                        try {
+                            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+                            val fileName = "medreminder_backup_$timestamp.json"
+                            val reportsDir = java.io.File(context.cacheDir, "reports")
+                            reportsDir.mkdirs()
+                            val file = java.io.File(reportsDir, fileName)
+                            file.writeText(json)
+                            val uri = FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.fileprovider",
+                                file
+                            )
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "application/json"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.export_data)))
+                        } catch (_: Exception) {
+                            Toast.makeText(context, context.getString(R.string.export_error), Toast.LENGTH_SHORT).show()
+                        }
                     } else {
                         Toast.makeText(context, context.getString(R.string.export_error), Toast.LENGTH_SHORT).show()
                     }
