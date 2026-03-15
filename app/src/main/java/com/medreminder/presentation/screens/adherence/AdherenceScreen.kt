@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -21,6 +22,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.medreminder.R
 import com.medreminder.domain.model.AdherenceStats
 import com.medreminder.domain.model.DayAdherence
 import com.medreminder.domain.repository.MedicationRepository
@@ -75,11 +77,15 @@ fun AdherenceScreen(viewModel: AdherenceViewModel = hiltViewModel()) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Adherence", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.adherence), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
         // Period selector
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("week" to "Week", "month" to "Month", "year" to "Year").forEach { (key, label) ->
+            listOf(
+                "week" to stringResource(R.string.week),
+                "month" to stringResource(R.string.month),
+                "year" to stringResource(R.string.year)
+            ).forEach { (key, label) ->
                 FilterChip(
                     selected = period == key,
                     onClick = { viewModel.setPeriod(key) },
@@ -115,18 +121,18 @@ fun AdherenceScreen(viewModel: AdherenceViewModel = hiltViewModel()) {
                         else -> MaterialTheme.colorScheme.error
                     }
                 )
-                Text("Adherence rate", style = MaterialTheme.typography.bodyLarge,
+                Text(stringResource(R.string.adherence_rate), style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
         // Stats grid
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatCard("Taken", "${stats.takenDoses}", Icons.Default.Check,
+            StatCard(stringResource(R.string.status_taken), "${stats.takenDoses}", Icons.Default.Check,
                 Color(0xFF2ECC71), Modifier.weight(1f))
-            StatCard("Missed", "${stats.missedDoses}", Icons.Default.Close,
+            StatCard(stringResource(R.string.status_missed), "${stats.missedDoses}", Icons.Default.Close,
                 MaterialTheme.colorScheme.error, Modifier.weight(1f))
-            StatCard("Skipped", "${stats.skippedDoses}", Icons.Default.SkipNext,
+            StatCard(stringResource(R.string.status_skipped), "${stats.skippedDoses}", Icons.Default.SkipNext,
                 Color(0xFFF39C12), Modifier.weight(1f))
         }
 
@@ -140,12 +146,14 @@ fun AdherenceScreen(viewModel: AdherenceViewModel = hiltViewModel()) {
                 modifier = Modifier.padding(20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("🔥", fontSize = 32.sp)
+                Text("\uD83D\uDD25", fontSize = 32.sp)
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
-                    Text("Current streak", style = MaterialTheme.typography.bodyMedium,
+                    Text(stringResource(R.string.current_streak), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                    Text("${stats.currentStreak} day${if (stats.currentStreak != 1) "s" else ""}",
+                    Text(
+                        if (stats.currentStreak != 1) stringResource(R.string.days_streak, stats.currentStreak)
+                        else stringResource(R.string.day_streak, stats.currentStreak),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer)
@@ -155,7 +163,7 @@ fun AdherenceScreen(viewModel: AdherenceViewModel = hiltViewModel()) {
 
         // Weekly bar chart
         if (stats.weeklyData.isNotEmpty()) {
-            Text("Daily breakdown", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.daily_breakdown), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)

@@ -11,12 +11,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.medreminder.R
 import com.medreminder.domain.model.DoseLog
 import com.medreminder.domain.model.DoseStatus
 import com.medreminder.domain.repository.MedicationRepository
@@ -46,6 +48,12 @@ class HistoryViewModel @Inject constructor(
         loadHistory()
     }
 
+    fun markAsTaken(logId: Long) {
+        viewModelScope.launch {
+            repository.markDoseTaken(logId)
+        }
+    }
+
     private fun loadHistory() {
         viewModelScope.launch {
             val start = DateUtils.daysAgo(_daysBack.value)
@@ -66,10 +74,14 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
     Column(modifier = Modifier.fillMaxSize()) {
         // Header
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("History", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.history), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(7 to "7 days", 14 to "14 days", 30 to "30 days").forEach { (days, label) ->
+                listOf(
+                    7 to stringResource(R.string.seven_days),
+                    14 to stringResource(R.string.fourteen_days),
+                    30 to stringResource(R.string.thirty_days)
+                ).forEach { (days, label) ->
                     FilterChip(
                         selected = daysBack == days,
                         onClick = { viewModel.setDaysBack(days) },
@@ -88,10 +100,10 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
         if (logs.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📋", style = MaterialTheme.typography.displayLarge)
+                    Text("\uD83D\uDCCB", style = MaterialTheme.typography.displayLarge)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("No history yet", style = MaterialTheme.typography.titleMedium)
-                    Text("Your medication history will appear here",
+                    Text(stringResource(R.string.no_history_yet), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.history_will_appear),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -104,7 +116,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
                 grouped.forEach { (date, dayLogs) ->
                     item {
                         Text(
-                            text = if (DateUtils.isToday(dayLogs.first().scheduledTime)) "Today" else date,
+                            text = if (DateUtils.isToday(dayLogs.first().scheduledTime)) stringResource(R.string.today) else date,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary,
@@ -112,7 +124,10 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
                         )
                     }
                     items(dayLogs, key = { it.id }) { log ->
-                        HistoryItem(log)
+                        HistoryItem(
+                            log = log,
+                            onMarkAsTaken = { viewModel.markAsTaken(log.id) }
+                        )
                     }
                 }
                 item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -122,7 +137,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
 }
 
 @Composable
-fun HistoryItem(log: DoseLog) {
+fun HistoryItem(log: DoseLog, onMarkAsTaken: () -> Unit) {
     val (icon, iconColor) = when (log.status) {
         DoseStatus.TAKEN -> Icons.Default.CheckCircle to Color(0xFF2ECC71)
         DoseStatus.MISSED -> Icons.Default.Cancel to MaterialTheme.colorScheme.error
@@ -147,9 +162,31 @@ fun HistoryItem(log: DoseLog) {
         Column(horizontalAlignment = Alignment.End) {
             Text(DateUtils.formatTimeOnly(log.scheduledTime),
                 style = MaterialTheme.typography.bodyMedium)
-            Text(log.status.displayName,
-                style = MaterialTheme.typography.labelSmall,
-                color = iconColor)
+            if (log.status == DoseStatus.MISSED || log.status == DoseStatus.PENDING) {
+                TextButton(
+                    onClick = onMarkAsTaken,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                    modifier = Modifier.height(28.dp)
+                ) {
+                    Icon(Icons.Default.Check, null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        stringResource(R.string.mark_as_taken),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            } else {
+                Text(
+                    when (log.status) {
+                        DoseStatus.TAKEN -> stringResource(R.string.status_taken)
+                        DoseStatus.SKIPPED -> stringResource(R.string.status_skipped)
+                        DoseStatus.SNOOZED -> stringResource(R.string.status_snoozed)
+                        else -> log.status.displayName
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = iconColor
+                )
+            }
         }
     }
 }

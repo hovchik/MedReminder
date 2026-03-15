@@ -25,10 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.medreminder.R
 import com.medreminder.data.local.AppDatabase
 import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
@@ -249,7 +251,7 @@ fun AlarmScreen(
                         .background(Color(0xFF4A90D9).copy(alpha = 0.4f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("💊", fontSize = 40.sp)
+                    Text("\uD83D\uDC8A", fontSize = 40.sp)
                 }
             }
 
@@ -257,7 +259,7 @@ fun AlarmScreen(
 
             // Medication info
             Text(
-                text = "Time to take",
+                text = stringResource(R.string.time_to_take),
                 fontSize = 18.sp,
                 color = Color.White.copy(alpha = 0.7f)
             )
@@ -291,7 +293,7 @@ fun AlarmScreen(
             ) {
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(28.dp))
                 Spacer(modifier = Modifier.width(12.dp))
-                Text("I took it", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.i_took_it), fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
 
             // Snooze and Skip row
@@ -311,7 +313,7 @@ fun AlarmScreen(
                 ) {
                     Icon(Icons.Default.Snooze, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Snooze 10m", fontSize = 16.sp)
+                    Text(stringResource(R.string.snooze_10m), fontSize = 16.sp)
                 }
 
                 OutlinedButton(
@@ -326,7 +328,7 @@ fun AlarmScreen(
                 ) {
                     Icon(Icons.Default.Close, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Skip", fontSize = 16.sp)
+                    Text(stringResource(R.string.skip), fontSize = 16.sp)
                 }
             }
         }

@@ -1,12 +1,15 @@
 package com.medreminder.presentation.screens.addmed
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.medreminder.R
 import com.medreminder.alarm.AlarmScheduler
 import com.medreminder.domain.model.*
 import com.medreminder.domain.repository.MedicationRepository
 import com.medreminder.presentation.theme.MedicationColors
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -40,7 +43,8 @@ data class ScheduleInput(
 @HiltViewModel
 class AddEditMedicationViewModel @Inject constructor(
     private val repository: MedicationRepository,
-    private val alarmScheduler: AlarmScheduler
+    private val alarmScheduler: AlarmScheduler,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddEditUiState())
@@ -137,7 +141,7 @@ class AddEditMedicationViewModel @Inject constructor(
     fun save() {
         val state = _uiState.value
         if (state.name.isBlank()) {
-            _uiState.update { it.copy(error = "Medication name is required") }
+            _uiState.update { it.copy(error = context.getString(R.string.medication_name_required)) }
             return
         }
 

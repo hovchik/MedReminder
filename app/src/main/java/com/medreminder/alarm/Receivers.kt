@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
+import com.medreminder.R
 import com.medreminder.data.local.AppDatabase
 import kotlinx.coroutines.*
 
@@ -36,7 +37,7 @@ class SnoozeReceiver : BroadcastReceiver() {
                 nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogId.toInt())
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Snoozed for 10 minutes", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.snoozed_10m), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Log.e("SnoozeReceiver", "Error", e)
@@ -67,7 +68,7 @@ class TakenReceiver : BroadcastReceiver() {
                 nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogId.toInt())
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "$name marked as taken", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.marked_as_taken, name), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Log.e("TakenReceiver", "Error", e)

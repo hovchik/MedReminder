@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.medreminder.R
 import com.medreminder.domain.model.DoseLog
 import com.medreminder.domain.model.DoseStatus
 import com.medreminder.util.DateUtils
@@ -94,7 +96,7 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                "Refill needed",
+                                stringResource(R.string.refill_needed),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.error
@@ -118,14 +120,14 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Today's medications",
+                    stringResource(R.string.today_medications),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 FilledTonalButton(onClick = onAddMedication) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add")
+                    Text(stringResource(R.string.add))
                 }
             }
         }
@@ -175,13 +177,13 @@ fun TodayProgressCard(taken: Int, total: Int, rate: Float, streak: Int) {
             ) {
                 Column {
                     Text(
-                        text = "$taken of $total",
+                        text = stringResource(R.string.taken_of_total, taken, total),
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        "medications taken today",
+                        stringResource(R.string.medications_taken_today),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
@@ -196,10 +198,11 @@ fun TodayProgressCard(taken: Int, total: Int, rate: Float, streak: Int) {
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("🔥", fontSize = 18.sp)
+                            Text("\uD83D\uDD25", fontSize = 18.sp)
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                "$streak day${if (streak > 1) "s" else ""}",
+                                if (streak > 1) stringResource(R.string.days_streak, streak)
+                                else stringResource(R.string.day_streak, streak),
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelLarge
@@ -225,7 +228,7 @@ fun TodayProgressCard(taken: Int, total: Int, rate: Float, streak: Int) {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                "${rate.toInt()}% complete",
+                stringResource(R.string.percent_complete, rate.toInt()),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
@@ -281,7 +284,7 @@ fun DoseCard(
                     dose.status == DoseStatus.MISSED ->
                         Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(28.dp))
                     else ->
-                        Text("💊", fontSize = 24.sp)
+                        Text("\uD83D\uDC8A", fontSize = 24.sp)
                 }
             }
 
@@ -324,19 +327,19 @@ fun DoseCard(
                         ),
                         modifier = Modifier.size(44.dp)
                     ) {
-                        Icon(Icons.Default.Check, "Mark taken", modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.Check, stringResource(R.string.mark_taken), modifier = Modifier.size(24.dp))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         IconButton(onClick = onSnooze, modifier = Modifier.size(36.dp)) {
                             Icon(
-                                Icons.Default.Snooze, "Snooze",
+                                Icons.Default.Snooze, stringResource(R.string.snooze),
                                 modifier = Modifier.size(20.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         IconButton(onClick = onSkip, modifier = Modifier.size(36.dp)) {
                             Icon(
-                                Icons.Default.Close, "Skip",
+                                Icons.Default.Close, stringResource(R.string.skip),
                                 modifier = Modifier.size(20.dp),
                                 tint = MaterialTheme.colorScheme.error
                             )
@@ -351,10 +354,10 @@ fun DoseCard(
 @Composable
 fun StatusChip(status: DoseStatus) {
     val (text, color) = when (status) {
-        DoseStatus.TAKEN -> "Taken" to MaterialTheme.colorScheme.primary
-        DoseStatus.SKIPPED -> "Skipped" to MaterialTheme.colorScheme.error
-        DoseStatus.MISSED -> "Missed" to MaterialTheme.colorScheme.error
-        DoseStatus.SNOOZED -> "Snoozed" to Color(0xFFF39C12)
+        DoseStatus.TAKEN -> stringResource(R.string.status_taken) to MaterialTheme.colorScheme.primary
+        DoseStatus.SKIPPED -> stringResource(R.string.status_skipped) to MaterialTheme.colorScheme.error
+        DoseStatus.MISSED -> stringResource(R.string.status_missed) to MaterialTheme.colorScheme.error
+        DoseStatus.SNOOZED -> stringResource(R.string.status_snoozed) to Color(0xFFF39C12)
         else -> return
     }
     Surface(
@@ -387,15 +390,15 @@ fun EmptyStateCard(onAdd: () -> Unit) {
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("💊", fontSize = 48.sp)
+            Text("\uD83D\uDC8A", fontSize = 48.sp)
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                "No medications scheduled",
+                stringResource(R.string.no_medications_scheduled),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                "Add your first medication to get started",
+                stringResource(R.string.add_first_medication),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -403,7 +406,7 @@ fun EmptyStateCard(onAdd: () -> Unit) {
             Button(onClick = onAdd, shape = RoundedCornerShape(12.dp)) {
                 Icon(Icons.Default.Add, null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Add medication")
+                Text(stringResource(R.string.add_medication))
             }
         }
     }

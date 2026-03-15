@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -17,11 +18,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.medreminder.R
 import com.medreminder.presentation.screens.addmed.AddEditMedicationScreen
 import com.medreminder.presentation.screens.adherence.AdherenceScreen
 import com.medreminder.presentation.screens.caregiver.CaregiverScreen
 import com.medreminder.presentation.screens.history.HistoryScreen
 import com.medreminder.presentation.screens.home.HomeScreen
+import com.medreminder.presentation.screens.ocr.OcrScannerScreen
 import com.medreminder.presentation.screens.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
@@ -30,6 +33,11 @@ sealed class Screen(val route: String) {
     data object EditMedication : Screen("edit_medication/{medicationId}") {
         fun createRoute(medicationId: Long) = "edit_medication/$medicationId"
     }
+    data object AddMedicationFromScan : Screen("add_medication_scan/{name}/{dosage}") {
+        fun createRoute(name: String, dosage: String) =
+            "add_medication_scan/${java.net.URLEncoder.encode(name, "UTF-8")}/${java.net.URLEncoder.encode(dosage, "UTF-8")}"
+    }
+    data object OcrScanner : Screen("ocr_scanner")
     data object Adherence : Screen("adherence")
     data object History : Screen("history")
     data object Caregiver : Screen("caregiver")
@@ -38,17 +46,17 @@ sealed class Screen(val route: String) {
 
 data class BottomNavItem(
     val screen: Screen,
-    val label: String,
+    val labelResId: Int,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem(Screen.Home, "Today", Icons.Filled.Home, Icons.Outlined.Home),
-    BottomNavItem(Screen.Adherence, "Stats", Icons.Filled.BarChart, Icons.Outlined.BarChart),
-    BottomNavItem(Screen.History, "History", Icons.Filled.History, Icons.Outlined.History),
-    BottomNavItem(Screen.Caregiver, "Family", Icons.Filled.People, Icons.Outlined.People),
-    BottomNavItem(Screen.Settings, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
+    BottomNavItem(Screen.Home, R.string.nav_today, Icons.Filled.Home, Icons.Outlined.Home),
+    BottomNavItem(Screen.Adherence, R.string.nav_stats, Icons.Filled.BarChart, Icons.Outlined.BarChart),
+    BottomNavItem(Screen.History, R.string.nav_history, Icons.Filled.History, Icons.Outlined.History),
+    BottomNavItem(Screen.Caregiver, R.string.nav_family, Icons.Filled.People, Icons.Outlined.People),
+    BottomNavItem(Screen.Settings, R.string.nav_settings, Icons.Filled.Settings, Icons.Outlined.Settings)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,10 +78,10 @@ fun MedReminderNavigation() {
                             icon = {
                                 Icon(
                                     if (selected) item.selectedIcon else item.unselectedIcon,
-                                    contentDescription = item.label
+                                    contentDescription = stringResource(item.labelResId)
                                 )
                             },
-                            label = { Text(item.label) },
+                            label = { Text(stringResource(item.labelResId)) },
                             selected = selected,
                             onClick = {
                                 if (currentRoute != item.screen.route) {
@@ -106,7 +114,8 @@ fun MedReminderNavigation() {
             composable(Screen.AddMedication.route) {
                 AddEditMedicationScreen(
                     medicationId = null,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onScanMedication = { navController.navigate(Screen.OcrScanner.route) }
                 )
             }
             composable(
@@ -116,7 +125,38 @@ fun MedReminderNavigation() {
                 val medicationId = backStackEntry.arguments?.getLong("medicationId")
                 AddEditMedicationScreen(
                     medicationId = medicationId,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onScanMedication = { navController.navigate(Screen.OcrScanner.route) }
+                )
+            }
+            composable(
+                route = Screen.AddMedicationFromScan.route,
+                arguments = listOf(
+                    navArgument("name") { type = NavType.StringType },
+                    navArgument("dosage") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val name = java.net.URLDecoder.decode(
+                    backStackEntry.arguments?.getString("name") ?: "", "UTF-8"
+                )
+                val dosage = java.net.URLDecoder.decode(
+                    backStackEntry.arguments?.getString("dosage") ?: "", "UTF-8"
+                )
+                AddEditMedicationScreen(
+                    medicationId = null,
+                    onNavigateBack = { navController.popBackStack() },
+                    onScanMedication = { navController.navigate(Screen.OcrScanner.route) },
+                    scannedName = name,
+                    scannedDosage = dosage
+                )
+            }
+            composable(Screen.OcrScanner.route) {
+                OcrScannerScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onMedicationScanned = { name, dosage ->
+                        navController.popBackStack()
+                        navController.navigate(Screen.AddMedicationFromScan.createRoute(name, dosage))
+                    }
                 )
             }
             composable(Screen.Adherence.route) { AdherenceScreen() }

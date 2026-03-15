@@ -1,3 +1,160 @@
 <resources>
     <string name="app_name">MedReminder</string>
+
+    <!-- Navigation -->
+    <string name="nav_today">Today</string>
+    <string name="nav_stats">Stats</string>
+    <string name="nav_history">History</string>
+    <string name="nav_family">Family</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Home Screen -->
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="refill_needed">Refill needed</string>
+    <string name="today_medications">Today\'s medications</string>
+    <string name="add">Add</string>
+    <string name="medications_taken_today">medications taken today</string>
+    <string name="percent_complete">%1$d%% complete</string>
+    <string name="day_streak">%1$d day</string>
+    <string name="days_streak">%1$d days</string>
+    <string name="taken_of_total">%1$d of %2$d</string>
+    <string name="no_medications_scheduled">No medications scheduled</string>
+    <string name="add_first_medication">Add your first medication to get started</string>
+    <string name="add_medication">Add medication</string>
+
+    <!-- Dose Status -->
+    <string name="status_taken">Taken</string>
+    <string name="status_skipped">Skipped</string>
+    <string name="status_missed">Missed</string>
+    <string name="status_snoozed">Snoozed</string>
+    <string name="status_pending">Pending</string>
+    <string name="mark_taken">Mark taken</string>
+    <string name="snooze">Snooze</string>
+    <string name="skip">Skip</string>
+
+    <!-- Add/Edit Medication -->
+    <string name="edit_medication">Edit medication</string>
+    <string name="delete_medication_title">Delete medication?</string>
+    <string name="delete_medication_message">This will remove the medication and all its history. This cannot be undone.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="back">Back</string>
+    <string name="medication_name">Medication name</string>
+    <string name="dosage">Dosage</string>
+    <string name="unit">Unit</string>
+    <string name="form">Form</string>
+    <string name="color">Color</string>
+    <string name="schedules">Schedules</string>
+    <string name="schedule_number">Schedule %1$d</string>
+    <string name="remove">Remove</string>
+    <string name="add_another_time">Add another time</string>
+    <string name="instructions_hint">Instructions (e.g., take with food)</string>
+    <string name="stock_tracking">Stock tracking</string>
+    <string name="current_stock">Current stock</string>
+    <string name="refill_at">Refill at</string>
+    <string name="remind_to_refill">Remind me to refill</string>
+    <string name="notes">Notes</string>
+    <string name="save_changes">Save changes</string>
+    <string name="medication_name_required">Medication name is required</string>
+    <string name="every">Every</string>
+    <string name="days">days</string>
+
+    <!-- Medication Forms -->
+    <string name="form_pill">Pill</string>
+    <string name="form_capsule">Capsule</string>
+    <string name="form_liquid">Liquid</string>
+    <string name="form_injection">Injection</string>
+    <string name="form_patch">Patch</string>
+    <string name="form_spray">Spray</string>
+    <string name="form_drops">Drops</string>
+    <string name="form_inhaler">Inhaler</string>
+    <string name="form_cream">Cream</string>
+    <string name="form_other">Other</string>
+
+    <!-- Schedule Frequency -->
+    <string name="freq_daily">Every day</string>
+    <string name="freq_specific_days">Specific days</string>
+    <string name="freq_interval">Every X days</string>
+    <string name="freq_as_needed">As needed</string>
+
+    <!-- Adherence Screen -->
+    <string name="adherence">Adherence</string>
+    <string name="week">Week</string>
+    <string name="month">Month</string>
+    <string name="year">Year</string>
+    <string name="adherence_rate">Adherence rate</string>
+    <string name="current_streak">Current streak</string>
+    <string name="daily_breakdown">Daily breakdown</string>
+
+    <!-- History Screen -->
+    <string name="history">History</string>
+    <string name="seven_days">7 days</string>
+    <string name="fourteen_days">14 days</string>
+    <string name="thirty_days">30 days</string>
+    <string name="no_history_yet">No history yet</string>
+    <string name="history_will_appear">Your medication history will appear here</string>
+    <string name="today">Today</string>
+    <string name="mark_as_taken">Mark as taken</string>
+
+    <!-- Caregiver Screen -->
+    <string name="family_caregivers">Family &amp; Caregivers</string>
+    <string name="caregiver_info">Caregivers will be notified when you miss a dose. They can also view your adherence reports.</string>
+    <string name="no_caregivers_yet">No caregivers added yet</string>
+    <string name="add_family_members">Add family members who should be notified</string>
+    <string name="add_caregiver">Add caregiver</string>
+    <string name="name">Name</string>
+    <string name="phone_optional">Phone (optional)</string>
+    <string name="relationship_optional">Relationship (optional)</string>
+    <string name="notify_on_missed">Notify on missed</string>
+    <string name="notify_on_taken">Notify on taken</string>
+
+    <!-- Settings Screen -->
+    <string name="settings">Settings</string>
+    <string name="active_medications">%1$d active medications</string>
+    <string name="version">Version 1.0.0</string>
+    <string name="notifications">Notifications</string>
+    <string name="notification_settings">Notification settings</string>
+    <string name="notification_settings_subtitle">Manage alarm sounds and vibration</string>
+    <string name="exact_alarm_permission">Exact alarm permission</string>
+    <string name="exact_alarm_subtitle">Required for reliable reminders</string>
+    <string name="battery_optimization">Battery optimization</string>
+    <string name="battery_subtitle">Disable for reliable alarms</string>
+    <string name="reschedule_alarms">Reschedule all alarms</string>
+    <string name="reschedule_subtitle">Fix issues with missed notifications</string>
+    <string name="privacy">Privacy</string>
+    <string name="data_on_device">Your data stays on your device</string>
+    <string name="data_on_device_subtitle">MedReminder stores all data locally. No cloud sync, no data sharing, no accounts required.</string>
+    <string name="about">About</string>
+    <string name="rate_app">Rate the app</string>
+    <string name="rate_subtitle">Help us help more people</string>
+    <string name="share_app">Share MedReminder</string>
+    <string name="share_subtitle">Help someone remember their meds</string>
+    <string name="share_text">Never miss your meds again! Try MedReminder - the privacy-first medication reminder app.</string>
+    <string name="language">Language</string>
+    <string name="language_subtitle">Change app language</string>
+    <string name="select_language">Select language</string>
+
+    <!-- Alarm Screen -->
+    <string name="time_to_take">Time to take</string>
+    <string name="i_took_it">I took it</string>
+    <string name="snooze_10m">Snooze 10m</string>
+    <string name="time_to_take_med">Time to take %1$s</string>
+    <string name="snoozed_10m">Snoozed for 10 minutes</string>
+    <string name="marked_as_taken">%1$s marked as taken</string>
+
+    <!-- OCR Scanner -->
+    <string name="scan_medication">Scan medication</string>
+    <string name="scan_instruction">Point camera at medication label or prescription</string>
+    <string name="scanning">Scanning…</string>
+    <string name="no_text_detected">No text detected. Try again.</string>
+    <string name="use_scanned_text">Use scanned text</string>
+    <string name="scanned_results">Scanned results</string>
+    <string name="detected_name">Detected name</string>
+    <string name="detected_dosage">Detected dosage</string>
+    <string name="camera_permission_required">Camera permission is required to scan medications</string>
+    <string name="grant_permission">Grant permission</string>
+    <string name="scan_with_camera">Scan with camera</string>
+    <string name="or_scan_label">Or scan medication label</string>
 </resources>
