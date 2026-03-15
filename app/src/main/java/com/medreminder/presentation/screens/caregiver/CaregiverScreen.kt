@@ -104,8 +104,7 @@ fun CaregiverScreen(viewModel: CaregiverViewModel = hiltViewModel()) {
         item {
             TabRow(
                 selectedTabIndex = selectedTab,
-                containerColor = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(12.dp)
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 Tab(
                     selected = selectedTab == 0,
@@ -416,6 +415,7 @@ fun AddCaregiverDialog(onDismiss: () -> Unit, onAdd: (Caregiver) -> Unit) {
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddFamilyMemberDialog(onDismiss: () -> Unit, onAdd: (FamilyMember) -> Unit) {
     var name by remember { mutableStateOf("") }
