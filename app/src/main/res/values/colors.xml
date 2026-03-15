@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="med_blue">#FF4A90D9</color>
+    <color name="med_green">#FF2ECC71</color>
+    <color name="med_orange">#FFF39C12</color>
+    <color name="med_red">#FFE74C3C</color>
+    <color name="med_purple">#FF9B59B6</color>
+    <color name="med_teal">#FF1ABC9C</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+</resources>
