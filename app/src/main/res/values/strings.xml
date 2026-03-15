@@ -105,10 +105,14 @@
     <string name="add_family_members">Add family members who should be notified</string>
     <string name="add_caregiver">Add caregiver</string>
     <string name="name">Name</string>
+    <string name="phone">Phone</string>
+    <string name="email">Email</string>
     <string name="phone_optional">Phone (optional)</string>
     <string name="relationship_optional">Relationship (optional)</string>
     <string name="notify_on_missed">Notify on missed</string>
     <string name="notify_on_taken">Notify on taken</string>
+    <string name="notify_caregivers">Notify caregivers</string>
+    <string name="notify_caregivers_description">Inform caregivers about this medication via SMS or email</string>
 
     <!-- Settings Screen -->
     <string name="settings">Settings</string>

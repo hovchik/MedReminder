@@ -87,10 +87,14 @@
     <string name="add_family_members">Agrega familiares que deben ser notificados</string>
     <string name="add_caregiver">Agregar cuidador</string>
     <string name="name">Nombre</string>
+    <string name="phone">Teléfono</string>
+    <string name="email">Correo electrónico</string>
     <string name="phone_optional">Teléfono (opcional)</string>
     <string name="relationship_optional">Relación (opcional)</string>
     <string name="notify_on_missed">Notificar al perder</string>
     <string name="notify_on_taken">Notificar al tomar</string>
+    <string name="notify_caregivers">Notificar a cuidadores</string>
+    <string name="notify_caregivers_description">Informar a los cuidadores sobre este medicamento por SMS o correo electrónico</string>
     <string name="settings">Ajustes</string>
     <string name="active_medications">%1$d medicamentos activos</string>
     <string name="version">Versión 1.0.0</string>

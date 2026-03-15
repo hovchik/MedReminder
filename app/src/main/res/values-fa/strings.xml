@@ -87,10 +87,14 @@
     <string name="add_family_members">اعضای خانواده را اضافه کنید</string>
     <string name="add_caregiver">افزودن مراقب</string>
     <string name="name">نام</string>
+    <string name="phone">تلفن</string>
+    <string name="email">ایمیل</string>
     <string name="phone_optional">تلفن (اختیاری)</string>
     <string name="relationship_optional">نسبت (اختیاری)</string>
     <string name="notify_on_missed">اطلاع در صورت فراموشی</string>
     <string name="notify_on_taken">اطلاع در صورت مصرف</string>
+    <string name="notify_caregivers">اطلاع‌رسانی به مراقبان</string>
+    <string name="notify_caregivers_description">اطلاع‌رسانی به مراقبان درباره این دارو از طریق پیامک یا ایمیل</string>
     <string name="settings">تنظیمات</string>
     <string name="active_medications">%1$d داروی فعال</string>
     <string name="version">نسخه 1.0.0</string>

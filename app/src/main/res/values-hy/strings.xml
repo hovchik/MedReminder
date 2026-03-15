@@ -87,10 +87,15 @@
     <string name="add_family_members">Ավելացրեք ընտանիքի անդամներ</string>
     <string name="add_caregiver">Ավելացնել խնամակալ</string>
     <string name="name">Անուն</string>
+    <string name="phone">Հեռախոdelays</string>
+    <string name="phone">Հեռախոս</string>
+    <string name="email">Էլ. փոստ</string>
     <string name="phone_optional">Հեռախոս (կամավոր)</string>
     <string name="relationship_optional">Կապ (կամավոր)</string>
     <string name="notify_on_missed">Ծանուցել բաց թողնելիս</string>
     <string name="notify_on_taken">Ծանուցել ընդունելիս</string>
+    <string name="notify_caregivers">Ծանուցել խնամակալներին</string>
+    <string name="notify_caregivers_description">Տեղեկացնել խնամակալներին այս դեղի մասին SMS կամ էլ. փոստով</string>
     <string name="settings">Կարգավորումներ</string>
     <string name="active_medications">%1$d ակտիվ դեղեր</string>
     <string name="version">Տարբերակ 1.0.0</string>

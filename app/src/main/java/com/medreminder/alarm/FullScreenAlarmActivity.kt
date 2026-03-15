@@ -137,6 +137,9 @@ class FullScreenAlarmActivity : ComponentActivity() {
                 ).build()
                 db.doseLogDao().updateDoseStatus(doseLogId, "taken")
                 db.medicationDao().decrementStock(medicationId)
+                CaregiverNotificationHelper.notifyCaregiversOnTaken(
+                    applicationContext, db, medicationId, medicationName
+                )
             } catch (e: Exception) { e.printStackTrace() }
             withContext(Dispatchers.Main) { finish() }
         }

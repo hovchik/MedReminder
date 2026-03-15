@@ -293,6 +293,29 @@ fun AddEditMedicationScreen(
                 shape = RoundedCornerShape(12.dp)
             )
 
+            HorizontalDivider()
+
+            // Caregiver notifications
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.notify_caregivers),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        stringResource(R.string.notify_caregivers_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Switch(
+                    checked = uiState.notifyCaregivers,
+                    onCheckedChange = viewModel::updateNotifyCaregivers
+                )
+            }
+
             // Save button
             Button(
                 onClick = { viewModel.save() },

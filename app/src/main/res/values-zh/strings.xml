@@ -87,10 +87,14 @@
     <string name="add_family_members">添加需要通知的家庭成员</string>
     <string name="add_caregiver">添加看护人</string>
     <string name="name">姓名</string>
+    <string name="phone">电话</string>
+    <string name="email">电子邮件</string>
     <string name="phone_optional">电话（可选）</string>
     <string name="relationship_optional">关系（可选）</string>
     <string name="notify_on_missed">错过时通知</string>
     <string name="notify_on_taken">服用时通知</string>
+    <string name="notify_caregivers">通知看护人</string>
+    <string name="notify_caregivers_description">通过短信或电子邮件通知看护人关于此药物</string>
     <string name="settings">设置</string>
     <string name="active_medications">%1$d 种活跃药物</string>
     <string name="version">版本 1.0.0</string>

@@ -16,7 +16,7 @@ import com.medreminder.data.local.entity.*
         CaregiverEntity::class,
         LocalAiModelEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -35,6 +35,12 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE local_ai_models ADD COLUMN downloadUrl TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE local_ai_models ADD COLUMN parameterCount TEXT NOT NULL DEFAULT ''")
                 db.execSQL("ALTER TABLE local_ai_models ADD COLUMN downloadedBytes INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE medications ADD COLUMN notifyCaregivers INTEGER NOT NULL DEFAULT 0")
             }
         }
     }
