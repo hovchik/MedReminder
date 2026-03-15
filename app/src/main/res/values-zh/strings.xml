@@ -140,4 +140,11 @@
     <string name="downloading_language_data">正在下载语言数据…</string>
     <string name="download_failed">下载失败，请检查网络连接。</string>
     <string name="try_again">重试</string>
+
+    <!-- Barcode Scanner -->
+    <string name="scan_mode_text">文字</string>
+    <string name="scan_mode_barcode">条码</string>
+    <string name="barcode_instruction">将相机对准药物条码</string>
+    <string name="looking_up_barcode">正在查找药物…</string>
+    <string name="barcode_no_match">未找到与此条码匹配的药物。您可以手动输入名称。</string>
 </resources>

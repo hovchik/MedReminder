@@ -140,4 +140,11 @@
     <string name="downloading_language_data">در حال دانلود داده‌های زبان…</string>
     <string name="download_failed">دانلود ناموفق بود. اتصال اینترنت خود را بررسی کنید.</string>
     <string name="try_again">تلاش مجدد</string>
+
+    <!-- Barcode Scanner -->
+    <string name="scan_mode_text">متن</string>
+    <string name="scan_mode_barcode">بارکد</string>
+    <string name="barcode_instruction">دوربین را به سمت بارکد دارو بگیرید</string>
+    <string name="looking_up_barcode">در حال جستجوی دارو…</string>
+    <string name="barcode_no_match">دارویی برای این بارکد یافت نشد. می‌توانید نام را دستی وارد کنید.</string>
 </resources>

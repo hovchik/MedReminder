@@ -140,4 +140,11 @@
     <string name="downloading_language_data">Загрузка языковых данных…</string>
     <string name="download_failed">Загрузка не удалась. Проверьте подключение к интернету.</string>
     <string name="try_again">Попробовать снова</string>
+
+    <!-- Barcode Scanner -->
+    <string name="scan_mode_text">Текст</string>
+    <string name="scan_mode_barcode">Штрихкод</string>
+    <string name="barcode_instruction">Наведите камеру на штрихкод лекарства</string>
+    <string name="looking_up_barcode">Поиск лекарства…</string>
+    <string name="barcode_no_match">Лекарство не найдено по этому штрихкоду. Вы можете ввести название вручную.</string>
 </resources>

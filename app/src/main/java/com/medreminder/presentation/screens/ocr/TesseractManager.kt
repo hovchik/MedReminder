@@ -237,6 +237,21 @@ class TesseractManager(private val context: Context) {
             if (success) {
                 // Use single block of text PSM for medication labels
                 api.pageSegMode = TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK
+
+                // Language-specific Tesseract tuning
+                when (langCode) {
+                    "hye" -> {
+                        // Armenian: preserve interword spaces, help LSTM with
+                        // thin-stroke Armenian characters
+                        api.setVariable("preserve_interword_spaces", "1")
+                        api.setVariable("lstm_choice_mode", "2")
+                    }
+                    "fas" -> {
+                        // Farsi/Persian: RTL script needs interword spaces preserved
+                        api.setVariable("preserve_interword_spaces", "1")
+                    }
+                }
+
                 tessApi = api
                 currentLangCode = langCode
                 Log.d(TAG, "Tesseract initialized for $langCode (LSTM-only)")
@@ -256,10 +271,15 @@ class TesseractManager(private val context: Context) {
     /**
      * Preprocesses a bitmap for better OCR accuracy:
      * upscales small images, converts to grayscale, and increases contrast.
+     *
+     * Armenian and Farsi scripts have thin strokes that benefit from more
+     * aggressive upscaling and higher contrast than Latin/Cyrillic.
      */
     private fun preprocessBitmap(bitmap: Bitmap): Bitmap {
-        // Upscale small images — Tesseract needs ~300 DPI / min ~1500px width
-        val minWidth = 1500
+        // Armenian/Farsi need larger images — thin strokes require higher effective DPI
+        val isComplexScript = currentLangCode == "hye" || currentLangCode == "fas"
+        val minWidth = if (isComplexScript) 2000 else 1500
+
         val source = if (bitmap.width < minWidth) {
             val scale = minWidth.toFloat() / bitmap.width
             Bitmap.createScaledBitmap(
@@ -278,8 +298,8 @@ class TesseractManager(private val context: Context) {
         val canvas = Canvas(result)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
-        // Convert to high-contrast grayscale
-        val contrast = 1.5f
+        // Higher contrast for complex scripts to sharpen thin strokes
+        val contrast = if (isComplexScript) 2.0f else 1.5f
         val translate = (-(128f * contrast) + 128f)
         val colorMatrix = ColorMatrix(
             floatArrayOf(
@@ -291,6 +311,33 @@ class TesseractManager(private val context: Context) {
         )
         paint.colorFilter = ColorMatrixColorFilter(colorMatrix)
         canvas.drawBitmap(source, 0f, 0f, paint)
+
+        if (isComplexScript) {
+            // Apply Otsu-style binarization for Armenian/Farsi:
+            // Convert to pure black/white to eliminate noise that confuses
+            // thin-stroke character recognition
+            val pixels = IntArray(width * height)
+            result.getPixels(pixels, 0, width, 0, 0, width, height)
+
+            // Compute mean luminance
+            var sum = 0L
+            for (pixel in pixels) {
+                sum += (pixel and 0xFF) // grayscale, R=G=B after the color matrix
+            }
+            val threshold = (sum / pixels.size).toInt()
+
+            // Binarize: darken below threshold, lighten above
+            for (i in pixels.indices) {
+                val lum = pixels[i] and 0xFF
+                pixels[i] = if (lum < threshold) {
+                    0xFF000000.toInt()  // black
+                } else {
+                    0xFFFFFFFF.toInt()  // white
+                }
+            }
+            result.setPixels(pixels, 0, width, 0, 0, width, height)
+        }
+
         if (source != bitmap) source.recycle()
         return result
     }

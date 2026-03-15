@@ -89,6 +89,9 @@ dependencies {
     implementation("com.google.mlkit:text-recognition:16.0.0")
     implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
 
+    // ML Kit Barcode Scanning
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
+
     // Tesseract OCR for Armenian, Russian, Farsi scripts
     implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
 

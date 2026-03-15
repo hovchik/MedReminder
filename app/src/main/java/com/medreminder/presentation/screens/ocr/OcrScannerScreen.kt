@@ -35,6 +35,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.TextRecognizer
@@ -45,6 +48,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
+
+/**
+ * Scan mode: text OCR or barcode scanning.
+ */
+enum class ScanMode {
+    TEXT, BARCODE
+}
 
 /**
  * OCR language options mapping to the recognition engine and language code.
@@ -89,6 +99,9 @@ fun OcrScannerScreen(
     var isProcessing by remember { mutableStateOf(false) }
     var showResults by remember { mutableStateOf(false) }
 
+    // Scan mode: text or barcode
+    var scanMode by remember { mutableStateOf(ScanMode.TEXT) }
+
     // Language selection
     var selectedLanguage by remember { mutableStateOf(OcrLanguage.ENGLISH) }
     var showLanguagePicker by remember { mutableStateOf(false) }
@@ -97,6 +110,10 @@ fun OcrScannerScreen(
     var isDownloading by remember { mutableStateOf(false) }
     var downloadProgress by remember { mutableFloatStateOf(0f) }
     var downloadError by remember { mutableStateOf<String?>(null) }
+
+    // Barcode lookup state
+    var isLookingUp by remember { mutableStateOf(false) }
+    var barcodeValue by remember { mutableStateOf<String?>(null) }
 
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val cameraProviderRef = remember { mutableStateOf<ProcessCameraProvider?>(null) }
@@ -162,8 +179,101 @@ fun OcrScannerScreen(
         }
     }
 
-    // Process scan using the appropriate engine
-    val onScanClicked: () -> Unit = {
+    // Barcode scan handler
+    val onBarcodeScanClicked: () -> Unit = {
+        if (!isProcessing && !isLookingUp) {
+            isProcessing = true
+            val imageAnalysis = imageAnalysisRef.value
+
+            val options = BarcodeScannerOptions.Builder()
+                .setBarcodeFormats(
+                    Barcode.FORMAT_UPC_A,
+                    Barcode.FORMAT_UPC_E,
+                    Barcode.FORMAT_EAN_13,
+                    Barcode.FORMAT_EAN_8,
+                    Barcode.FORMAT_CODE_128,
+                    Barcode.FORMAT_CODE_39,
+                    Barcode.FORMAT_DATA_MATRIX,
+                    Barcode.FORMAT_QR_CODE
+                )
+                .build()
+            val scanner = BarcodeScanning.getClient(options)
+
+            imageAnalysis?.setAnalyzer(cameraExecutor) { imageProxy ->
+                val mediaImage = imageProxy.image
+                if (mediaImage != null) {
+                    val image = InputImage.fromMediaImage(
+                        mediaImage,
+                        imageProxy.imageInfo.rotationDegrees
+                    )
+                    scanner.process(image)
+                        .addOnSuccessListener { barcodes ->
+                            coroutineScope.launch(Dispatchers.Main) {
+                                imageAnalysis.clearAnalyzer()
+                            }
+
+                            if (barcodes.isNotEmpty()) {
+                                val barcode = barcodes.first()
+                                val rawValue = barcode.rawValue ?: ""
+                                Log.d("OCR", "Barcode detected: $rawValue (format: ${barcode.format})")
+
+                                coroutineScope.launch {
+                                    barcodeValue = rawValue
+                                    isLookingUp = true
+                                    isProcessing = false
+
+                                    val result = BarcodeLookupService.lookup(rawValue)
+
+                                    launch(Dispatchers.Main) {
+                                        isLookingUp = false
+                                        if (result != null) {
+                                            parsedName = result.name
+                                            parsedDosage = result.dosage
+                                            detectedText = buildString {
+                                                append("Barcode: $rawValue\n")
+                                                append("Name: ${result.name}\n")
+                                                if (result.dosage.isNotBlank()) append("Dosage: ${result.dosage}\n")
+                                                if (result.form.isNotBlank()) append("Form: ${result.form}")
+                                            }
+                                            showResults = true
+                                        } else {
+                                            // Barcode found but no medication match
+                                            parsedName = ""
+                                            parsedDosage = ""
+                                            detectedText = "Barcode: $rawValue\n${context.getString(R.string.barcode_no_match)}"
+                                            showResults = true
+                                        }
+                                    }
+                                }
+                            } else {
+                                coroutineScope.launch(Dispatchers.Main) {
+                                    isProcessing = false
+                                }
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("OCR", "Barcode scan failed", e)
+                            coroutineScope.launch(Dispatchers.Main) {
+                                imageAnalysis.clearAnalyzer()
+                                isProcessing = false
+                            }
+                        }
+                        .addOnCompleteListener {
+                            imageProxy.close()
+                        }
+                } else {
+                    imageProxy.close()
+                    coroutineScope.launch(Dispatchers.Main) {
+                        imageAnalysis.clearAnalyzer()
+                        isProcessing = false
+                    }
+                }
+            }
+        }
+    }
+
+    // Text scan handler
+    val onTextScanClicked: () -> Unit = {
         if (!isProcessing && !isDownloading) {
             val lang = selectedLanguage
 
@@ -279,6 +389,13 @@ fun OcrScannerScreen(
         }
     }
 
+    val onScanClicked: () -> Unit = {
+        when (scanMode) {
+            ScanMode.TEXT -> onTextScanClicked()
+            ScanMode.BARCODE -> onBarcodeScanClicked()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -389,7 +506,10 @@ fun OcrScannerScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
-                        onClick = { showResults = false },
+                        onClick = {
+                            showResults = false
+                            barcodeValue = null
+                        },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -412,7 +532,7 @@ fun OcrScannerScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
         } else {
-            // Camera preview with language selector and scan button
+            // Camera preview with mode selector, language selector, and scan button
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -461,78 +581,147 @@ fun OcrScannerScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Language selector chip at the top
-                Box(
+                // Top bar: scan mode toggle + language selector
+                Row(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(top = 16.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    AssistChip(
-                        onClick = { showLanguagePicker = true },
-                        label = {
-                            Text(
-                                "${stringResource(R.string.ocr_language)}: ${selectedLanguage.displayName}",
-                                color = Color.White
+                    // Scan mode toggle (Text / Barcode)
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier
+                            .background(
+                                Color.Black.copy(alpha = 0.6f),
+                                RoundedCornerShape(20.dp)
                             )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Language,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        },
-                        trailingIcon = {
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = Color.Black.copy(alpha = 0.6f)
-                        ),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
-                        shape = RoundedCornerShape(20.dp)
-                    )
-
-                    // Language dropdown menu
-                    DropdownMenu(
-                        expanded = showLanguagePicker,
-                        onDismissRequest = { showLanguagePicker = false }
                     ) {
-                        OcrLanguage.entries.forEach { lang ->
-                            DropdownMenuItem(
-                                text = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(lang.displayName)
-                                        if (!lang.usesMlKit) {
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                "Tesseract",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        SegmentedButton(
+                            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                            onClick = { scanMode = ScanMode.TEXT },
+                            selected = scanMode == ScanMode.TEXT,
+                            colors = SegmentedButtonDefaults.colors(
+                                activeContainerColor = MaterialTheme.colorScheme.primary,
+                                activeContentColor = Color.White,
+                                inactiveContainerColor = Color.Transparent,
+                                inactiveContentColor = Color.White.copy(alpha = 0.7f)
+                            ),
+                            icon = {}
+                        ) {
+                            Icon(
+                                Icons.Default.TextFields,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                stringResource(R.string.scan_mode_text),
+                                fontSize = 13.sp
+                            )
+                        }
+                        SegmentedButton(
+                            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                            onClick = { scanMode = ScanMode.BARCODE },
+                            selected = scanMode == ScanMode.BARCODE,
+                            colors = SegmentedButtonDefaults.colors(
+                                activeContainerColor = MaterialTheme.colorScheme.primary,
+                                activeContentColor = Color.White,
+                                inactiveContainerColor = Color.Transparent,
+                                inactiveContentColor = Color.White.copy(alpha = 0.7f)
+                            ),
+                            icon = {}
+                        ) {
+                            Icon(
+                                Icons.Default.QrCodeScanner,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                stringResource(R.string.scan_mode_barcode),
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                }
+
+                // Language selector chip (only shown in text mode)
+                if (scanMode == ScanMode.TEXT) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 68.dp)
+                    ) {
+                        AssistChip(
+                            onClick = { showLanguagePicker = true },
+                            label = {
+                                Text(
+                                    "${stringResource(R.string.ocr_language)}: ${selectedLanguage.displayName}",
+                                    color = Color.White
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Language,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            trailingIcon = {
+                                Icon(
+                                    Icons.Default.ArrowDropDown,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = Color.Black.copy(alpha = 0.6f)
+                            ),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
+                            shape = RoundedCornerShape(20.dp)
+                        )
+
+                        // Language dropdown menu
+                        DropdownMenu(
+                            expanded = showLanguagePicker,
+                            onDismissRequest = { showLanguagePicker = false }
+                        ) {
+                            OcrLanguage.entries.forEach { lang ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(lang.displayName)
+                                            if (!lang.usesMlKit) {
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    "Tesseract",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedLanguage = lang
+                                        showLanguagePicker = false
+                                        downloadError = null
+                                    },
+                                    leadingIcon = {
+                                        if (lang == selectedLanguage) {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp)
                                             )
                                         }
                                     }
-                                },
-                                onClick = {
-                                    selectedLanguage = lang
-                                    showLanguagePicker = false
-                                    downloadError = null
-                                },
-                                leadingIcon = {
-                                    if (lang == selectedLanguage) {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
@@ -548,10 +737,13 @@ fun OcrScannerScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
+                            .height(if (scanMode == ScanMode.BARCODE) 160.dp else 200.dp)
                             .border(
                                 width = 2.dp,
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = if (scanMode == ScanMode.BARCODE)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                else
+                                    Color.White.copy(alpha = 0.8f),
                                 shape = RoundedCornerShape(16.dp)
                             )
                             .clip(RoundedCornerShape(16.dp))
@@ -568,7 +760,10 @@ fun OcrScannerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        stringResource(R.string.scan_instruction),
+                        if (scanMode == ScanMode.BARCODE)
+                            stringResource(R.string.barcode_instruction)
+                        else
+                            stringResource(R.string.scan_instruction),
                         color = Color.White,
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center
@@ -613,6 +808,18 @@ fun OcrScannerScreen(
                         ) {
                             Text(stringResource(R.string.try_again))
                         }
+                    } else if (isLookingUp) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(56.dp),
+                            color = Color.White,
+                            strokeWidth = 3.dp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            stringResource(R.string.looking_up_barcode),
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
                     } else if (isProcessing) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(56.dp),
@@ -636,7 +843,10 @@ fun OcrScannerScreen(
                             )
                         ) {
                             Icon(
-                                Icons.Default.CameraAlt,
+                                if (scanMode == ScanMode.BARCODE)
+                                    Icons.Default.QrCodeScanner
+                                else
+                                    Icons.Default.CameraAlt,
                                 contentDescription = stringResource(R.string.scan_medication),
                                 modifier = Modifier.size(32.dp)
                             )

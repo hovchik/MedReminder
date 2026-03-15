@@ -140,4 +140,11 @@
     <string name="downloading_language_data">Descargando datos de idioma…</string>
     <string name="download_failed">Error de descarga. Comprueba tu conexión a internet.</string>
     <string name="try_again">Intentar de nuevo</string>
+
+    <!-- Barcode Scanner -->
+    <string name="scan_mode_text">Texto</string>
+    <string name="scan_mode_barcode">C\u00f3digo</string>
+    <string name="barcode_instruction">Apunta la c\u00e1mara al c\u00f3digo de barras del medicamento</string>
+    <string name="looking_up_barcode">Buscando medicamento…</string>
+    <string name="barcode_no_match">No se encontr\u00f3 medicamento para este c\u00f3digo de barras. Puedes ingresar el nombre manualmente.</string>
 </resources>
