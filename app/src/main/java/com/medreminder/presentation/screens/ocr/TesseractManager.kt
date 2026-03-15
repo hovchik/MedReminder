@@ -2,6 +2,10 @@ package com.medreminder.presentation.screens.ocr
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Paint
 import android.util.Log
 import com.googlecode.tesseract.android.TessBaseAPI
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +28,7 @@ class TesseractManager(private val context: Context) {
         private const val TAG = "TesseractManager"
         private const val TESSDATA_DIR = "tessdata"
         private const val BASE_URL =
-            "https://github.com/tesseract-ocr/tessdata_fast/raw/main/"
+            "https://github.com/tesseract-ocr/tessdata_best/raw/main/"
 
         /** Supported Tesseract language codes */
         val SUPPORTED_LANGUAGES = setOf("rus", "hye", "fas")
@@ -71,7 +75,7 @@ class TesseractManager(private val context: Context) {
             val connection = url.openConnection() as HttpURLConnection
             connection.instanceFollowRedirects = true
             connection.connectTimeout = 15_000
-            connection.readTimeout = 30_000
+            connection.readTimeout = 60_000
             connection.connect()
 
             // GitHub raw URLs redirect — follow redirects
@@ -126,6 +130,8 @@ class TesseractManager(private val context: Context) {
             val api = TessBaseAPI()
             val success = api.init(getDataPath(), langCode)
             if (success) {
+                // Use single block of text PSM for medication labels
+                api.pageSegMode = TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK
                 tessApi = api
                 Log.d(TAG, "Tesseract initialized for $langCode")
             } else {
@@ -140,16 +146,46 @@ class TesseractManager(private val context: Context) {
     }
 
     /**
+     * Preprocesses a bitmap for better OCR accuracy:
+     * converts to grayscale and increases contrast.
+     */
+    private fun preprocessBitmap(bitmap: Bitmap): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+        val paint = Paint()
+
+        // Convert to high-contrast grayscale
+        val contrast = 1.5f // boost contrast
+        val translate = (-(128f * contrast) + 128f)
+        val colorMatrix = ColorMatrix(
+            floatArrayOf(
+                0.299f * contrast, 0.587f * contrast, 0.114f * contrast, 0f, translate,
+                0.299f * contrast, 0.587f * contrast, 0.114f * contrast, 0f, translate,
+                0.299f * contrast, 0.587f * contrast, 0.114f * contrast, 0f, translate,
+                0f, 0f, 0f, 1f, 0f
+            )
+        )
+        paint.colorFilter = ColorMatrixColorFilter(colorMatrix)
+        canvas.drawBitmap(bitmap, 0f, 0f, paint)
+        return result
+    }
+
+    /**
      * Recognizes text from a bitmap using the initialized Tesseract engine.
+     * Applies preprocessing for better accuracy on complex scripts.
      *
      * @return recognized text, or empty string on failure
      */
     suspend fun recognizeText(bitmap: Bitmap): String = withContext(Dispatchers.IO) {
         try {
             val api = tessApi ?: return@withContext ""
-            api.setImage(bitmap)
+            val processed = preprocessBitmap(bitmap)
+            api.setImage(processed)
             val text = api.utF8Text ?: ""
             api.clear()
+            processed.recycle()
             text
         } catch (e: Exception) {
             Log.e(TAG, "Tesseract recognition failed", e)
