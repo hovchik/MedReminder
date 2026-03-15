@@ -31,6 +31,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.medreminder.R
+import com.medreminder.ai.AiProviderType
+import com.medreminder.ai.local.AiProviderSelector
+import com.medreminder.ai.local.ProviderInfo
+import com.medreminder.ai.modelmanager.LocalModelManager
 import com.medreminder.alarm.AlarmScheduler
 import com.medreminder.domain.repository.MedicationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,11 +47,29 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val alarmScheduler: AlarmScheduler,
-    private val repository: MedicationRepository
+    private val repository: MedicationRepository,
+    private val providerSelector: AiProviderSelector,
+    private val modelManager: LocalModelManager
 ) : ViewModel() {
 
     val medCount = repository.getActiveMedicationCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val selectedProviderType: StateFlow<AiProviderType> = providerSelector.getSelectedProviderType()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiProviderType.AUTO)
+
+    val installedModels = modelManager.getInstalledModelsFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun getAllProviders(): List<ProviderInfo> = providerSelector.getAllProviders()
+
+    fun getActiveProviderInfo(): ProviderInfo = providerSelector.getActiveProviderInfo()
+
+    fun setAiProvider(type: AiProviderType) {
+        viewModelScope.launch {
+            providerSelector.setSelectedProviderType(type)
+        }
+    }
 
     fun rescheduleAllAlarms() {
         viewModelScope.launch { alarmScheduler.scheduleAllAlarms() }
@@ -104,7 +126,10 @@ val supportedLanguages = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    onNavigateToAiSetup: () -> Unit = {},
+    viewModel: SettingsViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
     val medCount by viewModel.medCount.collectAsStateWithLifecycle()
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -210,6 +235,24 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         )
     }
 
+    val selectedProvider by viewModel.selectedProviderType.collectAsStateWithLifecycle()
+    val installedModels by viewModel.installedModels.collectAsStateWithLifecycle()
+    val activeProviderInfo = remember { viewModel.getActiveProviderInfo() }
+    val allProviders = remember { viewModel.getAllProviders() }
+    var showAiProviderDialog by remember { mutableStateOf(false) }
+
+    if (showAiProviderDialog) {
+        AiProviderDialog(
+            currentType = selectedProvider,
+            providers = allProviders,
+            onDismiss = { showAiProviderDialog = false },
+            onSelectProvider = { type ->
+                showAiProviderDialog = false
+                viewModel.setAiProvider(type)
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -243,6 +286,73 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+
+        // AI Engine section
+        Text(stringResource(R.string.ai_engine), style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsItem(
+            icon = Icons.Default.Psychology,
+            title = stringResource(R.string.ai_provider),
+            subtitle = when (selectedProvider) {
+                AiProviderType.AUTO -> stringResource(R.string.ai_auto_desc)
+                AiProviderType.SYSTEM_AI -> stringResource(R.string.ai_system_desc)
+                AiProviderType.CUSTOM_LOCAL -> stringResource(R.string.ai_local_desc)
+                AiProviderType.CLOUD -> stringResource(R.string.ai_cloud_desc)
+            },
+            onClick = { showAiProviderDialog = true }
+        )
+
+        // Active provider info
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (activeProviderInfo.isLocal)
+                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+            )
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (activeProviderInfo.isLocal) Icons.Default.Shield else Icons.Default.Cloud,
+                        null,
+                        tint = if (activeProviderInfo.isLocal) MaterialTheme.colorScheme.secondary
+                        else MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.active_provider, activeProviderInfo.displayName),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Text(
+                    activeProviderInfo.privacyNote,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (installedModels.isNotEmpty()) {
+                    Text(
+                        stringResource(R.string.installed_models_count, installedModels.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        SettingsItem(
+            icon = Icons.Default.Tune,
+            title = stringResource(R.string.setup_local_ai),
+            subtitle = stringResource(R.string.setup_local_ai_subtitle),
+            onClick = onNavigateToAiSetup
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         // Language section
         Text(stringResource(R.string.language), style = MaterialTheme.typography.titleMedium,
@@ -489,6 +599,70 @@ fun LanguageDialog(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    )
+}
+
+@Composable
+fun AiProviderDialog(
+    currentType: AiProviderType,
+    providers: List<ProviderInfo>,
+    onDismiss: () -> Unit,
+    onSelectProvider: (AiProviderType) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.select_ai_provider)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                providers.forEach { provider ->
+                    val isSelected = currentType == provider.type
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = provider.isAvailable) {
+                                onSelectProvider(provider.type)
+                            },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    provider.displayName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (provider.isAvailable)
+                                        MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                )
+                                if (!provider.isAvailable) {
+                                    Text(
+                                        "Not available on this device",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
                 }

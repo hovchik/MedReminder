@@ -153,6 +153,26 @@
     <string name="import_confirm_message">This will replace all existing data with the imported data. This cannot be undone.</string>
     <string name="confirm">Confirm</string>
 
+    <!-- AI Analysis -->
+    <string name="ai_daily_insight">AI Daily Insight</string>
+    <string name="ai_weekly_insight">AI Weekly Insight</string>
+    <string name="analyzing">Analyzing your data…</string>
+    <string name="get_ai_insight">Get AI Insight</string>
+
+    <!-- AI Engine Settings -->
+    <string name="ai_engine">AI Engine</string>
+    <string name="ai_provider">AI Provider</string>
+    <string name="select_ai_provider">Select AI Provider</string>
+    <string name="ai_auto_desc">Auto (recommended) - best available AI</string>
+    <string name="ai_system_desc">System AI - uses device built-in AI</string>
+    <string name="ai_local_desc">Local model - runs downloaded AI model</string>
+    <string name="ai_cloud_desc">Cloud AI (Claude) - advanced cloud analysis</string>
+    <string name="active_provider">Active: %1$s</string>
+    <string name="installed_models_count">%1$d model(s) installed</string>
+    <string name="setup_local_ai">Set up local AI</string>
+    <string name="setup_local_ai_subtitle">Configure on-device AI for private analysis</string>
+    <string name="ai_performance_note">Performance may vary by device</string>
+
     <!-- Alarm Screen -->
     <string name="time_to_take">Time to take</string>
     <string name="i_took_it">I took it</string>

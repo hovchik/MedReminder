@@ -25,6 +25,7 @@ import com.medreminder.presentation.screens.caregiver.CaregiverScreen
 import com.medreminder.presentation.screens.history.HistoryScreen
 import com.medreminder.presentation.screens.home.HomeScreen
 import com.medreminder.presentation.screens.ocr.OcrScannerScreen
+import com.medreminder.ai.setupwizard.LocalAiSetupWizard
 import com.medreminder.presentation.screens.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
@@ -45,6 +46,7 @@ sealed class Screen(val route: String) {
     data object History : Screen("history")
     data object Caregiver : Screen("caregiver")
     data object Settings : Screen("settings")
+    data object LocalAiSetup : Screen("local_ai_setup")
 }
 
 data class BottomNavItem(
@@ -161,7 +163,16 @@ fun MedReminderNavigation() {
             composable(Screen.Adherence.route) { AdherenceScreen() }
             composable(Screen.History.route) { HistoryScreen() }
             composable(Screen.Caregiver.route) { CaregiverScreen() }
-            composable(Screen.Settings.route) { SettingsScreen() }
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    onNavigateToAiSetup = { navController.navigate(Screen.LocalAiSetup.route) }
+                )
+            }
+            composable(Screen.LocalAiSetup.route) {
+                LocalAiSetupWizard(
+                    onDismiss = { navController.popBackStack() }
+                )
+            }
         }
     }
 }

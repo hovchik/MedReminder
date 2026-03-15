@@ -23,6 +23,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.medreminder.R
+import com.medreminder.ai.AnalysisResult
+import com.medreminder.ai.local.WeeklyReportUseCase
 import com.medreminder.domain.model.AdherenceStats
 import com.medreminder.domain.model.DayAdherence
 import com.medreminder.domain.repository.MedicationRepository
@@ -34,7 +36,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AdherenceViewModel @Inject constructor(
-    private val repository: MedicationRepository
+    private val repository: MedicationRepository,
+    private val weeklyReportUseCase: WeeklyReportUseCase
 ) : ViewModel() {
 
     private val _stats = MutableStateFlow(AdherenceStats())
@@ -43,11 +46,29 @@ class AdherenceViewModel @Inject constructor(
     private val _period = MutableStateFlow("week")
     val period: StateFlow<String> = _period.asStateFlow()
 
+    private val _weeklyAiReport = MutableStateFlow<AnalysisResult?>(null)
+    val weeklyAiReport: StateFlow<AnalysisResult?> = _weeklyAiReport.asStateFlow()
+
+    private val _isAnalyzing = MutableStateFlow(false)
+    val isAnalyzing: StateFlow<Boolean> = _isAnalyzing.asStateFlow()
+
     init { loadStats() }
 
     fun setPeriod(p: String) {
         _period.value = p
         loadStats()
+    }
+
+    fun runWeeklyAnalysis() {
+        viewModelScope.launch {
+            _isAnalyzing.value = true
+            try {
+                _weeklyAiReport.value = weeklyReportUseCase.analyze()
+            } catch (_: Exception) {
+                // Analysis failed silently
+            }
+            _isAnalyzing.value = false
+        }
     }
 
     private fun loadStats() {
@@ -69,6 +90,8 @@ class AdherenceViewModel @Inject constructor(
 fun AdherenceScreen(viewModel: AdherenceViewModel = hiltViewModel()) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val period by viewModel.period.collectAsStateWithLifecycle()
+    val weeklyReport by viewModel.weeklyAiReport.collectAsStateWithLifecycle()
+    val isAnalyzing by viewModel.isAnalyzing.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -157,6 +180,63 @@ fun AdherenceScreen(viewModel: AdherenceViewModel = hiltViewModel()) {
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
+            }
+        }
+
+        // AI Weekly Report
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Psychology,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.ai_weekly_insight),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                if (isAnalyzing) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.analyzing), style = MaterialTheme.typography.bodySmall)
+                    }
+                } else if (weeklyReport != null) {
+                    Text(weeklyReport!!.summary, style = MaterialTheme.typography.bodyMedium)
+                    weeklyReport!!.insights.take(2).forEach { insight ->
+                        Row(verticalAlignment = Alignment.Top) {
+                            Icon(Icons.Default.Insights, null, modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.tertiary)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(insight, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { viewModel.runWeeklyAnalysis() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.get_ai_insight))
+                    }
                 }
             }
         }

@@ -2,6 +2,7 @@ package com.medreminder.di
 
 import android.content.Context
 import androidx.room.Room
+import com.medreminder.ai.modelmanager.LocalAiModelDao
 import com.medreminder.data.local.*
 import com.medreminder.data.repository.MedicationRepositoryImpl
 import com.medreminder.domain.repository.MedicationRepository
@@ -34,6 +35,9 @@ object AppModule {
 
     @Provides
     fun provideCaregiverDao(db: AppDatabase): CaregiverDao = db.caregiverDao()
+
+    @Provides
+    fun provideLocalAiModelDao(db: AppDatabase): LocalAiModelDao = db.localAiModelDao()
 
     @Provides
     @Singleton

@@ -2,6 +2,8 @@ package com.medreminder.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.medreminder.ai.local.LocalAiModelEntity
+import com.medreminder.ai.modelmanager.LocalAiModelDao
 import com.medreminder.data.local.entity.*
 
 @Database(
@@ -9,9 +11,10 @@ import com.medreminder.data.local.entity.*
         MedicationEntity::class,
         ScheduleEntity::class,
         DoseLogEntity::class,
-        CaregiverEntity::class
+        CaregiverEntity::class,
+        LocalAiModelEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -19,6 +22,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun scheduleDao(): ScheduleDao
     abstract fun doseLogDao(): DoseLogDao
     abstract fun caregiverDao(): CaregiverDao
+    abstract fun localAiModelDao(): LocalAiModelDao
 
     companion object {
         const val DATABASE_NAME = "medreminder_db"
