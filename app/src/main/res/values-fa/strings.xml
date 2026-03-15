@@ -147,6 +147,8 @@
     <string name="scan_mode_qr">QR کد</string>
     <string name="barcode_instruction">دوربین را به سمت بارکد دارو بگیرید</string>
     <string name="qr_instruction">دوربین را به سمت QR کد دارو بگیرید</string>
-    <string name="looking_up_barcode">در حال جستجوی دارو…</string>
+    <string name="looking_up_medication">در حال جستجوی دارو…</string>
+    <string name="no_barcode_detected">بارکدی شناسایی نشد. دوباره تلاش کنید.</string>
+    <string name="no_qr_detected">QR کدی شناسایی نشد. دوباره تلاش کنید.</string>
     <string name="barcode_no_match">دارویی برای این بارکد یافت نشد. می‌توانید نام را دستی وارد کنید.</string>
 </resources>

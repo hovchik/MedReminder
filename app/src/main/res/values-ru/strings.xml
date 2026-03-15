@@ -147,6 +147,8 @@
     <string name="scan_mode_qr">QR-код</string>
     <string name="barcode_instruction">Наведите камеру на штрихкод лекарства</string>
     <string name="qr_instruction">Наведите камеру на QR-код лекарства</string>
-    <string name="looking_up_barcode">Поиск лекарства…</string>
+    <string name="looking_up_medication">Поиск лекарства…</string>
+    <string name="no_barcode_detected">Штрихкод не обнаружен. Попробуйте снова.</string>
+    <string name="no_qr_detected">QR-код не обнаружен. Попробуйте снова.</string>
     <string name="barcode_no_match">Лекарство не найдено по этому штрихкоду. Вы можете ввести название вручную.</string>
 </resources>

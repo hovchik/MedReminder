@@ -225,57 +225,29 @@ fun OcrScannerScreen(
                             if (barcodes.isNotEmpty()) {
                                 val barcode = barcodes.first()
                                 val rawValue = barcode.rawValue ?: ""
-                                Log.d("OCR", "Barcode detected: $rawValue (format: ${barcode.format})")
+                                val codeLabel = if (mode == ScanMode.QR_CODE) "QR" else "Barcode"
+                                Log.d("OCR", "$codeLabel detected: $rawValue (format: ${barcode.format})")
 
                                 coroutineScope.launch {
                                     barcodeValue = rawValue
-                                    isProcessing = false
 
-                                    if (mode == ScanMode.QR_CODE) {
-                                        // QR codes may contain text, URLs, or encoded drug info
-                                        // Try to parse the content directly as medication text
-                                        launch(Dispatchers.Main) {
-                                            val qrContent = rawValue
-                                            // If QR contains digits that look like an NDC, try lookup
-                                            val numericOnly = qrContent.replace(Regex("[^0-9]"), "")
-                                            if (numericOnly.length >= 10) {
-                                                isLookingUp = true
-                                                launch(Dispatchers.Default) {
-                                                    val result = BarcodeLookupService.lookup(numericOnly)
-                                                    launch(Dispatchers.Main) {
-                                                        isLookingUp = false
-                                                        if (result != null) {
-                                                            parsedName = result.name
-                                                            parsedDosage = result.dosage
-                                                            detectedText = buildString {
-                                                                append("QR: $rawValue\n")
-                                                                append("Name: ${result.name}\n")
-                                                                if (result.dosage.isNotBlank()) append("Dosage: ${result.dosage}\n")
-                                                                if (result.form.isNotBlank()) append("Form: ${result.form}")
-                                                            }
-                                                        } else {
-                                                            // Parse QR text content as medication text
-                                                            val parsed = parseMedicationText(qrContent)
-                                                            parsedName = parsed.first
-                                                            parsedDosage = parsed.second
-                                                            detectedText = "QR: $rawValue"
-                                                        }
-                                                        showResults = true
-                                                    }
-                                                }
-                                            } else {
-                                                // Parse QR text content directly
-                                                val parsed = parseMedicationText(qrContent)
-                                                parsedName = parsed.first
-                                                parsedDosage = parsed.second
-                                                detectedText = "QR: $rawValue"
-                                                showResults = true
-                                            }
-                                        }
+                                    // Determine if we should do an FDA lookup
+                                    val numericValue = rawValue.replace(Regex("[^0-9]"), "")
+                                    val shouldLookup = if (mode == ScanMode.QR_CODE) {
+                                        numericValue.length >= 10
                                     } else {
-                                        // Barcode: look up via OpenFDA
-                                        isLookingUp = true
-                                        val result = BarcodeLookupService.lookup(rawValue)
+                                        true
+                                    }
+
+                                    if (shouldLookup) {
+                                        // Switch from processing to looking up (no gap)
+                                        launch(Dispatchers.Main) {
+                                            isLookingUp = true
+                                            isProcessing = false
+                                        }
+
+                                        val lookupValue = if (mode == ScanMode.QR_CODE) numericValue else rawValue
+                                        val result = BarcodeLookupService.lookup(lookupValue)
 
                                         launch(Dispatchers.Main) {
                                             isLookingUp = false
@@ -283,29 +255,55 @@ fun OcrScannerScreen(
                                                 parsedName = result.name
                                                 parsedDosage = result.dosage
                                                 detectedText = buildString {
-                                                    append("Barcode: $rawValue\n")
-                                                    append("Name: ${result.name}\n")
-                                                    if (result.dosage.isNotBlank()) append("Dosage: ${result.dosage}\n")
+                                                    append("$codeLabel: $rawValue\n")
+                                                    append("${context.getString(R.string.detected_name)}: ${result.name}\n")
+                                                    if (result.dosage.isNotBlank()) {
+                                                        append("${context.getString(R.string.detected_dosage)}: ${result.dosage}\n")
+                                                    }
                                                     if (result.form.isNotBlank()) append("Form: ${result.form}")
                                                 }
                                                 showResults = true
+                                            } else if (mode == ScanMode.QR_CODE) {
+                                                // QR fallback: parse text content
+                                                val parsed = parseMedicationText(rawValue)
+                                                parsedName = parsed.first
+                                                parsedDosage = parsed.second
+                                                detectedText = "$codeLabel: $rawValue"
+                                                showResults = true
                                             } else {
+                                                // Barcode: no match found
                                                 parsedName = ""
                                                 parsedDosage = ""
-                                                detectedText = "Barcode: $rawValue\n${context.getString(R.string.barcode_no_match)}"
+                                                detectedText = "$codeLabel: $rawValue\n${context.getString(R.string.barcode_no_match)}"
                                                 showResults = true
                                             }
+                                        }
+                                    } else {
+                                        // QR with non-numeric content: parse text directly
+                                        launch(Dispatchers.Main) {
+                                            isProcessing = false
+                                            val parsed = parseMedicationText(rawValue)
+                                            parsedName = parsed.first
+                                            parsedDosage = parsed.second
+                                            detectedText = "$codeLabel: $rawValue"
+                                            showResults = true
                                         }
                                     }
                                 }
                             } else {
+                                // No code detected in frame
                                 coroutineScope.launch(Dispatchers.Main) {
                                     isProcessing = false
+                                    downloadError = if (mode == ScanMode.QR_CODE) {
+                                        context.getString(R.string.no_qr_detected)
+                                    } else {
+                                        context.getString(R.string.no_barcode_detected)
+                                    }
                                 }
                             }
                         }
                         .addOnFailureListener { e ->
-                            Log.e("OCR", "Barcode scan failed", e)
+                            Log.e("OCR", "Code scan failed", e)
                             coroutineScope.launch(Dispatchers.Main) {
                                 imageAnalysis.clearAnalyzer()
                                 isProcessing = false
@@ -899,7 +897,7 @@ fun OcrScannerScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            stringResource(R.string.looking_up_barcode),
+                            stringResource(R.string.looking_up_medication),
                             color = Color.White.copy(alpha = 0.7f),
                             fontSize = 14.sp
                         )

@@ -171,6 +171,8 @@
     <string name="scan_mode_qr">QR Code</string>
     <string name="barcode_instruction">Point camera at medication barcode</string>
     <string name="qr_instruction">Point camera at medication QR code</string>
-    <string name="looking_up_barcode">Looking up medication…</string>
+    <string name="looking_up_medication">Looking up medication…</string>
+    <string name="no_barcode_detected">No barcode detected. Try again.</string>
+    <string name="no_qr_detected">No QR code detected. Try again.</string>
     <string name="barcode_no_match">No medication found for this barcode. You can enter the name manually.</string>
 </resources>
