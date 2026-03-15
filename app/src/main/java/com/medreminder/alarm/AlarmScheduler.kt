@@ -218,6 +218,16 @@ class AlarmScheduler @Inject constructor(
                     calendar.set(Calendar.MINUTE, schedule.timeMinute)
                 }
             }
+            com.medreminder.domain.model.ScheduleFrequency.EVERY_X_HOURS -> {
+                if (schedule.intervalHours <= 0) return null
+                val now = System.currentTimeMillis()
+                val intervalMs = schedule.intervalHours * 60 * 60 * 1000L
+                if (calendar.timeInMillis <= now) {
+                    val elapsed = now - calendar.timeInMillis
+                    val periods = (elapsed / intervalMs) + 1
+                    calendar.timeInMillis = calendar.timeInMillis + periods * intervalMs
+                }
+            }
             com.medreminder.domain.model.ScheduleFrequency.AS_NEEDED -> return null
         }
 
