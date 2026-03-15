@@ -41,43 +41,27 @@ class ModelRecommendationEngine @Inject constructor(
 ) {
 
     /**
-     * Full catalog of downloadable models with real metadata.
-     * URLs point to publicly hosted model files compatible with
-     * MediaPipe LLM Inference or LiteRT.
+     * Catalog of verified, downloadable models hosted on HuggingFace litert-community.
+     * Only includes models confirmed to work with MediaPipe LLM Inference on Android.
+     *
+     * Note: Phi-2, Falcon-RW-1B, and StableLM-3B were removed because:
+     * - No pre-converted MediaPipe-compatible files exist on litert-community
+     * - Known issues with infinite loops in MediaPipe LLM Inference (github.com/google-ai-edge/mediapipe-samples/issues/492)
+     * - Old storage.googleapis.com URLs are defunct (404)
      */
     fun getFullModelCatalog(): List<LocalAiModel> = listOf(
-        // --- Tiny models (< 1 GB) – run on almost any device ---
+        // --- Gemma 3 1B INT4 — smallest, runs on nearly any device ---
         LocalAiModel(
-            modelId = "gemma-2b-it-gpu-int4",
-            displayName = "Gemma 2 2B",
-            description = "Google's lightweight instruction-tuned model. Fast inference, good for simple analysis tasks.",
-            runtimeType = RuntimeType.MEDIA_PIPE,
-            fileFormat = "bin",
-            quantization = "INT4",
-            requiredRamMb = 1536,
-            recommendedRamMb = 3072,
-            sizeMb = 1350,
-            downloadUrl = "https://storage.googleapis.com/mediapipe-models/llm_inference/gemma2_2b_it_gpu_int4/float32/latest/gemma2_2b_it_gpu_int4.bin",
-            localPath = "",
-            installState = InstallState.NOT_INSTALLED,
-            checksum = "",
-            version = "2.0",
-            supportsStructuredJson = false,
-            supportsStreaming = true,
-            supportsTextGeneration = true,
-            parameterCount = "2B"
-        ),
-        LocalAiModel(
-            modelId = "gemma-3-1b-it-int4",
-            displayName = "Gemma 3 1B",
+            modelId = "gemma3-1b-it-int4",
+            displayName = "Gemma 3 1B (INT4)",
             description = "Newest Gemma, 1B parameters. Extremely compact, ideal for low-RAM devices.",
             runtimeType = RuntimeType.MEDIA_PIPE,
             fileFormat = "task",
             quantization = "INT4",
             requiredRamMb = 1024,
             recommendedRamMb = 2048,
-            sizeMb = 540,
-            downloadUrl = "https://storage.googleapis.com/mediapipe-models/llm_inference/gemma3_1b_it_gpu_int4/float32/latest/gemma3_1b_it_gpu_int4.task",
+            sizeMb = 560,
+            downloadUrl = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task",
             localPath = "",
             installState = InstallState.NOT_INSTALLED,
             checksum = "",
@@ -87,81 +71,64 @@ class ModelRecommendationEngine @Inject constructor(
             supportsTextGeneration = true,
             parameterCount = "1B"
         ),
+        // --- Gemma 3 1B INT4 (4096 context) — longer context window ---
         LocalAiModel(
-            modelId = "stablelm-3b-int4",
-            displayName = "StableLM 3B",
-            description = "Stability AI's 3B model. Strong text generation quality at moderate size.",
+            modelId = "gemma3-1b-it-int4-ctx4096",
+            displayName = "Gemma 3 1B (INT4, 4K context)",
+            description = "Gemma 3 1B with extended 4096 token context window for longer analysis.",
             runtimeType = RuntimeType.MEDIA_PIPE,
-            fileFormat = "bin",
+            fileFormat = "task",
             quantization = "INT4",
-            requiredRamMb = 2048,
-            recommendedRamMb = 4096,
-            sizeMb = 1600,
-            downloadUrl = "https://storage.googleapis.com/mediapipe-models/llm_inference/stablelm_4e1t_3b_gpu_int4/float32/latest/stablelm_4e1t_3b_gpu_int4.bin",
-            localPath = "",
-            installState = InstallState.NOT_INSTALLED,
-            checksum = "",
-            version = "1.0",
-            supportsStructuredJson = false,
-            supportsStreaming = true,
-            supportsTextGeneration = true,
-            parameterCount = "3B"
-        ),
-        LocalAiModel(
-            modelId = "phi-2-int4",
-            displayName = "Phi-2 (2.7B)",
-            description = "Microsoft's compact reasoning model. Good at structured analysis and JSON output.",
-            runtimeType = RuntimeType.MEDIA_PIPE,
-            fileFormat = "bin",
-            quantization = "INT4",
-            requiredRamMb = 2048,
-            recommendedRamMb = 4096,
-            sizeMb = 1550,
-            downloadUrl = "https://storage.googleapis.com/mediapipe-models/llm_inference/phi_2_gpu_int4/float32/latest/phi_2_gpu_int4.bin",
-            localPath = "",
-            installState = InstallState.NOT_INSTALLED,
-            checksum = "",
-            version = "2.0",
-            supportsStructuredJson = true,
-            supportsStreaming = true,
-            supportsTextGeneration = true,
-            parameterCount = "2.7B"
-        ),
-        LocalAiModel(
-            modelId = "falcon-1b-int4",
-            displayName = "Falcon RW 1B",
-            description = "TII's ultra-light open model. Fastest inference, suitable for basic tasks.",
-            runtimeType = RuntimeType.MEDIA_PIPE,
-            fileFormat = "bin",
-            quantization = "INT4",
-            requiredRamMb = 1024,
-            recommendedRamMb = 2048,
+            requiredRamMb = 1536,
+            recommendedRamMb = 3072,
             sizeMb = 620,
-            downloadUrl = "https://storage.googleapis.com/mediapipe-models/llm_inference/falcon_rw_1b_gpu_int4/float32/latest/falcon_rw_1b_gpu_int4.bin",
+            downloadUrl = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_block128_ekv4096.task",
             localPath = "",
             installState = InstallState.NOT_INSTALLED,
             checksum = "",
-            version = "1.0",
+            version = "3.0",
             supportsStructuredJson = false,
             supportsStreaming = true,
             supportsTextGeneration = true,
             parameterCount = "1B"
         ),
+        // --- Gemma 3 1B INT8 — higher quality at 1B ---
         LocalAiModel(
-            modelId = "gemma-2b-it-int8",
-            displayName = "Gemma 2B (INT8 - Higher Quality)",
-            description = "INT8 quantization of Gemma 2B. Better output quality at the cost of more RAM and size.",
+            modelId = "gemma3-1b-it-int8",
+            displayName = "Gemma 3 1B (INT8 - Higher Quality)",
+            description = "INT8 quantization of Gemma 3 1B. Better output quality, needs more RAM.",
             runtimeType = RuntimeType.MEDIA_PIPE,
-            fileFormat = "bin",
+            fileFormat = "task",
             quantization = "INT8",
-            requiredRamMb = 3072,
-            recommendedRamMb = 6144,
-            sizeMb = 2600,
-            downloadUrl = "https://storage.googleapis.com/mediapipe-models/llm_inference/gemma_2b_it_gpu_int8/float32/latest/gemma_2b_it_gpu_int8.bin",
+            requiredRamMb = 2048,
+            recommendedRamMb = 4096,
+            sizeMb = 1100,
+            downloadUrl = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q8_ekv1280.task",
             localPath = "",
             installState = InstallState.NOT_INSTALLED,
             checksum = "",
-            version = "1.0",
+            version = "3.0",
+            supportsStructuredJson = false,
+            supportsStreaming = true,
+            supportsTextGeneration = true,
+            parameterCount = "1B"
+        ),
+        // --- Gemma 2 2B INT8 — larger model, higher quality ---
+        LocalAiModel(
+            modelId = "gemma2-2b-it-int8",
+            displayName = "Gemma 2 2B (INT8)",
+            description = "Google's 2B instruction-tuned model. Strong text quality, needs 4+ GB RAM.",
+            runtimeType = RuntimeType.MEDIA_PIPE,
+            fileFormat = "task",
+            quantization = "INT8",
+            requiredRamMb = 3072,
+            recommendedRamMb = 6144,
+            sizeMb = 2710,
+            downloadUrl = "https://huggingface.co/litert-community/Gemma2-2B-IT/resolve/main/Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.task",
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "2.0",
             supportsStructuredJson = false,
             supportsStreaming = true,
             supportsTextGeneration = true,
