@@ -27,8 +27,19 @@ class TesseractManager(private val context: Context) {
     companion object {
         private const val TAG = "TesseractManager"
         private const val TESSDATA_DIR = "tessdata"
-        private const val BASE_URL =
+
+        // jsDelivr CDN reliably serves GitHub LFS files (primary source)
+        private const val CDN_URL =
+            "https://cdn.jsdelivr.net/gh/tesseract-ocr/tessdata_best@main/"
+
+        // Direct GitHub raw URL as fallback
+        private const val GITHUB_URL =
             "https://github.com/tesseract-ocr/tessdata_best/raw/main/"
+
+        // Minimum valid traineddata file size (500 KB).
+        // Real traineddata files are 1–15 MB; anything smaller is a
+        // corrupted download, HTML error page, or Git LFS pointer.
+        private const val MIN_TRAINEDDATA_SIZE = 500_000L
 
         /** Supported Tesseract language codes */
         val SUPPORTED_LANGUAGES = setOf("rus", "hye", "fas")
@@ -54,15 +65,70 @@ class TesseractManager(private val context: Context) {
     }
 
     /**
-     * Check if the traineddata file for a given language already exists locally.
+     * Check if a valid traineddata file for a given language exists locally.
+     * Validates the file is large enough to be a real traineddata (not a
+     * Git LFS pointer or error page).
      */
     fun isLanguageAvailable(langCode: String): Boolean {
         val file = File(getTessdataDir(), "$langCode.traineddata")
-        return file.exists() && file.length() > 0
+        val available = file.exists() && file.length() > MIN_TRAINEDDATA_SIZE
+        if (file.exists() && !available) {
+            // File exists but is too small — corrupted or LFS pointer, delete it
+            Log.w(TAG, "Deleting invalid $langCode.traineddata (${file.length()} bytes)")
+            file.delete()
+        }
+        return available
+    }
+
+    /**
+     * Opens an HTTP connection that manually follows redirects across domains.
+     * HttpURLConnection.instanceFollowRedirects does not follow redirects
+     * to different hosts (e.g. github.com → objects.githubusercontent.com),
+     * which breaks GitHub LFS downloads.
+     */
+    private fun openConnectionFollowingRedirects(
+        startUrl: String,
+        maxRedirects: Int = 10
+    ): HttpURLConnection {
+        var url = URL(startUrl)
+        var redirects = 0
+
+        while (true) {
+            val connection = url.openConnection() as HttpURLConnection
+            connection.instanceFollowRedirects = false  // we handle redirects manually
+            connection.connectTimeout = 15_000
+            connection.readTimeout = 60_000
+            connection.connect()
+
+            val responseCode = connection.responseCode
+            if (responseCode in 300..399) {
+                val location = connection.getHeaderField("Location")
+                connection.disconnect()
+
+                if (location == null || redirects >= maxRedirects) {
+                    throw java.io.IOException(
+                        "Redirect failed: ${if (location == null) "no Location header" else "too many redirects"}"
+                    )
+                }
+
+                url = if (location.startsWith("http")) {
+                    URL(location)
+                } else {
+                    URL(url, location)
+                }
+                redirects++
+                Log.d(TAG, "Following redirect #$redirects → $url")
+            } else {
+                return connection
+            }
+        }
     }
 
     /**
      * Downloads the traineddata file for the given language.
+     * Tries jsDelivr CDN first (reliable for GitHub LFS), then falls back
+     * to direct GitHub raw URL with manual redirect following.
+     *
      * Reports progress via the [onProgress] callback (0.0 to 1.0).
      *
      * @return true if download succeeded
@@ -71,25 +137,53 @@ class TesseractManager(private val context: Context) {
         langCode: String,
         onProgress: (Float) -> Unit = {}
     ): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val url = URL("$BASE_URL$langCode.traineddata")
-            val connection = url.openConnection() as HttpURLConnection
-            connection.instanceFollowRedirects = true
-            connection.connectTimeout = 15_000
-            connection.readTimeout = 60_000
-            connection.connect()
+        // Delete any existing corrupted file
+        val destFile = File(getTessdataDir(), "$langCode.traineddata")
+        if (destFile.exists() && destFile.length() <= MIN_TRAINEDDATA_SIZE) {
+            destFile.delete()
+        }
 
-            // GitHub raw URLs redirect — follow redirects
+        val urls = listOf(
+            "$CDN_URL$langCode.traineddata",
+            "$GITHUB_URL$langCode.traineddata"
+        )
+
+        for ((index, downloadUrl) in urls.withIndex()) {
+            val sourceName = if (index == 0) "jsDelivr CDN" else "GitHub raw"
+            Log.d(TAG, "Trying download from $sourceName: $downloadUrl")
+
+            val success = tryDownload(downloadUrl, langCode, onProgress)
+            if (success) {
+                Log.d(TAG, "Downloaded $langCode.traineddata from $sourceName (${destFile.length()} bytes)")
+                return@withContext true
+            }
+
+            Log.w(TAG, "Download from $sourceName failed, ${if (index < urls.lastIndex) "trying fallback..." else "no more sources"}")
+        }
+
+        false
+    }
+
+    private fun tryDownload(
+        downloadUrl: String,
+        langCode: String,
+        onProgress: (Float) -> Unit
+    ): Boolean {
+        val tempFile = File(getTessdataDir(), "$langCode.traineddata.tmp")
+        val destFile = File(getTessdataDir(), "$langCode.traineddata")
+
+        return try {
+            val connection = openConnectionFollowingRedirects(downloadUrl)
+
             val responseCode = connection.responseCode
             if (responseCode != HttpURLConnection.HTTP_OK) {
-                Log.e(TAG, "Download failed for $langCode: HTTP $responseCode")
+                Log.e(TAG, "Download failed: HTTP $responseCode")
                 connection.disconnect()
-                return@withContext false
+                return false
             }
 
             val totalBytes = connection.contentLength
-            val destFile = File(getTessdataDir(), "$langCode.traineddata")
-            val tempFile = File(getTessdataDir(), "$langCode.traineddata.tmp")
+            Log.d(TAG, "Downloading $langCode.traineddata, Content-Length: $totalBytes")
 
             connection.inputStream.use { input ->
                 FileOutputStream(tempFile).use { output ->
@@ -107,14 +201,20 @@ class TesseractManager(private val context: Context) {
             }
             connection.disconnect()
 
-            // Rename temp to final
+            // Validate file size
+            if (tempFile.length() <= MIN_TRAINEDDATA_SIZE) {
+                Log.e(TAG, "Downloaded file too small (${tempFile.length()} bytes) — likely corrupted or LFS pointer")
+                tempFile.delete()
+                return false
+            }
+
+            // Atomic rename
+            destFile.delete()
             tempFile.renameTo(destFile)
-            Log.d(TAG, "Downloaded $langCode.traineddata (${destFile.length()} bytes)")
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to download $langCode traineddata", e)
-            // Clean up partial file
-            File(getTessdataDir(), "$langCode.traineddata.tmp").delete()
+            Log.e(TAG, "Download error", e)
+            tempFile.delete()
             false
         }
     }
@@ -141,8 +241,10 @@ class TesseractManager(private val context: Context) {
                 currentLangCode = langCode
                 Log.d(TAG, "Tesseract initialized for $langCode (LSTM-only)")
             } else {
-                Log.e(TAG, "Tesseract init failed for $langCode")
+                Log.e(TAG, "Tesseract init failed for $langCode — traineddata may be corrupted")
                 api.recycle()
+                // Delete potentially corrupted file so next attempt re-downloads
+                File(getTessdataDir(), "$langCode.traineddata").delete()
             }
             return success
         } catch (e: Exception) {
@@ -153,7 +255,7 @@ class TesseractManager(private val context: Context) {
 
     /**
      * Preprocesses a bitmap for better OCR accuracy:
-     * converts to grayscale and increases contrast.
+     * upscales small images, converts to grayscale, and increases contrast.
      */
     private fun preprocessBitmap(bitmap: Bitmap): Bitmap {
         // Upscale small images — Tesseract needs ~300 DPI / min ~1500px width

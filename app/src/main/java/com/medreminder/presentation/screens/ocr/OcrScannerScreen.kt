@@ -260,8 +260,11 @@ fun OcrScannerScreen(
                                         isProcessing = false
                                     }
                                 } else {
+                                    // Engine init failed — traineddata was deleted,
+                                    // trigger re-download on next tap
                                     launch(Dispatchers.Main) {
                                         isProcessing = false
+                                        downloadError = context.getString(R.string.download_failed)
                                     }
                                 }
                             }
