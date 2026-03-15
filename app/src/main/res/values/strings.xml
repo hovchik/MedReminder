@@ -167,8 +167,8 @@
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Text</string>
-    <string name="scan_mode_barcode">Barcode</string>
-    <string name="scan_mode_qr">QR Code</string>
+    <string name="scan_mode_barcode">Bar code</string>
+    <string name="scan_mode_qr">QR code</string>
     <string name="barcode_instruction">Point camera at medication barcode</string>
     <string name="qr_instruction">Point camera at medication QR code</string>
     <string name="looking_up_medication">Looking up medication…</string>
