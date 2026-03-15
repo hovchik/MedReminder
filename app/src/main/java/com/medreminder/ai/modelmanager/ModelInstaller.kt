@@ -253,7 +253,7 @@ class ModelInstaller @Inject constructor(
         }
 
         val modelFiles = dir.listFiles()?.filter {
-            it.extension in listOf("tflite", "bin", "gguf", "onnx", "task")
+            it.extension in listOf("tflite", "bin", "gguf", "onnx", "task", "litertlm")
         } ?: emptyList()
 
         if (modelFiles.isEmpty()) {

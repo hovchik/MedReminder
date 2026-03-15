@@ -950,7 +950,7 @@ fun ImportModelScreen(
         Text("Import Model", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
         Text(
-            "Select a compatible model file from your device. Supported formats: .tflite, .bin, .gguf, .onnx, .task",
+            "Select a compatible model file from your device. Supported formats: .tflite, .bin, .gguf, .onnx, .task, .litertlm",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

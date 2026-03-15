@@ -41,27 +41,27 @@ class ModelRecommendationEngine @Inject constructor(
 ) {
 
     /**
-     * Catalog of verified, downloadable models hosted on HuggingFace litert-community.
-     * Only includes models confirmed to work with MediaPipe LLM Inference on Android.
+     * Catalog of verified, publicly downloadable models on HuggingFace.
+     * All URLs are non-gated (no auth token required).
      *
-     * Note: Phi-2, Falcon-RW-1B, and StableLM-3B were removed because:
-     * - No pre-converted MediaPipe-compatible files exist on litert-community
-     * - Known issues with infinite loops in MediaPipe LLM Inference (github.com/google-ai-edge/mediapipe-samples/issues/492)
-     * - Old storage.googleapis.com URLs are defunct (404)
+     * Note: Gemma models were removed — litert-community Gemma repos are gated
+     * (require HuggingFace login + Gemma license acceptance, return HTTP 401).
+     * Phi-2, Falcon-RW-1B, StableLM-3B were removed — broken with MediaPipe
+     * (infinite loops, defunct URLs).
      */
     fun getFullModelCatalog(): List<LocalAiModel> = listOf(
-        // --- Gemma 3 1B INT4 — smallest, runs on nearly any device ---
+        // --- Qwen3 0.6B — smallest, runs on nearly any device ---
         LocalAiModel(
-            modelId = "gemma3-1b-it-int4",
-            displayName = "Gemma 3 1B (INT4)",
-            description = "Newest Gemma, 1B parameters. Extremely compact, ideal for low-RAM devices.",
-            runtimeType = RuntimeType.MEDIA_PIPE,
-            fileFormat = "task",
+            modelId = "qwen3-0.6b",
+            displayName = "Qwen3 0.6B",
+            description = "Ultra-compact 0.6B model. Runs on virtually any Android device with minimal RAM.",
+            runtimeType = RuntimeType.LITE_RT,
+            fileFormat = "litertlm",
             quantization = "INT4",
-            requiredRamMb = 1024,
-            recommendedRamMb = 2048,
-            sizeMb = 560,
-            downloadUrl = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task",
+            requiredRamMb = 768,
+            recommendedRamMb = 1536,
+            sizeMb = 586,
+            downloadUrl = "https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/Qwen3-0.6B.litertlm",
             localPath = "",
             installState = InstallState.NOT_INSTALLED,
             checksum = "",
@@ -69,70 +69,70 @@ class ModelRecommendationEngine @Inject constructor(
             supportsStructuredJson = false,
             supportsStreaming = true,
             supportsTextGeneration = true,
-            parameterCount = "1B"
+            parameterCount = "0.6B"
         ),
-        // --- Gemma 3 1B INT4 (4096 context) — longer context window ---
+        // --- Qwen3.5 2B — mid-range, good quality-to-size ratio ---
         LocalAiModel(
-            modelId = "gemma3-1b-it-int4-ctx4096",
-            displayName = "Gemma 3 1B (INT4, 4K context)",
-            description = "Gemma 3 1B with extended 4096 token context window for longer analysis.",
-            runtimeType = RuntimeType.MEDIA_PIPE,
-            fileFormat = "task",
+            modelId = "qwen3.5-2b",
+            displayName = "Qwen3.5 2B",
+            description = "Quantized 2B model with strong text quality. Good balance of size and capability.",
+            runtimeType = RuntimeType.LITE_RT,
+            fileFormat = "tflite",
             quantization = "INT4",
-            requiredRamMb = 1536,
-            recommendedRamMb = 3072,
-            sizeMb = 620,
-            downloadUrl = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_block128_ekv4096.task",
-            localPath = "",
-            installState = InstallState.NOT_INSTALLED,
-            checksum = "",
-            version = "3.0",
-            supportsStructuredJson = false,
-            supportsStreaming = true,
-            supportsTextGeneration = true,
-            parameterCount = "1B"
-        ),
-        // --- Gemma 3 1B INT8 — higher quality at 1B ---
-        LocalAiModel(
-            modelId = "gemma3-1b-it-int8",
-            displayName = "Gemma 3 1B (INT8 - Higher Quality)",
-            description = "INT8 quantization of Gemma 3 1B. Better output quality, needs more RAM.",
-            runtimeType = RuntimeType.MEDIA_PIPE,
-            fileFormat = "task",
-            quantization = "INT8",
             requiredRamMb = 2048,
             recommendedRamMb = 4096,
-            sizeMb = 1100,
-            downloadUrl = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q8_ekv1280.task",
+            sizeMb = 1837,
+            downloadUrl = "https://huggingface.co/litert-community/Qwen3.5-2B-LiteRT/resolve/main/model_quantized.tflite",
             localPath = "",
             installState = InstallState.NOT_INSTALLED,
             checksum = "",
-            version = "3.0",
-            supportsStructuredJson = false,
-            supportsStreaming = true,
-            supportsTextGeneration = true,
-            parameterCount = "1B"
-        ),
-        // --- Gemma 2 2B INT8 — larger model, higher quality ---
-        LocalAiModel(
-            modelId = "gemma2-2b-it-int8",
-            displayName = "Gemma 2 2B (INT8)",
-            description = "Google's 2B instruction-tuned model. Strong text quality, needs 4+ GB RAM.",
-            runtimeType = RuntimeType.MEDIA_PIPE,
-            fileFormat = "task",
-            quantization = "INT8",
-            requiredRamMb = 3072,
-            recommendedRamMb = 6144,
-            sizeMb = 2710,
-            downloadUrl = "https://huggingface.co/litert-community/Gemma2-2B-IT/resolve/main/Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.task",
-            localPath = "",
-            installState = InstallState.NOT_INSTALLED,
-            checksum = "",
-            version = "2.0",
+            version = "3.5",
             supportsStructuredJson = false,
             supportsStreaming = true,
             supportsTextGeneration = true,
             parameterCount = "2B"
+        ),
+        // --- Qwen3 4B Thinking — high quality with reasoning, MediaPipe ---
+        LocalAiModel(
+            modelId = "qwen3-4b-thinking",
+            displayName = "Qwen3 4B Thinking",
+            description = "4B model with reasoning capabilities. INT4 quantized, 2048 context. MediaPipe-compatible.",
+            runtimeType = RuntimeType.MEDIA_PIPE,
+            fileFormat = "task",
+            quantization = "INT4",
+            requiredRamMb = 3072,
+            recommendedRamMb = 6144,
+            sizeMb = 2001,
+            downloadUrl = "https://huggingface.co/harithoppil/qwen3-4b-thinking-litert/resolve/main/qwen3_thinking_4b_q4_block128_ekv2048.task",
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "3.0",
+            supportsStructuredJson = false,
+            supportsStreaming = true,
+            supportsTextGeneration = true,
+            parameterCount = "4B"
+        ),
+        // --- Qwen3.5 4B — largest, best quality, needs 5+ GB RAM ---
+        LocalAiModel(
+            modelId = "qwen3.5-4b",
+            displayName = "Qwen3.5 4B",
+            description = "Largest available model at 4B parameters. Best output quality, requires high-end device.",
+            runtimeType = RuntimeType.LITE_RT,
+            fileFormat = "litertlm",
+            quantization = "INT4",
+            requiredRamMb = 4096,
+            recommendedRamMb = 8192,
+            sizeMb = 4077,
+            downloadUrl = "https://huggingface.co/litert-community/Qwen3.5-4B-LiteRT/resolve/main/model_quantized.litertlm",
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "3.5",
+            supportsStructuredJson = false,
+            supportsStreaming = true,
+            supportsTextGeneration = true,
+            parameterCount = "4B"
         )
     )
 
