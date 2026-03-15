@@ -21,6 +21,8 @@ data class MedicationEntity(
     val notifyCaregivers: Boolean = false,
     val isEmergency: Boolean = false,
     val isActive: Boolean = true,
+    val assignedToId: Long? = null, // null = self, otherwise family member id
+    val assignedToName: String = "", // denormalized for display convenience
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

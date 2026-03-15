@@ -2,7 +2,6 @@ package com.medreminder.di
 
 import android.content.Context
 import androidx.room.Room
-import com.medreminder.ai.modelmanager.LocalAiModelDao
 import com.medreminder.data.local.*
 import com.medreminder.data.repository.MedicationRepositoryImpl
 import com.medreminder.domain.repository.MedicationRepository
@@ -22,8 +21,10 @@ object AppModule {
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(
             context, AppDatabase::class.java, AppDatabase.DATABASE_NAME
-        ).addMigrations(AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5)
-            .fallbackToDestructiveMigration().build()
+        ).addMigrations(
+            AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4,
+            AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6
+        ).fallbackToDestructiveMigration().build()
 
     @Provides
     fun provideMedicationDao(db: AppDatabase): MedicationDao = db.medicationDao()
@@ -38,7 +39,10 @@ object AppModule {
     fun provideCaregiverDao(db: AppDatabase): CaregiverDao = db.caregiverDao()
 
     @Provides
-    fun provideLocalAiModelDao(db: AppDatabase): LocalAiModelDao = db.localAiModelDao()
+    fun provideLocalAiModelDao(db: AppDatabase) = db.localAiModelDao()
+
+    @Provides
+    fun provideFamilyMemberDao(db: AppDatabase): FamilyMemberDao = db.familyMemberDao()
 
     @Provides
     @Singleton
@@ -47,6 +51,9 @@ object AppModule {
         medicationDao: MedicationDao,
         scheduleDao: ScheduleDao,
         doseLogDao: DoseLogDao,
-        caregiverDao: CaregiverDao
-    ): MedicationRepository = MedicationRepositoryImpl(database, medicationDao, scheduleDao, doseLogDao, caregiverDao)
+        caregiverDao: CaregiverDao,
+        familyMemberDao: FamilyMemberDao
+    ): MedicationRepository = MedicationRepositoryImpl(
+        database, medicationDao, scheduleDao, doseLogDao, caregiverDao, familyMemberDao
+    )
 }

@@ -42,6 +42,13 @@ interface MedicationRepository {
     suspend fun deleteCaregiver(caregiver: Caregiver)
     suspend fun getCaregiversForMissedAlert(): List<Caregiver>
 
+    // Family Members
+    fun getActiveFamilyMembers(): Flow<List<FamilyMember>>
+    suspend fun addFamilyMember(member: FamilyMember): Long
+    suspend fun updateFamilyMember(member: FamilyMember)
+    suspend fun deleteFamilyMember(member: FamilyMember)
+    suspend fun getFamilyMemberById(id: Long): FamilyMember?
+
     // Data management
     suspend fun clearAllData()
     suspend fun exportAllData(): String

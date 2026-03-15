@@ -2,7 +2,7 @@ package com.medreminder.data.repository
 
 import androidx.room.withTransaction
 import com.medreminder.data.local.*
-import com.medreminder.data.local.entity.MedicationEntity
+import com.medreminder.data.local.entity.*
 import com.medreminder.domain.model.*
 import com.medreminder.domain.repository.MedicationRepository
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +19,8 @@ class MedicationRepositoryImpl @Inject constructor(
     private val medicationDao: MedicationDao,
     private val scheduleDao: ScheduleDao,
     private val doseLogDao: DoseLogDao,
-    private val caregiverDao: CaregiverDao
+    private val caregiverDao: CaregiverDao,
+    private val familyMemberDao: FamilyMemberDao
 ) : MedicationRepository {
 
     override fun getActiveMedications(): Flow<List<Medication>> =
@@ -244,12 +245,29 @@ class MedicationRepositoryImpl @Inject constructor(
     override suspend fun getCaregiversForMissedAlert(): List<Caregiver> =
         caregiverDao.getCaregiversForMissedAlert().map { it.toDomain() }
 
+    // Family Members
+    override fun getActiveFamilyMembers(): Flow<List<FamilyMember>> =
+        familyMemberDao.getActiveFamilyMembers().map { list -> list.map { it.toDomain() } }
+
+    override suspend fun addFamilyMember(member: FamilyMember): Long =
+        familyMemberDao.insertFamilyMember(member.toEntity())
+
+    override suspend fun updateFamilyMember(member: FamilyMember) =
+        familyMemberDao.updateFamilyMember(member.toEntity())
+
+    override suspend fun deleteFamilyMember(member: FamilyMember) =
+        familyMemberDao.deleteFamilyMember(member.toEntity())
+
+    override suspend fun getFamilyMemberById(id: Long): FamilyMember? =
+        familyMemberDao.getFamilyMemberById(id)?.toDomain()
+
     // Data management
     override suspend fun clearAllData() {
         doseLogDao.deleteAllDoseLogs()
         scheduleDao.deleteAllSchedules()
         medicationDao.deleteAllMedications()
         caregiverDao.deleteAllCaregivers()
+        familyMemberDao.deleteAllFamilyMembers()
     }
 
     override suspend fun exportAllData(): String {
@@ -276,6 +294,8 @@ class MedicationRepositoryImpl @Inject constructor(
                 put("notifyCaregivers", med.notifyCaregivers)
                 put("isEmergency", med.isEmergency)
                 put("isActive", med.isActive)
+                put("assignedToId", if (med.assignedToId != null) med.assignedToId else JSONObject.NULL)
+                put("assignedToName", med.assignedToName)
                 put("createdAt", med.createdAt)
                 put("updatedAt", med.updatedAt)
             })
@@ -293,6 +313,10 @@ class MedicationRepositoryImpl @Inject constructor(
                 put("frequency", s.frequency)
                 put("daysOfWeek", s.daysOfWeek)
                 put("intervalDays", s.intervalDays)
+                put("intervalHours", s.intervalHours)
+                put("toleranceMinutes", s.toleranceMinutes)
+                put("durationType", s.durationType)
+                put("durationValue", s.durationValue)
                 put("startDate", s.startDate)
                 put("endDate", if (s.endDate != null) s.endDate else JSONObject.NULL)
                 put("isEnabled", s.isEnabled)
@@ -337,6 +361,20 @@ class MedicationRepositoryImpl @Inject constructor(
         }
         root.put("caregivers", caregivers)
 
+        // Family Members
+        val familyMembers = JSONArray()
+        for (fm in familyMemberDao.getAllFamilyMembersSync()) {
+            familyMembers.put(JSONObject().apply {
+                put("id", fm.id)
+                put("name", fm.name)
+                put("age", fm.age)
+                put("relation", fm.relation)
+                put("isActive", fm.isActive)
+                put("createdAt", fm.createdAt)
+            })
+        }
+        root.put("familyMembers", familyMembers)
+
         return root.toString(2)
     }
 
@@ -368,6 +406,8 @@ class MedicationRepositoryImpl @Inject constructor(
                         notifyCaregivers = m.optBoolean("notifyCaregivers", false),
                         isEmergency = m.optBoolean("isEmergency", false),
                         isActive = m.optBoolean("isActive", true),
+                        assignedToId = if (m.isNull("assignedToId")) null else m.optLong("assignedToId"),
+                        assignedToName = m.optString("assignedToName", ""),
                         createdAt = m.optLong("createdAt", System.currentTimeMillis()),
                         updatedAt = m.optLong("updatedAt", System.currentTimeMillis())
                     ))
@@ -379,7 +419,7 @@ class MedicationRepositoryImpl @Inject constructor(
             if (schedules != null) {
                 for (i in 0 until schedules.length()) {
                     val s = schedules.getJSONObject(i)
-                    scheduleDao.insertSchedule(com.medreminder.data.local.entity.ScheduleEntity(
+                    scheduleDao.insertSchedule(ScheduleEntity(
                         id = s.getLong("id"),
                         medicationId = s.getLong("medicationId"),
                         timeHour = s.getInt("timeHour"),
@@ -387,6 +427,10 @@ class MedicationRepositoryImpl @Inject constructor(
                         frequency = s.getString("frequency"),
                         daysOfWeek = s.optString("daysOfWeek", ""),
                         intervalDays = s.optInt("intervalDays", 1),
+                        intervalHours = s.optInt("intervalHours", 0),
+                        toleranceMinutes = s.optInt("toleranceMinutes", 10),
+                        durationType = s.optString("durationType", "ongoing"),
+                        durationValue = s.optInt("durationValue", 0),
                         startDate = s.optLong("startDate", System.currentTimeMillis()),
                         endDate = if (s.isNull("endDate")) null else s.optLong("endDate"),
                         isEnabled = s.optBoolean("isEnabled", true),
@@ -400,7 +444,7 @@ class MedicationRepositoryImpl @Inject constructor(
             if (logs != null) {
                 for (i in 0 until logs.length()) {
                     val l = logs.getJSONObject(i)
-                    doseLogDao.insertDoseLog(com.medreminder.data.local.entity.DoseLogEntity(
+                    doseLogDao.insertDoseLog(DoseLogEntity(
                         id = l.getLong("id"),
                         medicationId = l.getLong("medicationId"),
                         scheduleId = l.getLong("scheduleId"),
@@ -420,7 +464,7 @@ class MedicationRepositoryImpl @Inject constructor(
             if (caregivers != null) {
                 for (i in 0 until caregivers.length()) {
                     val c = caregivers.getJSONObject(i)
-                    caregiverDao.insertCaregiver(com.medreminder.data.local.entity.CaregiverEntity(
+                    caregiverDao.insertCaregiver(CaregiverEntity(
                         id = c.getLong("id"),
                         name = c.getString("name"),
                         phone = c.optString("phone", ""),
@@ -431,6 +475,22 @@ class MedicationRepositoryImpl @Inject constructor(
                         notifyDelay = c.optInt("notifyDelay", 30),
                         isActive = c.optBoolean("isActive", true),
                         createdAt = c.optLong("createdAt", System.currentTimeMillis())
+                    ))
+                }
+            }
+
+            // Import family members
+            val familyMembers = root.optJSONArray("familyMembers")
+            if (familyMembers != null) {
+                for (i in 0 until familyMembers.length()) {
+                    val fm = familyMembers.getJSONObject(i)
+                    familyMemberDao.insertFamilyMember(FamilyMemberEntity(
+                        id = fm.getLong("id"),
+                        name = fm.getString("name"),
+                        age = fm.getInt("age"),
+                        relation = fm.optString("relation", ""),
+                        isActive = fm.optBoolean("isActive", true),
+                        createdAt = fm.optLong("createdAt", System.currentTimeMillis())
                     ))
                 }
             }
