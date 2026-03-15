@@ -1,10 +1,14 @@
 package com.medreminder.alarm
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.net.Uri
 import android.telephony.SmsManager
 import android.util.Log
+import androidx.core.content.ContextCompat
 import com.medreminder.data.local.AppDatabase
 import com.medreminder.domain.model.toDomain
 
@@ -48,10 +52,20 @@ object CaregiverNotificationHelper {
 
         if (caregivers.isEmpty()) return
 
-        val message = if (isMissed) {
+        var message = if (isMissed) {
             "MedReminder: $medicationName dose was missed."
         } else {
             "MedReminder: $medicationName dose was taken."
+        }
+
+        // For emergency medications that are missed, append location
+        if (medication.isEmergency && isMissed) {
+            val locationText = getLastKnownLocation(context)
+            if (locationText != null) {
+                message += " EMERGENCY - Location: $locationText"
+            } else {
+                message += " EMERGENCY - Location unavailable."
+            }
         }
 
         for (caregiver in caregivers) {
@@ -60,15 +74,53 @@ object CaregiverNotificationHelper {
                 sendSms(context, domain.phone, message)
             }
             if (domain.email.isNotBlank()) {
-                sendEmail(context, domain.email, "MedReminder Notification", message)
+                val subject = if (medication.isEmergency && isMissed) {
+                    "EMERGENCY: MedReminder - $medicationName missed"
+                } else {
+                    "MedReminder Notification"
+                }
+                sendEmail(context, domain.email, subject, message)
             }
+        }
+    }
+
+    private fun getLastKnownLocation(context: Context): String? {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.w(TAG, "Location permission not granted")
+            return null
+        }
+
+        return try {
+            val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+
+            if (location != null) {
+                val mapsUrl = "https://maps.google.com/?q=${location.latitude},${location.longitude}"
+                mapsUrl
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting location", e)
+            null
         }
     }
 
     private fun sendSms(context: Context, phone: String, message: String) {
         try {
             val smsManager = SmsManager.getDefault()
-            smsManager.sendTextMessage(phone, null, message, null, null)
+            // Split long messages (SMS limit is 160 chars)
+            val parts = smsManager.divideMessage(message)
+            if (parts.size > 1) {
+                smsManager.sendMultipartTextMessage(phone, null, parts, null, null)
+            } else {
+                smsManager.sendTextMessage(phone, null, message, null, null)
+            }
             Log.d(TAG, "SMS sent to $phone")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send SMS to $phone", e)

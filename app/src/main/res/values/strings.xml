@@ -113,6 +113,8 @@
     <string name="notify_on_taken">Notify on taken</string>
     <string name="notify_caregivers">Notify caregivers</string>
     <string name="notify_caregivers_description">Inform caregivers about this medication via SMS or email</string>
+    <string name="emergency_medication">Emergency medication</string>
+    <string name="emergency_medication_description">When missed, caregivers receive an SMS with your location</string>
 
     <!-- Settings Screen -->
     <string name="settings">Settings</string>

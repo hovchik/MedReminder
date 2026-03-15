@@ -95,6 +95,8 @@
     <string name="notify_on_taken">اطلاع در صورت مصرف</string>
     <string name="notify_caregivers">اطلاع‌رسانی به مراقبان</string>
     <string name="notify_caregivers_description">اطلاع‌رسانی به مراقبان درباره این دارو از طریق پیامک یا ایمیل</string>
+    <string name="emergency_medication">داروی اضطراری</string>
+    <string name="emergency_medication_description">در صورت فراموشی، مراقبان پیامکی با موقعیت مکانی شما دریافت می‌کنند</string>
     <string name="settings">تنظیمات</string>
     <string name="active_medications">%1$d داروی فعال</string>
     <string name="version">نسخه 1.0.0</string>

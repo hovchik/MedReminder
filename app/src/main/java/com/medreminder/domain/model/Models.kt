@@ -16,6 +16,7 @@ data class Medication(
     val refillReminder: Boolean = true,
     val notes: String = "",
     val notifyCaregivers: Boolean = false,
+    val isEmergency: Boolean = false,
     val isActive: Boolean = true,
     val schedules: List<Schedule> = emptyList(),
     val createdAt: Long = System.currentTimeMillis()
@@ -135,8 +136,8 @@ fun MedicationEntity.toDomain(schedules: List<Schedule> = emptyList()) = Medicat
     form = MedicationForm.fromString(form), instructions = instructions,
     color = color, iconName = iconName, currentStock = currentStock,
     refillThreshold = refillThreshold, refillReminder = refillReminder,
-    notes = notes, notifyCaregivers = notifyCaregivers, isActive = isActive,
-    schedules = schedules, createdAt = createdAt
+    notes = notes, notifyCaregivers = notifyCaregivers, isEmergency = isEmergency,
+    isActive = isActive, schedules = schedules, createdAt = createdAt
 )
 
 fun Medication.toEntity() = MedicationEntity(
@@ -144,8 +145,8 @@ fun Medication.toEntity() = MedicationEntity(
     form = form.name.lowercase(), instructions = instructions, color = color,
     iconName = iconName, currentStock = currentStock,
     refillThreshold = refillThreshold, refillReminder = refillReminder,
-    notes = notes, notifyCaregivers = notifyCaregivers, isActive = isActive,
-    createdAt = createdAt
+    notes = notes, notifyCaregivers = notifyCaregivers, isEmergency = isEmergency,
+    isActive = isActive, createdAt = createdAt
 )
 
 fun ScheduleEntity.toDomain() = Schedule(

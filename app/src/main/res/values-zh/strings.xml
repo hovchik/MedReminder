@@ -95,6 +95,8 @@
     <string name="notify_on_taken">服用时通知</string>
     <string name="notify_caregivers">通知看护人</string>
     <string name="notify_caregivers_description">通过短信或电子邮件通知看护人关于此药物</string>
+    <string name="emergency_medication">紧急药物</string>
+    <string name="emergency_medication_description">错过用药时，看护人将收到包含您位置的短信</string>
     <string name="settings">设置</string>
     <string name="active_medications">%1$d 种活跃药物</string>
     <string name="version">版本 1.0.0</string>

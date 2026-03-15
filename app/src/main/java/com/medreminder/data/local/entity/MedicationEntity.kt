@@ -19,6 +19,7 @@ data class MedicationEntity(
     val refillReminder: Boolean = true,
     val notes: String = "",
     val notifyCaregivers: Boolean = false,
+    val isEmergency: Boolean = false,
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
