@@ -260,4 +260,24 @@
 
     <!-- Settings extras -->
     <string name="not_available_device">此设备不可用</string>
+
+    <!-- Permissions -->
+    <string name="permissions_title">应用权限</string>
+    <string name="permissions_subtitle">MedReminder 需要一些权限才能正常工作</string>
+    <string name="permission_notifications">通知</string>
+    <string name="permission_notifications_desc">按时接收用药提醒</string>
+    <string name="permission_camera">相机</string>
+    <string name="permission_camera_desc">扫描药物标签和条码</string>
+    <string name="permission_sms">短信</string>
+    <string name="permission_sms_desc">错过用药时向看护人发送提醒</string>
+    <string name="permission_phone">电话</string>
+    <string name="permission_phone_desc">短信发送失败时自动拨打看护人电话</string>
+    <string name="permission_location">位置</string>
+    <string name="permission_location_desc">紧急情况下与看护人分享您的位置</string>
+    <string name="permission_granted">已授权</string>
+    <string name="permission_denied">点击授权</string>
+    <string name="grant_all_permissions">授权所有权限</string>
+    <string name="permissions_can_change">您可以稍后在设置中更改权限</string>
+    <string name="permissions">权限</string>
+    <string name="permissions_settings_subtitle">管理应用权限</string>
 </resources>

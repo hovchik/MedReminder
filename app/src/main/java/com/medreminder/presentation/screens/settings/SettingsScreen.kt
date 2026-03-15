@@ -561,6 +561,25 @@ fun SettingsScreen(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
+        // Permissions section
+        Text(stringResource(R.string.permissions), style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsItem(
+            icon = Icons.Default.Security,
+            title = stringResource(R.string.permissions),
+            subtitle = stringResource(R.string.permissions_settings_subtitle),
+            onClick = {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
+                context.startActivity(intent)
+            }
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
         // Data management section
         Text(stringResource(R.string.data_management), style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,

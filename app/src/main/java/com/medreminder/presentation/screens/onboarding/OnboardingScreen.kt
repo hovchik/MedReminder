@@ -1,5 +1,10 @@
 package com.medreminder.presentation.screens.onboarding
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
@@ -15,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -22,6 +28,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,6 +61,9 @@ fun OnboardingScreen(
     ) { step ->
         when (step) {
             OnboardingStep.WELCOME -> WelcomeStep(
+                onContinue = { viewModel.goToPermissions() }
+            )
+            OnboardingStep.PERMISSIONS -> PermissionsStep(
                 onContinue = { viewModel.goToUserInfo() }
             )
             OnboardingStep.USER_INFO -> UserInfoStep(
@@ -337,6 +347,234 @@ private fun WelcomeStep(onContinue: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(R.string.get_started))
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp))
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun PermissionsStep(onContinue: () -> Unit) {
+    val context = LocalContext.current
+
+    data class PermissionItem(
+        val permission: String,
+        val titleRes: Int,
+        val descRes: Int,
+        val icon: androidx.compose.ui.graphics.vector.ImageVector,
+        val minSdk: Int = 0
+    )
+
+    val permissionItems = remember {
+        listOf(
+            PermissionItem(
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.POST_NOTIFICATIONS else "",
+                R.string.permission_notifications,
+                R.string.permission_notifications_desc,
+                Icons.Default.Notifications,
+                Build.VERSION_CODES.TIRAMISU
+            ),
+            PermissionItem(
+                Manifest.permission.CAMERA,
+                R.string.permission_camera,
+                R.string.permission_camera_desc,
+                Icons.Default.CameraAlt
+            ),
+            PermissionItem(
+                Manifest.permission.SEND_SMS,
+                R.string.permission_sms,
+                R.string.permission_sms_desc,
+                Icons.Default.Sms
+            ),
+            PermissionItem(
+                Manifest.permission.CALL_PHONE,
+                R.string.permission_phone,
+                R.string.permission_phone_desc,
+                Icons.Default.Phone
+            ),
+            PermissionItem(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                R.string.permission_location,
+                R.string.permission_location_desc,
+                Icons.Default.LocationOn
+            )
+        )
+    }
+
+    // Track granted state for each permission
+    var permissionStates by remember {
+        mutableStateOf(
+            permissionItems.map { item ->
+                if (item.permission.isEmpty()) true
+                else ContextCompat.checkSelfPermission(context, item.permission) == PackageManager.PERMISSION_GRANTED
+            }
+        )
+    }
+
+    // Single permission launcher
+    var currentPermissionIndex by remember { mutableIntStateOf(-1) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (currentPermissionIndex >= 0) {
+            permissionStates = permissionStates.toMutableList().also {
+                it[currentPermissionIndex] = granted
+            }
+        }
+    }
+
+    // Multiple permissions launcher for "Grant All"
+    val multiplePermissionsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        permissionStates = permissionItems.mapIndexed { index, item ->
+            if (item.permission.isEmpty()) true
+            else results[item.permission] ?: permissionStates[index]
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Icon(
+            Icons.Default.Security,
+            contentDescription = null,
+            modifier = Modifier.size(72.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+
+        Text(
+            stringResource(R.string.permissions_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+
+        Text(
+            stringResource(R.string.permissions_subtitle),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        permissionItems.forEachIndexed { index, item ->
+            if (item.minSdk == 0 || Build.VERSION.SDK_INT >= item.minSdk) {
+                val isGranted = permissionStates[index]
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isGranted)
+                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ),
+                    onClick = {
+                        if (!isGranted && item.permission.isNotEmpty()) {
+                            currentPermissionIndex = index
+                            permissionLauncher.launch(item.permission)
+                        }
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            item.icon,
+                            contentDescription = null,
+                            tint = if (isGranted) MaterialTheme.colorScheme.secondary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                stringResource(item.titleRes),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                stringResource(item.descRes),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        if (isGranted) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Text(
+                                stringResource(R.string.permission_denied),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Grant All button
+        val hasUngrantedPermissions = permissionItems.indices.any { index ->
+            val item = permissionItems[index]
+            (item.minSdk == 0 || Build.VERSION.SDK_INT >= item.minSdk) && !permissionStates[index]
+        }
+        if (hasUngrantedPermissions) {
+            OutlinedButton(
+                onClick = {
+                    val permissionsToRequest = permissionItems
+                        .filterIndexed { index, item ->
+                            item.permission.isNotEmpty() &&
+                                    (item.minSdk == 0 || Build.VERSION.SDK_INT >= item.minSdk) &&
+                                    !permissionStates[index]
+                        }
+                        .map { it.permission }
+                        .toTypedArray()
+                    if (permissionsToRequest.isNotEmpty()) {
+                        multiplePermissionsLauncher.launch(permissionsToRequest)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Security, null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.grant_all_permissions))
+            }
+        }
+
+        Text(
+            stringResource(R.string.permissions_can_change),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Button(
+            onClick = onContinue,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.onboarding_continue))
             Spacer(modifier = Modifier.width(8.dp))
             Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp))
         }

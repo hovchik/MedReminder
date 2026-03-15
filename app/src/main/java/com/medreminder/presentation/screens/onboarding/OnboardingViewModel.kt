@@ -32,6 +32,7 @@ data class OnboardingState(
 
 enum class OnboardingStep {
     WELCOME,
+    PERMISSIONS,
     USER_INFO,
     AI_MODEL_CHOICE,
     MODEL_SELECTION,
@@ -243,6 +244,10 @@ class OnboardingViewModel @Inject constructor(
             userPreferencesManager.completeOnboarding()
             _state.update { it.copy(onboardingComplete = true) }
         }
+    }
+
+    fun goToPermissions() {
+        _state.update { it.copy(currentStep = OnboardingStep.PERMISSIONS) }
     }
 
     fun goToUserInfo() {

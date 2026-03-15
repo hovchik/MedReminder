@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">MedReminder</string>
     <string name="nav_today">Hoy</string>
-    <string name="nav_stats">Estadísticas</string>
+    <string name="nav_stats">Datos</string>
     <string name="nav_history">Historial</string>
     <string name="nav_family">Familia</string>
     <string name="nav_settings">Ajustes</string>
@@ -260,4 +260,24 @@
 
     <!-- Settings extras -->
     <string name="not_available_device">No disponible en este dispositivo</string>
+
+    <!-- Permissions -->
+    <string name="permissions_title">Permisos de la app</string>
+    <string name="permissions_subtitle">MedReminder necesita algunos permisos para funcionar correctamente</string>
+    <string name="permission_notifications">Notificaciones</string>
+    <string name="permission_notifications_desc">Recibir recordatorios de medicamentos a tiempo</string>
+    <string name="permission_camera">Cámara</string>
+    <string name="permission_camera_desc">Escanear etiquetas y códigos de barras de medicamentos</string>
+    <string name="permission_sms">SMS</string>
+    <string name="permission_sms_desc">Enviar alertas a cuidadores cuando se pierden dosis</string>
+    <string name="permission_phone">Llamadas</string>
+    <string name="permission_phone_desc">Llamar automáticamente a cuidadores cuando falla el SMS</string>
+    <string name="permission_location">Ubicación</string>
+    <string name="permission_location_desc">Compartir tu ubicación con cuidadores en emergencias</string>
+    <string name="permission_granted">Concedido</string>
+    <string name="permission_denied">Toca para conceder</string>
+    <string name="grant_all_permissions">Conceder todos los permisos</string>
+    <string name="permissions_can_change">Puedes cambiar los permisos más tarde en Ajustes</string>
+    <string name="permissions">Permisos</string>
+    <string name="permissions_settings_subtitle">Gestionar permisos de la app</string>
 </resources>

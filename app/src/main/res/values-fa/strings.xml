@@ -261,4 +261,24 @@
 
     <!-- Settings extras -->
     <string name="not_available_device">در این دستگاه موجود نیست</string>
+
+    <!-- Permissions -->
+    <string name="permissions_title">مجوزهای برنامه</string>
+    <string name="permissions_subtitle">MedReminder به چند مجوز برای عملکرد صحیح نیاز دارد</string>
+    <string name="permission_notifications">اعلان‌ها</string>
+    <string name="permission_notifications_desc">دریافت یادآوری دارو به موقع</string>
+    <string name="permission_camera">دوربین</string>
+    <string name="permission_camera_desc">اسکن برچسب و بارکد دارو</string>
+    <string name="permission_sms">پیامک</string>
+    <string name="permission_sms_desc">ارسال هشدار به مراقبان در صورت فراموشی دارو</string>
+    <string name="permission_phone">تماس تلفنی</string>
+    <string name="permission_phone_desc">تماس خودکار با مراقبان در صورت عدم ارسال پیامک</string>
+    <string name="permission_location">موقعیت مکانی</string>
+    <string name="permission_location_desc">اشتراک موقعیت با مراقبان در شرایط اضطراری</string>
+    <string name="permission_granted">اعطا شده</string>
+    <string name="permission_denied">برای اعطا لمس کنید</string>
+    <string name="grant_all_permissions">اعطای همه مجوزها</string>
+    <string name="permissions_can_change">می‌توانید مجوزها را بعداً در تنظیمات تغییر دهید</string>
+    <string name="permissions">مجوزها</string>
+    <string name="permissions_settings_subtitle">مدیریت مجوزهای برنامه</string>
 </resources>

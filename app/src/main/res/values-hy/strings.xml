@@ -2,9 +2,9 @@
     <string name="app_name">MedReminder</string>
     <string name="nav_today">Այսօր</string>
     <string name="nav_stats">Վիճակ</string>
-    <string name="nav_history">Պատմութ</string>
+    <string name="nav_history">Պատմութիւն</string>
     <string name="nav_family">Ընտանիք</string>
-    <string name="nav_settings">Կարգավորում</string>
+    <string name="nav_settings">Կարգեր</string>
     <string name="greeting_morning">Բարի լույս</string>
     <string name="greeting_afternoon">Բարի օր</string>
     <string name="greeting_evening">Բարի երեկո</string>
@@ -66,13 +66,13 @@
     <string name="freq_specific_days">Որոշակի օրեր</string>
     <string name="freq_interval">Ամեն X օրը</string>
     <string name="freq_as_needed">Ըստ կարիքի</string>
-    <string name="adherence">Համապատասխանութ</string>
+    <string name="adherence">Համապատասխանություն</string>
     <string name="week">Շաբաթ</string>
     <string name="month">Ամիս</string>
     <string name="year">Տարի</string>
     <string name="adherence_rate">Համապատասխանության տոկոս</string>
     <string name="current_streak">Ընթացիկ շարք</string>
-    <string name="daily_breakdown">Օրական վիճակագրութ</string>
+    <string name="daily_breakdown">Օրական վիճակագրություն</string>
     <string name="history">Պատմություն</string>
     <string name="seven_days">7 օր</string>
     <string name="fourteen_days">14 օր</string>
@@ -103,13 +103,13 @@
     <string name="notifications">Ծանուցումներ</string>
     <string name="notification_settings">Ծանուցումների կարգավորում</string>
     <string name="notification_settings_subtitle">Կառավարել ձայների և թրթիռը</string>
-    <string name="exact_alarm_permission">Ճիշտ զարթուցիչի թույլտվութ</string>
+    <string name="exact_alarm_permission">Ճիշտ զարթուցիչի թույլտվություն</string>
     <string name="exact_alarm_subtitle">Անհրաժեշտ է հուսալի հիշեցումների համար</string>
     <string name="battery_optimization">Մարտկոցի օպտիմալացում</string>
     <string name="battery_subtitle">Անջատել հուսալի զարթուցիչների համար</string>
     <string name="reschedule_alarms">Վերապլանավորել բոլոր զարթուցիչները</string>
     <string name="reschedule_subtitle">Շտկել բաց թողված ծանուցումների խնդիրը</string>
-    <string name="privacy">Գաղտնիութ</string>
+    <string name="privacy">Գաղտնիություն</string>
     <string name="data_on_device">Ձեր տվյալները պահվում են սարքում</string>
     <string name="data_on_device_subtitle">MedReminder-ը պահում է բոլոր տվյալները տեղայնորեն։</string>
     <string name="about">Մեր մասին</string>
@@ -261,4 +261,24 @@
 
     <!-- Settings extras -->
     <string name="not_available_device">Այս սարքում հասանելի չէ</string>
+
+    <!-- Permissions -->
+    <string name="permissions_title">Հավելվածի թույլտվություններ</string>
+    <string name="permissions_subtitle">MedReminder-ին անհրաժեշտ են մի քանի թույլտվություններ</string>
+    <string name="permission_notifications">Ծանուցումներ</string>
+    <string name="permission_notifications_desc">Ստանալ դեղերի հիշեցողություններ ժամանակին</string>
+    <string name="permission_camera">Տեսախցիկ</string>
+    <string name="permission_camera_desc">Սկանավորել դեղերի պիտակներ և շտրիխկոդեր</string>
+    <string name="permission_sms">SMS</string>
+    <string name="permission_sms_desc">Վազանգել խնամակալներին դեղ բաց թողնելիս</string>
+    <string name="permission_phone">Հեռախոսազանգ</string>
+    <string name="permission_phone_desc">Ինքնաբերաբար զանգել խնամակալներին SMS-ի ձախողման դեպքում</string>
+    <string name="permission_location">Տեղադրություն</string>
+    <string name="permission_location_desc">Կիսել տեղադրությունը խնամակալների հետ արտակարգ դեպքում</string>
+    <string name="permission_granted">Թույլատրված</string>
+    <string name="permission_denied">Սեղմեք թույլատրելու համար</string>
+    <string name="grant_all_permissions">Թույլատրել բոլորը</string>
+    <string name="permissions_can_change">Կարող եք թույլտվությունները փոխել Կարգերում</string>
+    <string name="permissions">Թույլտվություններ</string>
+    <string name="permissions_settings_subtitle">Կառավարել թույլտվությունները</string>
 </resources>

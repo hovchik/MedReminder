@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">MedReminder</string>
     <string name="nav_today">Сегодня</string>
-    <string name="nav_stats">Статистика</string>
+    <string name="nav_stats">Сводка</string>
     <string name="nav_history">История</string>
     <string name="nav_family">Семья</string>
     <string name="nav_settings">Настройки</string>
@@ -260,4 +260,24 @@
 
     <!-- Settings extras -->
     <string name="not_available_device">Недоступно на этом устройстве</string>
+
+    <!-- Permissions -->
+    <string name="permissions_title">Разрешения приложения</string>
+    <string name="permissions_subtitle">MedReminder нуждается в нескольких разрешениях для работы</string>
+    <string name="permission_notifications">Уведомления</string>
+    <string name="permission_notifications_desc">Получать напоминания о лекарствах вовремя</string>
+    <string name="permission_camera">Камера</string>
+    <string name="permission_camera_desc">Сканировать этикетки и штрихкоды лекарств</string>
+    <string name="permission_sms">SMS</string>
+    <string name="permission_sms_desc">Отправлять оповещения опекунам при пропуске дозы</string>
+    <string name="permission_phone">Телефонные звонки</string>
+    <string name="permission_phone_desc">Автоматически звонить опекунам при неудаче SMS</string>
+    <string name="permission_location">Местоположение</string>
+    <string name="permission_location_desc">Передавать ваше местоположение опекунам в экстренных случаях</string>
+    <string name="permission_granted">Разрешено</string>
+    <string name="permission_denied">Нажмите для разрешения</string>
+    <string name="grant_all_permissions">Разрешить всё</string>
+    <string name="permissions_can_change">Вы можете изменить разрешения позже в Настройках</string>
+    <string name="permissions">Разрешения</string>
+    <string name="permissions_settings_subtitle">Управление разрешениями приложения</string>
 </resources>
