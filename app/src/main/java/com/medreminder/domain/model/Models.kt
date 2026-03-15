@@ -18,6 +18,8 @@ data class Medication(
     val notifyCaregivers: Boolean = false,
     val isEmergency: Boolean = false,
     val isActive: Boolean = true,
+    val assignedToId: Long? = null, // null = self, otherwise family member id
+    val assignedToName: String = "", // denormalized for display
     val schedules: List<Schedule> = emptyList(),
     val createdAt: Long = System.currentTimeMillis()
 )
@@ -48,6 +50,10 @@ data class Schedule(
     val frequency: ScheduleFrequency = ScheduleFrequency.DAILY,
     val daysOfWeek: List<Int> = emptyList(),
     val intervalDays: Int = 1,
+    val intervalHours: Int = 0, // for EVERY_X_HOURS frequency
+    val toleranceMinutes: Int = 10, // allowed error margin in minutes
+    val durationType: DurationType = DurationType.ONGOING,
+    val durationValue: Int = 0, // number of days/months depending on durationType
     val startDate: Long = System.currentTimeMillis(),
     val endDate: Long? = null,
     val isEnabled: Boolean = true
@@ -64,11 +70,23 @@ enum class ScheduleFrequency(val displayName: String) {
     DAILY("Every day"),
     SPECIFIC_DAYS("Specific days"),
     INTERVAL("Every X days"),
+    EVERY_X_HOURS("Every X hours"),
     AS_NEEDED("As needed");
 
     companion object {
         fun fromString(value: String): ScheduleFrequency =
             entries.find { it.name.equals(value, ignoreCase = true) } ?: DAILY
+    }
+}
+
+enum class DurationType(val displayName: String) {
+    ONGOING("Ongoing / Lifetime"),
+    DAYS("For X days"),
+    MONTHS("For X months");
+
+    companion object {
+        fun fromString(value: String): DurationType =
+            entries.find { it.name.equals(value, ignoreCase = true) } ?: ONGOING
     }
 }
 
@@ -118,6 +136,14 @@ data class DayAdherence(
     val rate: Float
 )
 
+data class FamilyMember(
+    val id: Long = 0,
+    val name: String,
+    val age: Int,
+    val relation: String = "",
+    val isActive: Boolean = true
+)
+
 data class Caregiver(
     val id: Long = 0,
     val name: String,
@@ -137,7 +163,8 @@ fun MedicationEntity.toDomain(schedules: List<Schedule> = emptyList()) = Medicat
     color = color, iconName = iconName, currentStock = currentStock,
     refillThreshold = refillThreshold, refillReminder = refillReminder,
     notes = notes, notifyCaregivers = notifyCaregivers, isEmergency = isEmergency,
-    isActive = isActive, schedules = schedules, createdAt = createdAt
+    isActive = isActive, assignedToId = assignedToId, assignedToName = assignedToName,
+    schedules = schedules, createdAt = createdAt
 )
 
 fun Medication.toEntity() = MedicationEntity(
@@ -146,7 +173,8 @@ fun Medication.toEntity() = MedicationEntity(
     iconName = iconName, currentStock = currentStock,
     refillThreshold = refillThreshold, refillReminder = refillReminder,
     notes = notes, notifyCaregivers = notifyCaregivers, isEmergency = isEmergency,
-    isActive = isActive, createdAt = createdAt
+    isActive = isActive, assignedToId = assignedToId, assignedToName = assignedToName,
+    createdAt = createdAt
 )
 
 fun ScheduleEntity.toDomain() = Schedule(
@@ -154,7 +182,11 @@ fun ScheduleEntity.toDomain() = Schedule(
     timeMinute = timeMinute, frequency = ScheduleFrequency.fromString(frequency),
     daysOfWeek = if (daysOfWeek.isBlank()) emptyList()
     else daysOfWeek.split(",").mapNotNull { it.trim().toIntOrNull() },
-    intervalDays = intervalDays, startDate = startDate, endDate = endDate,
+    intervalDays = intervalDays, intervalHours = intervalHours,
+    toleranceMinutes = toleranceMinutes,
+    durationType = DurationType.fromString(durationType),
+    durationValue = durationValue,
+    startDate = startDate, endDate = endDate,
     isEnabled = isEnabled
 )
 
@@ -162,7 +194,11 @@ fun Schedule.toEntity() = ScheduleEntity(
     id = id, medicationId = medicationId, timeHour = timeHour,
     timeMinute = timeMinute, frequency = frequency.name.lowercase(),
     daysOfWeek = daysOfWeek.joinToString(","),
-    intervalDays = intervalDays, startDate = startDate, endDate = endDate,
+    intervalDays = intervalDays, intervalHours = intervalHours,
+    toleranceMinutes = toleranceMinutes,
+    durationType = durationType.name.lowercase(),
+    durationValue = durationValue,
+    startDate = startDate, endDate = endDate,
     isEnabled = isEnabled
 )
 
@@ -190,4 +226,12 @@ fun Caregiver.toEntity() = CaregiverEntity(
     id = id, name = name, phone = phone, email = email,
     relationship = relationship, notifyOnMissed = notifyOnMissed,
     notifyOnTaken = notifyOnTaken, notifyDelay = notifyDelay, isActive = isActive
+)
+
+fun FamilyMemberEntity.toDomain() = FamilyMember(
+    id = id, name = name, age = age, relation = relation, isActive = isActive
+)
+
+fun FamilyMember.toEntity() = FamilyMemberEntity(
+    id = id, name = name, age = age, relation = relation, isActive = isActive
 )

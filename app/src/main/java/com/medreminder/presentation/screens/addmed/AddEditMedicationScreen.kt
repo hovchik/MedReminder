@@ -22,6 +22,7 @@ import androidx.core.graphics.toColorInt
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.medreminder.R
+import com.medreminder.domain.model.DurationType
 import com.medreminder.domain.model.MedicationForm
 import com.medreminder.domain.model.ScheduleFrequency
 import com.medreminder.presentation.theme.MedicationColors
@@ -127,6 +128,14 @@ fun AddEditMedicationScreen(
                 }
             }
 
+            // Medication for (person selector)
+            MedicationAssigneeSelector(
+                assignedToId = uiState.assignedToId,
+                assignedToName = uiState.assignedToName,
+                familyMembers = uiState.familyMembers,
+                onAssignedToChange = { id, name -> viewModel.updateAssignedTo(id, name) }
+            )
+
             // Name
             OutlinedTextField(
                 value = uiState.name,
@@ -228,6 +237,10 @@ fun AddEditMedicationScreen(
                     onFrequencyChange = { viewModel.updateScheduleFrequency(index, it) },
                     onDaysChange = { viewModel.updateScheduleDays(index, it) },
                     onIntervalChange = { viewModel.updateScheduleInterval(index, it) },
+                    onIntervalHoursChange = { viewModel.updateScheduleIntervalHours(index, it) },
+                    onToleranceChange = { viewModel.updateScheduleToleranceMinutes(index, it) },
+                    onDurationTypeChange = { viewModel.updateScheduleDurationType(index, it) },
+                    onDurationValueChange = { viewModel.updateScheduleDurationValue(index, it) },
                     onRemove = { viewModel.removeSchedule(index) }
                 )
             }
@@ -368,6 +381,77 @@ fun AddEditMedicationScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MedicationAssigneeSelector(
+    assignedToId: Long?,
+    assignedToName: String,
+    familyMembers: List<com.medreminder.domain.model.FamilyMember>,
+    onAssignedToChange: (Long?, String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val displayName = if (assignedToId == null) stringResource(R.string.myself) else assignedToName
+
+    Text(stringResource(R.string.medication_for), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        OutlinedTextField(
+            value = displayName,
+            onValueChange = {},
+            readOnly = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(),
+            shape = RoundedCornerShape(12.dp),
+            leadingIcon = {
+                Icon(
+                    if (assignedToId == null) Icons.Default.Person else Icons.Default.FamilyRestroom,
+                    null
+                )
+            }
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Person, null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.myself))
+                    }
+                },
+                onClick = { onAssignedToChange(null, ""); expanded = false }
+            )
+            if (familyMembers.isNotEmpty()) {
+                HorizontalDivider()
+            }
+            familyMembers.forEach { member ->
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.FamilyRestroom, null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(member.name, fontWeight = FontWeight.Medium)
+                                Text(
+                                    "${member.relation} - ${member.age} yrs",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    },
+                    onClick = { onAssignedToChange(member.id, member.name); expanded = false }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleCard(
     schedule: ScheduleInput,
@@ -377,6 +461,10 @@ fun ScheduleCard(
     onFrequencyChange: (ScheduleFrequency) -> Unit,
     onDaysChange: (List<Int>) -> Unit,
     onIntervalChange: (Int) -> Unit,
+    onIntervalHoursChange: (Int) -> Unit,
+    onToleranceChange: (Int) -> Unit,
+    onDurationTypeChange: (DurationType) -> Unit,
+    onDurationValueChange: (Int) -> Unit,
     onRemove: () -> Unit
 ) {
     val context = LocalContext.current
@@ -396,7 +484,7 @@ fun ScheduleCard(
                 }
             }
 
-            // Time picker
+            // Time picker (start time for EVERY_X_HOURS, or dose time for others)
             OutlinedButton(
                 onClick = {
                     TimePickerDialog(context, { _, h, m -> onTimeChange(h, m) },
@@ -408,13 +496,19 @@ fun ScheduleCard(
             ) {
                 Icon(Icons.Default.AccessTime, null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(DateUtils.formatTime(schedule.hour, schedule.minute),
-                    style = MaterialTheme.typography.titleMedium)
+                val timeLabel = if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS) {
+                    "${stringResource(R.string.starting_from)} ${DateUtils.formatTime(schedule.hour, schedule.minute)}"
+                } else {
+                    DateUtils.formatTime(schedule.hour, schedule.minute)
+                }
+                Text(timeLabel, style = MaterialTheme.typography.titleMedium)
             }
 
             // Frequency
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 ScheduleFrequency.entries.forEach { freq ->
@@ -422,7 +516,6 @@ fun ScheduleCard(
                         selected = schedule.frequency == freq,
                         onClick = { onFrequencyChange(freq) },
                         label = { Text(freq.displayName, style = MaterialTheme.typography.labelSmall) },
-                        modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp)
                     )
                 }
@@ -457,7 +550,7 @@ fun ScheduleCard(
                 }
             }
 
-            // Interval selector
+            // Interval selector (every X days)
             if (schedule.frequency == ScheduleFrequency.INTERVAL) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.every), style = MaterialTheme.typography.bodyMedium)
@@ -471,6 +564,87 @@ fun ScheduleCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.days), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+
+            // Every X hours selector
+            if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.every), style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = schedule.intervalHours.toString(),
+                        onValueChange = { it.toIntOrNull()?.let(onIntervalHoursChange) },
+                        modifier = Modifier.width(72.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.hours), style = MaterialTheme.typography.bodyMedium)
+                }
+
+                // Tolerance
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.tolerance), style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = schedule.toleranceMinutes.toString(),
+                        onValueChange = { it.toIntOrNull()?.let(onToleranceChange) },
+                        modifier = Modifier.width(72.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.minutes), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+            // Duration section
+            Text(stringResource(R.string.duration), style = MaterialTheme.typography.labelLarge)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                DurationType.entries.forEach { type ->
+                    FilterChip(
+                        selected = schedule.durationType == type,
+                        onClick = { onDurationTypeChange(type) },
+                        label = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) },
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                }
+            }
+
+            // Duration value input
+            if (schedule.durationType == DurationType.DAYS) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.number_of_days), style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = schedule.durationValue.toString(),
+                        onValueChange = { it.toIntOrNull()?.let(onDurationValueChange) },
+                        modifier = Modifier.width(80.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                }
+            }
+
+            if (schedule.durationType == DurationType.MONTHS) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.number_of_months), style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = schedule.durationValue.toString(),
+                        onValueChange = { it.toIntOrNull()?.let(onDurationValueChange) },
+                        modifier = Modifier.width(80.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp)
+                    )
                 }
             }
         }

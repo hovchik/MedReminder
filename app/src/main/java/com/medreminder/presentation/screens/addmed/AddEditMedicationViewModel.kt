@@ -7,7 +7,6 @@ import com.medreminder.R
 import com.medreminder.alarm.AlarmScheduler
 import com.medreminder.domain.model.*
 import com.medreminder.domain.repository.MedicationRepository
-import com.medreminder.presentation.theme.MedicationColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -27,7 +26,10 @@ data class AddEditUiState(
     val notes: String = "",
     val notifyCaregivers: Boolean = false,
     val isEmergency: Boolean = false,
+    val assignedToId: Long? = null,
+    val assignedToName: String = "",
     val schedules: List<ScheduleInput> = listOf(ScheduleInput()),
+    val familyMembers: List<FamilyMember> = emptyList(),
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
@@ -39,7 +41,11 @@ data class ScheduleInput(
     val minute: Int = 0,
     val frequency: ScheduleFrequency = ScheduleFrequency.DAILY,
     val daysOfWeek: List<Int> = emptyList(),
-    val intervalDays: Int = 1
+    val intervalDays: Int = 1,
+    val intervalHours: Int = 8,
+    val toleranceMinutes: Int = 10,
+    val durationType: DurationType = DurationType.ONGOING,
+    val durationValue: Int = 7
 )
 
 @HiltViewModel
@@ -53,6 +59,14 @@ class AddEditMedicationViewModel @Inject constructor(
     val uiState: StateFlow<AddEditUiState> = _uiState.asStateFlow()
 
     private var editingMedicationId: Long? = null
+
+    init {
+        viewModelScope.launch {
+            repository.getActiveFamilyMembers().collect { members ->
+                _uiState.update { it.copy(familyMembers = members) }
+            }
+        }
+    }
 
     fun loadMedication(id: Long) {
         viewModelScope.launch {
@@ -72,13 +86,19 @@ class AddEditMedicationViewModel @Inject constructor(
                     notes = med.notes,
                     notifyCaregivers = med.notifyCaregivers,
                     isEmergency = med.isEmergency,
+                    assignedToId = med.assignedToId,
+                    assignedToName = med.assignedToName,
                     schedules = med.schedules.map { s ->
                         ScheduleInput(
                             hour = s.timeHour,
                             minute = s.timeMinute,
                             frequency = s.frequency,
                             daysOfWeek = s.daysOfWeek,
-                            intervalDays = s.intervalDays
+                            intervalDays = s.intervalDays,
+                            intervalHours = if (s.intervalHours > 0) s.intervalHours else 8,
+                            toleranceMinutes = s.toleranceMinutes,
+                            durationType = s.durationType,
+                            durationValue = if (s.durationValue > 0) s.durationValue else 7
                         )
                     }.ifEmpty { listOf(ScheduleInput()) },
                     isEditing = true
@@ -99,6 +119,10 @@ class AddEditMedicationViewModel @Inject constructor(
     fun updateNotes(notes: String) { _uiState.update { it.copy(notes = notes) } }
     fun updateNotifyCaregivers(notify: Boolean) { _uiState.update { it.copy(notifyCaregivers = notify) } }
     fun updateIsEmergency(emergency: Boolean) { _uiState.update { it.copy(isEmergency = emergency) } }
+
+    fun updateAssignedTo(id: Long?, name: String) {
+        _uiState.update { it.copy(assignedToId = id, assignedToName = name) }
+    }
 
     fun addSchedule() {
         _uiState.update { it.copy(schedules = it.schedules + ScheduleInput()) }
@@ -144,6 +168,38 @@ class AddEditMedicationViewModel @Inject constructor(
         }
     }
 
+    fun updateScheduleIntervalHours(index: Int, hours: Int) {
+        _uiState.update {
+            val list = it.schedules.toMutableList()
+            list[index] = list[index].copy(intervalHours = hours)
+            it.copy(schedules = list)
+        }
+    }
+
+    fun updateScheduleToleranceMinutes(index: Int, minutes: Int) {
+        _uiState.update {
+            val list = it.schedules.toMutableList()
+            list[index] = list[index].copy(toleranceMinutes = minutes)
+            it.copy(schedules = list)
+        }
+    }
+
+    fun updateScheduleDurationType(index: Int, type: DurationType) {
+        _uiState.update {
+            val list = it.schedules.toMutableList()
+            list[index] = list[index].copy(durationType = type)
+            it.copy(schedules = list)
+        }
+    }
+
+    fun updateScheduleDurationValue(index: Int, value: Int) {
+        _uiState.update {
+            val list = it.schedules.toMutableList()
+            list[index] = list[index].copy(durationValue = value)
+            it.copy(schedules = list)
+        }
+    }
+
     fun save() {
         val state = _uiState.value
         if (state.name.isBlank()) {
@@ -168,7 +224,9 @@ class AddEditMedicationViewModel @Inject constructor(
                     refillReminder = state.refillReminder,
                     notes = state.notes.trim(),
                     notifyCaregivers = state.notifyCaregivers,
-                    isEmergency = state.isEmergency
+                    isEmergency = state.isEmergency,
+                    assignedToId = state.assignedToId,
+                    assignedToName = state.assignedToName
                 )
 
                 val schedules = state.schedules.map {
@@ -177,7 +235,11 @@ class AddEditMedicationViewModel @Inject constructor(
                         timeMinute = it.minute,
                         frequency = it.frequency,
                         daysOfWeek = it.daysOfWeek,
-                        intervalDays = it.intervalDays
+                        intervalDays = it.intervalDays,
+                        intervalHours = it.intervalHours,
+                        toleranceMinutes = it.toleranceMinutes,
+                        durationType = it.durationType,
+                        durationValue = it.durationValue
                     )
                 }
 

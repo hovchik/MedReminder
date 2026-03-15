@@ -116,6 +116,44 @@
     <string name="emergency_medication">Emergency medication</string>
     <string name="emergency_medication_description">When missed, caregivers receive an SMS with your location</string>
 
+    <!-- Family Members -->
+    <string name="family">Family</string>
+    <string name="caregivers">Caregivers</string>
+    <string name="add_family_member">Add family member</string>
+    <string name="no_family_members_yet">No family members added yet</string>
+    <string name="add_family_members_hint">Add parents, children, or other family members to schedule medications for them</string>
+    <string name="family_info">Add family members to schedule and track medications for them.</string>
+    <string name="member_name">Name</string>
+    <string name="member_age">Age</string>
+    <string name="relation">Relation</string>
+    <string name="relation_parent">Parent</string>
+    <string name="relation_child">Child</string>
+    <string name="relation_spouse">Spouse</string>
+    <string name="relation_sibling">Sibling</string>
+    <string name="relation_other">Other</string>
+    <string name="age_years">%1$d years old</string>
+
+    <!-- Medication Assignment -->
+    <string name="medication_for">Medication for</string>
+    <string name="myself">Myself</string>
+    <string name="select_person">Select who this medication is for</string>
+
+    <!-- Schedule Duration -->
+    <string name="duration">Duration</string>
+    <string name="ongoing_lifetime">Ongoing / Lifetime</string>
+    <string name="for_x_days">For X days</string>
+    <string name="for_x_months">For X months</string>
+    <string name="number_of_days">Number of days</string>
+    <string name="number_of_months">Number of months</string>
+
+    <!-- Recurrent Schedule -->
+    <string name="every_x_hours">Every X hours</string>
+    <string name="hours">hours</string>
+    <string name="starting_from">Starting from</string>
+    <string name="tolerance">Tolerance</string>
+    <string name="tolerance_minutes">%1$d min tolerance</string>
+    <string name="minutes">minutes</string>
+
     <!-- Settings Screen -->
     <string name="settings">Settings</string>
     <string name="active_medications">%1$d active medications</string>

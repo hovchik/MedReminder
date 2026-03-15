@@ -14,9 +14,10 @@ import com.medreminder.data.local.entity.*
         ScheduleEntity::class,
         DoseLogEntity::class,
         CaregiverEntity::class,
-        LocalAiModelEntity::class
+        LocalAiModelEntity::class,
+        FamilyMemberEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -25,6 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun doseLogDao(): DoseLogDao
     abstract fun caregiverDao(): CaregiverDao
     abstract fun localAiModelDao(): LocalAiModelDao
+    abstract fun familyMemberDao(): FamilyMemberDao
 
     companion object {
         const val DATABASE_NAME = "medreminder_db"
@@ -47,6 +49,32 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE medications ADD COLUMN isEmergency INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Create family_members table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS family_members (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        age INTEGER NOT NULL,
+                        relation TEXT NOT NULL DEFAULT '',
+                        isActive INTEGER NOT NULL DEFAULT 1,
+                        createdAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """.trimIndent())
+
+                // Add assignedTo fields to medications
+                db.execSQL("ALTER TABLE medications ADD COLUMN assignedToId INTEGER DEFAULT NULL")
+                db.execSQL("ALTER TABLE medications ADD COLUMN assignedToName TEXT NOT NULL DEFAULT ''")
+
+                // Add new schedule fields
+                db.execSQL("ALTER TABLE schedules ADD COLUMN intervalHours INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE schedules ADD COLUMN toleranceMinutes INTEGER NOT NULL DEFAULT 10")
+                db.execSQL("ALTER TABLE schedules ADD COLUMN durationType TEXT NOT NULL DEFAULT 'ongoing'")
+                db.execSQL("ALTER TABLE schedules ADD COLUMN durationValue INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

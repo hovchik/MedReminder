@@ -142,6 +142,7 @@ class DailyDoseWorker @AssistedInject constructor(
                         (24 * 60 * 60 * 1000)).toInt()
                 daysSinceStart % schedule.intervalDays == 0
             }
+            ScheduleFrequency.EVERY_X_HOURS -> true // always scheduled, alarm handles timing
             ScheduleFrequency.AS_NEEDED -> false
         }
     }
