@@ -30,8 +30,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.medreminder.BuildConfig
 import com.medreminder.R
+import com.medreminder.ai.AiProviderType
+import com.medreminder.ai.local.AiProviderSelector
+import com.medreminder.ai.local.LocalAiModel
+import com.medreminder.ai.local.ProviderInfo
+import com.medreminder.ai.modelmanager.LocalModelManager
 import com.medreminder.alarm.AlarmScheduler
+import com.medreminder.data.preferences.UserPreferencesManager
 import com.medreminder.domain.repository.MedicationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -43,11 +50,64 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val alarmScheduler: AlarmScheduler,
-    private val repository: MedicationRepository
+    private val repository: MedicationRepository,
+    private val providerSelector: AiProviderSelector,
+    private val modelManager: LocalModelManager,
+    private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
     val medCount = repository.getActiveMedicationCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val userName: StateFlow<String> = userPreferencesManager.userName
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val userAge: StateFlow<Int> = userPreferencesManager.userAge
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    fun saveUserProfile(name: String, age: Int) {
+        viewModelScope.launch {
+            userPreferencesManager.saveUserProfile(name, age)
+        }
+    }
+
+    val selectedProviderType: StateFlow<AiProviderType> = providerSelector.getSelectedProviderType()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiProviderType.AUTO)
+
+    val installedModels = modelManager.getInstalledModelsFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val activeModelId: StateFlow<String?> = providerSelector.getActiveModelId()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _isLoadingModel = MutableStateFlow(false)
+    val isLoadingModel: StateFlow<Boolean> = _isLoadingModel.asStateFlow()
+
+    fun getAllProviders(): List<ProviderInfo> = providerSelector.getAllProviders()
+
+    fun getActiveProviderInfo(): ProviderInfo = providerSelector.getActiveProviderInfo()
+
+    fun setAiProvider(type: AiProviderType) {
+        viewModelScope.launch {
+            providerSelector.setSelectedProviderType(type)
+        }
+    }
+
+    fun setActiveModel(modelId: String) {
+        viewModelScope.launch {
+            _isLoadingModel.value = true
+            providerSelector.setActiveModelId(modelId)
+            // Auto-switch to CUSTOM_LOCAL when a local model is activated
+            providerSelector.setSelectedProviderType(AiProviderType.CUSTOM_LOCAL)
+            _isLoadingModel.value = false
+        }
+    }
+
+    fun clearActiveModel() {
+        viewModelScope.launch {
+            providerSelector.setActiveModelId(null)
+        }
+    }
 
     fun rescheduleAllAlarms() {
         viewModelScope.launch { alarmScheduler.scheduleAllAlarms() }
@@ -104,7 +164,10 @@ val supportedLanguages = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    onNavigateToAiSetup: () -> Unit = {},
+    viewModel: SettingsViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
     val medCount by viewModel.medCount.collectAsStateWithLifecycle()
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -210,6 +273,55 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         )
     }
 
+    val selectedProvider by viewModel.selectedProviderType.collectAsStateWithLifecycle()
+    val installedModels by viewModel.installedModels.collectAsStateWithLifecycle()
+    val activeModelId by viewModel.activeModelId.collectAsStateWithLifecycle()
+    val isLoadingModel by viewModel.isLoadingModel.collectAsStateWithLifecycle()
+    val activeProviderInfo = remember { viewModel.getActiveProviderInfo() }
+    val allProviders = remember { viewModel.getAllProviders() }
+    var showAiProviderDialog by remember { mutableStateOf(false) }
+    var showModelPickerDialog by remember { mutableStateOf(false) }
+
+    val userName by viewModel.userName.collectAsStateWithLifecycle()
+    val userAge by viewModel.userAge.collectAsStateWithLifecycle()
+    var showEditProfileDialog by remember { mutableStateOf(false) }
+
+    if (showEditProfileDialog) {
+        EditProfileDialog(
+            currentName = userName,
+            currentAge = userAge,
+            onDismiss = { showEditProfileDialog = false },
+            onSave = { name, age ->
+                showEditProfileDialog = false
+                viewModel.saveUserProfile(name, age)
+            }
+        )
+    }
+
+    if (showAiProviderDialog) {
+        AiProviderDialog(
+            currentType = selectedProvider,
+            providers = allProviders,
+            onDismiss = { showAiProviderDialog = false },
+            onSelectProvider = { type ->
+                showAiProviderDialog = false
+                viewModel.setAiProvider(type)
+            }
+        )
+    }
+
+    if (showModelPickerDialog) {
+        ActiveModelPickerDialog(
+            models = installedModels,
+            activeModelId = activeModelId,
+            onDismiss = { showModelPickerDialog = false },
+            onSelectModel = { modelId ->
+                showModelPickerDialog = false
+                viewModel.setActiveModel(modelId)
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -235,7 +347,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     Text(stringResource(R.string.active_medications, medCount),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                    Text(stringResource(R.string.version),
+                    Text(stringResource(R.string.version, BuildConfig.VERSION_NAME),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f))
                 }
@@ -243,6 +355,107 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+
+        // User section
+        Text(stringResource(R.string.user_profile), style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsItem(
+            icon = Icons.Default.Person,
+            title = if (userName.isNotBlank()) userName else stringResource(R.string.your_name),
+            subtitle = if (userAge > 0) {
+                stringResource(R.string.age_display, userAge)
+            } else {
+                stringResource(R.string.tap_to_edit_profile)
+            },
+            onClick = { showEditProfileDialog = true }
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        // AI Engine section
+        Text(stringResource(R.string.ai_engine), style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsItem(
+            icon = Icons.Default.Psychology,
+            title = stringResource(R.string.ai_provider),
+            subtitle = when (selectedProvider) {
+                AiProviderType.AUTO -> stringResource(R.string.ai_auto_desc)
+                AiProviderType.SYSTEM_AI -> stringResource(R.string.ai_system_desc)
+                AiProviderType.CUSTOM_LOCAL -> stringResource(R.string.ai_local_desc)
+                AiProviderType.CLOUD -> stringResource(R.string.ai_cloud_desc)
+            },
+            onClick = { showAiProviderDialog = true }
+        )
+
+        // Active provider info
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (activeProviderInfo.isLocal)
+                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+            )
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (activeProviderInfo.isLocal) Icons.Default.Shield else Icons.Default.Cloud,
+                        null,
+                        tint = if (activeProviderInfo.isLocal) MaterialTheme.colorScheme.secondary
+                        else MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.active_provider, activeProviderInfo.displayName),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Text(
+                    activeProviderInfo.privacyNote,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (installedModels.isNotEmpty()) {
+                    Text(
+                        stringResource(R.string.installed_models_count, installedModels.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        if (installedModels.isNotEmpty()) {
+            val activeModelName = installedModels.find { it.modelId == activeModelId }?.displayName
+            SettingsItem(
+                icon = Icons.Default.Memory,
+                title = stringResource(R.string.active_local_model),
+                subtitle = if (isLoadingModel) {
+                    stringResource(R.string.loading_model)
+                } else if (activeModelName != null) {
+                    activeModelName
+                } else {
+                    stringResource(R.string.no_model_selected)
+                },
+                onClick = { showModelPickerDialog = true }
+            )
+        }
+
+        SettingsItem(
+            icon = Icons.Default.Tune,
+            title = stringResource(R.string.setup_local_ai),
+            subtitle = stringResource(R.string.setup_local_ai_subtitle),
+            onClick = onNavigateToAiSetup
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         // Language section
         Text(stringResource(R.string.language), style = MaterialTheme.typography.titleMedium,
@@ -496,5 +709,204 @@ fun LanguageDialog(
         },
         confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    )
+}
+
+@Composable
+fun AiProviderDialog(
+    currentType: AiProviderType,
+    providers: List<ProviderInfo>,
+    onDismiss: () -> Unit,
+    onSelectProvider: (AiProviderType) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.select_ai_provider)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                providers.forEach { provider ->
+                    val isSelected = currentType == provider.type
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = provider.isAvailable) {
+                                onSelectProvider(provider.type)
+                            },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    provider.displayName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (provider.isAvailable)
+                                        MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                )
+                                if (!provider.isAvailable) {
+                                    Text(
+                                        "Not available on this device",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    )
+}
+
+@Composable
+fun ActiveModelPickerDialog(
+    models: List<LocalAiModel>,
+    activeModelId: String?,
+    onDismiss: () -> Unit,
+    onSelectModel: (String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.select_active_model)) },
+        text = {
+            if (models.isEmpty()) {
+                Text(
+                    stringResource(R.string.no_models_installed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    models.forEach { model ->
+                        val isSelected = model.modelId == activeModelId
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelectModel(model.modelId) },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        model.displayName,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        "${model.parameterCount} \u2022 ${model.quantization} \u2022 ${model.sizeMb} MB",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (isSelected) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        }
+    )
+}
+
+@Composable
+fun EditProfileDialog(
+    currentName: String,
+    currentAge: Int,
+    onDismiss: () -> Unit,
+    onSave: (String, Int) -> Unit
+) {
+    var name by remember { mutableStateOf(currentName) }
+    var ageText by remember { mutableStateOf(if (currentAge > 0) currentAge.toString() else "") }
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var ageError by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.edit_profile)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it; nameError = null },
+                    label = { Text(stringResource(R.string.your_name)) },
+                    singleLine = true,
+                    isError = nameError != null,
+                    supportingText = nameError?.let { { Text(it) } },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = ageText,
+                    onValueChange = { ageText = it; ageError = null },
+                    label = { Text(stringResource(R.string.your_age)) },
+                    singleLine = true,
+                    isError = ageError != null,
+                    supportingText = ageError?.let { { Text(it) } },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val trimmedName = name.trim()
+                    val age = ageText.trim().toIntOrNull()
+                    var hasError = false
+
+                    if (trimmedName.isBlank()) {
+                        nameError = "Please enter your name"
+                        hasError = true
+                    }
+                    if (age == null || age < 1 || age > 150) {
+                        ageError = "Please enter a valid age"
+                        hasError = true
+                    }
+                    if (!hasError) {
+                        onSave(trimmedName, age!!)
+                    }
+                }
+            ) {
+                Text(stringResource(R.string.save_changes))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        }
     )
 }

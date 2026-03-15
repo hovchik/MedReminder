@@ -2,6 +2,7 @@ package com.medreminder.di
 
 import android.content.Context
 import androidx.room.Room
+import com.medreminder.ai.modelmanager.LocalAiModelDao
 import com.medreminder.data.local.*
 import com.medreminder.data.repository.MedicationRepositoryImpl
 import com.medreminder.domain.repository.MedicationRepository
@@ -21,7 +22,8 @@ object AppModule {
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(
             context, AppDatabase::class.java, AppDatabase.DATABASE_NAME
-        ).fallbackToDestructiveMigration().build()
+        ).addMigrations(AppDatabase.MIGRATION_2_3)
+            .fallbackToDestructiveMigration().build()
 
     @Provides
     fun provideMedicationDao(db: AppDatabase): MedicationDao = db.medicationDao()
@@ -34,6 +36,9 @@ object AppModule {
 
     @Provides
     fun provideCaregiverDao(db: AppDatabase): CaregiverDao = db.caregiverDao()
+
+    @Provides
+    fun provideLocalAiModelDao(db: AppDatabase): LocalAiModelDao = db.localAiModelDao()
 
     @Provides
     @Singleton

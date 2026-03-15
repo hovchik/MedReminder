@@ -6,12 +6,13 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -25,9 +26,12 @@ import com.medreminder.presentation.screens.caregiver.CaregiverScreen
 import com.medreminder.presentation.screens.history.HistoryScreen
 import com.medreminder.presentation.screens.home.HomeScreen
 import com.medreminder.presentation.screens.ocr.OcrScannerScreen
+import com.medreminder.presentation.screens.onboarding.OnboardingScreen
+import com.medreminder.ai.setupwizard.LocalAiSetupWizard
 import com.medreminder.presentation.screens.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
+    data object Onboarding : Screen("onboarding")
     data object Home : Screen("home")
     data object AddMedication : Screen("add_medication")
     data object EditMedication : Screen("edit_medication/{medicationId}") {
@@ -45,6 +49,7 @@ sealed class Screen(val route: String) {
     data object History : Screen("history")
     data object Caregiver : Screen("caregiver")
     data object Settings : Screen("settings")
+    data object LocalAiSetup : Screen("local_ai_setup")
 }
 
 data class BottomNavItem(
@@ -69,7 +74,15 @@ fun MedReminderNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val showBottomBar = currentRoute in bottomNavItems.map { it.screen.route }
+    val mainRoutes = bottomNavItems.map { it.screen.route }
+    val showBottomBar = currentRoute in mainRoutes
+
+    // Determine start destination via the StartDestinationViewModel
+    val startViewModel: StartDestinationViewModel = hiltViewModel()
+    val startDestination by startViewModel.startDestination.collectAsState()
+
+    // Wait for start destination to be resolved
+    if (startDestination == null) return
 
     Scaffold(
         bottomBar = {
@@ -103,9 +116,18 @@ fun MedReminderNavigation() {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route,
+            startDestination = startDestination!!,
             modifier = Modifier.padding(paddingValues)
         ) {
+            composable(Screen.Onboarding.route) {
+                OnboardingScreen(
+                    onOnboardingComplete = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
             composable(Screen.Home.route) {
                 HomeScreen(
                     onAddMedication = { navController.navigate(Screen.AddMedication.route) },
@@ -161,7 +183,16 @@ fun MedReminderNavigation() {
             composable(Screen.Adherence.route) { AdherenceScreen() }
             composable(Screen.History.route) { HistoryScreen() }
             composable(Screen.Caregiver.route) { CaregiverScreen() }
-            composable(Screen.Settings.route) { SettingsScreen() }
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    onNavigateToAiSetup = { navController.navigate(Screen.LocalAiSetup.route) }
+                )
+            }
+            composable(Screen.LocalAiSetup.route) {
+                LocalAiSetupWizard(
+                    onDismiss = { navController.popBackStack() }
+                )
+            }
         }
     }
 }
