@@ -136,4 +136,8 @@
     <string name="raw_text">Исходный текст:</string>
     <string name="tap_to_scan">Нажмите для сканирования</string>
     <string name="rescan">Сканировать снова</string>
+    <string name="ocr_language">Язык</string>
+    <string name="downloading_language_data">Загрузка языковых данных…</string>
+    <string name="download_failed">Загрузка не удалась. Проверьте подключение к интернету.</string>
+    <string name="try_again">Попробовать снова</string>
 </resources>

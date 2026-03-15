@@ -136,4 +136,8 @@
     <string name="raw_text">原始文本：</string>
     <string name="tap_to_scan">点击扫描</string>
     <string name="rescan">重新扫描</string>
+    <string name="ocr_language">语言</string>
+    <string name="downloading_language_data">正在下载语言数据…</string>
+    <string name="download_failed">下载失败，请检查网络连接。</string>
+    <string name="try_again">重试</string>
 </resources>

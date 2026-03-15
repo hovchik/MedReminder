@@ -136,4 +136,8 @@
     <string name="raw_text">\u0645\u062a\u0646\u0020\u062e\u0627\u0645\u003a</string>
     <string name="tap_to_scan">برای اسکن ضربه بزنید</string>
     <string name="rescan">اسکن مجدد</string>
+    <string name="ocr_language">زبان</string>
+    <string name="downloading_language_data">در حال دانلود داده‌های زبان…</string>
+    <string name="download_failed">دانلود ناموفق بود. اتصال اینترنت خود را بررسی کنید.</string>
+    <string name="try_again">تلاش مجدد</string>
 </resources>

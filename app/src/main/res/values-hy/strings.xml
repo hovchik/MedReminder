@@ -136,4 +136,8 @@
     <string name="raw_text">\u0540\u0578\u0582\u0574 \u057f\u0565\u584d\u057d\u057f\u056f\u0561\u0576\u0020\u0570\u056f\u056c\u0578\u0580\u0589</string>
     <string name="tap_to_scan">Սեղմեք սկանավորման համար</string>
     <string name="rescan">Վերասկանավորել</string>
+    <string name="ocr_language">Լեզու</string>
+    <string name="downloading_language_data">Լեզվական տվյալների ներբեռնում…</string>
+    <string name="download_failed">Ներբեռնումը ձախողվեց. Ստուգեք ինտերնետ կապը.</string>
+    <string name="try_again">Փորձեք կրկին</string>
 </resources>

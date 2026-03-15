@@ -136,4 +136,8 @@
     <string name="raw_text">Texto sin procesar:</string>
     <string name="tap_to_scan">Toca para escanear</string>
     <string name="rescan">Escanear de nuevo</string>
+    <string name="ocr_language">Idioma</string>
+    <string name="downloading_language_data">Descargando datos de idioma…</string>
+    <string name="download_failed">Error de descarga. Comprueba tu conexión a internet.</string>
+    <string name="try_again">Intentar de nuevo</string>
 </resources>

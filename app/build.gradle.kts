@@ -87,6 +87,10 @@ dependencies {
 
     // ML Kit Text Recognition (OCR)
     implementation("com.google.mlkit:text-recognition:16.0.0")
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
+
+    // Tesseract OCR for Armenian, Russian, Farsi scripts
+    implementation("cz.adaptech.tesseract4android:tesseract4android:4.7.0")
 
     // CameraX
     implementation("androidx.camera:camera-core:1.3.1")

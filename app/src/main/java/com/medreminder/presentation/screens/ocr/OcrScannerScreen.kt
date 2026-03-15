@@ -1,6 +1,11 @@
 package com.medreminder.presentation.screens.ocr
 
 import android.Manifest
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.graphics.Rect
+import android.graphics.YuvImage
 import android.util.Log
 import android.view.ViewGroup
 import androidx.camera.core.*
@@ -30,11 +35,33 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizer
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.medreminder.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
+
+/**
+ * OCR language options mapping to the recognition engine and language code.
+ * ML Kit handles Latin and Chinese scripts; Tesseract handles Cyrillic, Armenian, and Farsi.
+ */
+enum class OcrLanguage(
+    val displayName: String,
+    val tesseractCode: String?  // null = use ML Kit
+) {
+    ENGLISH("English", null),
+    SPANISH("Español", null),
+    RUSSIAN("Русский", "rus"),
+    CHINESE("中文", null),
+    ARMENIAN("Հայերեն", "hye"),
+    FARSI("فارسی", "fas");
+
+    val usesMlKit: Boolean get() = tesseractCode == null
+    val isChinese: Boolean get() = this == CHINESE
+}
 
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,9 +87,20 @@ fun OcrScannerScreen(
     var isProcessing by remember { mutableStateOf(false) }
     var showResults by remember { mutableStateOf(false) }
 
+    // Language selection
+    var selectedLanguage by remember { mutableStateOf(OcrLanguage.ENGLISH) }
+    var showLanguagePicker by remember { mutableStateOf(false) }
+
+    // Tesseract download state
+    var isDownloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableFloatStateOf(0f) }
+    var downloadError by remember { mutableStateOf<String?>(null) }
+
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val cameraProviderRef = remember { mutableStateOf<ProcessCameraProvider?>(null) }
     val imageAnalysisRef = remember { mutableStateOf<ImageAnalysis?>(null) }
+
+    val tesseractManager = remember { TesseractManager(context) }
 
     val permissionLauncher = rememberPermissionLauncher { granted ->
         hasCameraPermission = granted
@@ -72,54 +110,153 @@ fun OcrScannerScreen(
         onDispose {
             cameraProviderRef.value?.unbindAll()
             cameraExecutor.shutdown()
+            tesseractManager.release()
         }
     }
 
-    // Callback to capture and process a single frame when user taps scan
+    // Build the appropriate ML Kit recognizer based on selected language
+    fun getMlKitRecognizer(): TextRecognizer {
+        return if (selectedLanguage.isChinese) {
+            TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
+        } else {
+            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        }
+    }
+
+    // Convert ImageProxy to Bitmap for Tesseract
+    fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
+        return try {
+            val mediaImage = imageProxy.image ?: return null
+            val planes = mediaImage.planes
+            val yBuffer = planes[0].buffer
+            val uBuffer = planes[1].buffer
+            val vBuffer = planes[2].buffer
+            val ySize = yBuffer.remaining()
+            val uSize = uBuffer.remaining()
+            val vSize = vBuffer.remaining()
+            val nv21 = ByteArray(ySize + uSize + vSize)
+            yBuffer.get(nv21, 0, ySize)
+            vBuffer.get(nv21, ySize, vSize)
+            uBuffer.get(nv21, ySize + vSize, uSize)
+            val yuvImage = YuvImage(nv21, ImageFormat.NV21, mediaImage.width, mediaImage.height, null)
+            val out = ByteArrayOutputStream()
+            yuvImage.compressToJpeg(Rect(0, 0, mediaImage.width, mediaImage.height), 90, out)
+            val bytes = out.toByteArray()
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        } catch (e: Exception) {
+            Log.e("OCR", "Failed to convert ImageProxy to Bitmap", e)
+            null
+        }
+    }
+
+    // Process scan using the appropriate engine
     val onScanClicked: () -> Unit = {
-        if (!isProcessing) {
-            isProcessing = true
-            val imageAnalysis = imageAnalysisRef.value
-            val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        if (!isProcessing && !isDownloading) {
+            val lang = selectedLanguage
 
-            imageAnalysis?.setAnalyzer(cameraExecutor) { imageProxy ->
-                val mediaImage = imageProxy.image
-                if (mediaImage != null) {
-                    val image = InputImage.fromMediaImage(
-                        mediaImage,
-                        imageProxy.imageInfo.rotationDegrees
-                    )
+            if (lang.usesMlKit) {
+                // ML Kit path (Latin / Chinese)
+                isProcessing = true
+                val recognizer = getMlKitRecognizer()
+                val imageAnalysis = imageAnalysisRef.value
 
-                    recognizer.process(image)
-                        .addOnSuccessListener { result ->
-                            coroutineScope.launch(Dispatchers.Main) {
-                                // Clear analyzer after single capture
-                                imageAnalysis.clearAnalyzer()
-                                if (result.text.isNotBlank()) {
-                                    detectedText = result.text
-                                    val parsed = parseMedicationText(result.text)
-                                    parsedName = parsed.first
-                                    parsedDosage = parsed.second
-                                    showResults = true
+                imageAnalysis?.setAnalyzer(cameraExecutor) { imageProxy ->
+                    val mediaImage = imageProxy.image
+                    if (mediaImage != null) {
+                        val image = InputImage.fromMediaImage(
+                            mediaImage,
+                            imageProxy.imageInfo.rotationDegrees
+                        )
+                        recognizer.process(image)
+                            .addOnSuccessListener { result ->
+                                coroutineScope.launch(Dispatchers.Main) {
+                                    imageAnalysis.clearAnalyzer()
+                                    if (result.text.isNotBlank()) {
+                                        detectedText = result.text
+                                        val parsed = parseMedicationText(result.text)
+                                        parsedName = parsed.first
+                                        parsedDosage = parsed.second
+                                        showResults = true
+                                    }
+                                    isProcessing = false
                                 }
-                                isProcessing = false
                             }
-                        }
-                        .addOnFailureListener { e ->
-                            Log.e("OCR", "Text recognition failed", e)
-                            coroutineScope.launch(Dispatchers.Main) {
-                                imageAnalysis.clearAnalyzer()
-                                isProcessing = false
+                            .addOnFailureListener { e ->
+                                Log.e("OCR", "ML Kit recognition failed", e)
+                                coroutineScope.launch(Dispatchers.Main) {
+                                    imageAnalysis.clearAnalyzer()
+                                    isProcessing = false
+                                }
                             }
+                            .addOnCompleteListener {
+                                imageProxy.close()
+                            }
+                    } else {
+                        imageProxy.close()
+                        coroutineScope.launch(Dispatchers.Main) {
+                            imageAnalysis.clearAnalyzer()
+                            isProcessing = false
                         }
-                        .addOnCompleteListener {
-                            imageProxy.close()
+                    }
+                }
+            } else {
+                // Tesseract path (Russian, Armenian, Farsi)
+                val tessCode = lang.tesseractCode!!
+
+                // Check if language data is downloaded
+                if (!tesseractManager.isLanguageAvailable(tessCode)) {
+                    // Need to download first
+                    isDownloading = true
+                    downloadProgress = 0f
+                    downloadError = null
+                    coroutineScope.launch {
+                        val success = tesseractManager.downloadLanguageData(tessCode) { progress ->
+                            downloadProgress = progress
                         }
+                        isDownloading = false
+                        if (!success) {
+                            downloadError = context.getString(R.string.download_failed)
+                        }
+                    }
                 } else {
-                    imageProxy.close()
-                    coroutineScope.launch(Dispatchers.Main) {
-                        imageAnalysis.clearAnalyzer()
-                        isProcessing = false
+                    // Data available — run Tesseract OCR
+                    isProcessing = true
+                    val imageAnalysis = imageAnalysisRef.value
+
+                    imageAnalysis?.setAnalyzer(cameraExecutor) { imageProxy ->
+                        val bitmap = imageProxyToBitmap(imageProxy)
+                        imageProxy.close()
+
+                        coroutineScope.launch(Dispatchers.Main) {
+                            imageAnalysis.clearAnalyzer()
+                        }
+
+                        if (bitmap != null) {
+                            coroutineScope.launch {
+                                val initialized = tesseractManager.initEngine(tessCode)
+                                if (initialized) {
+                                    val text = tesseractManager.recognizeText(bitmap)
+                                    launch(Dispatchers.Main) {
+                                        if (text.isNotBlank()) {
+                                            detectedText = text
+                                            val parsed = parseMedicationText(text)
+                                            parsedName = parsed.first
+                                            parsedDosage = parsed.second
+                                            showResults = true
+                                        }
+                                        isProcessing = false
+                                    }
+                                } else {
+                                    launch(Dispatchers.Main) {
+                                        isProcessing = false
+                                    }
+                                }
+                            }
+                        } else {
+                            coroutineScope.launch(Dispatchers.Main) {
+                                isProcessing = false
+                            }
+                        }
                     }
                 }
             }
@@ -144,6 +281,7 @@ fun OcrScannerScreen(
         }
     ) { padding ->
         if (!hasCameraPermission) {
+            // Permission request screen
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -173,6 +311,7 @@ fun OcrScannerScreen(
                 }
             }
         } else if (showResults) {
+            // Results screen
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -257,12 +396,13 @@ fun OcrScannerScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
         } else {
-            // Camera preview - no auto-scanning, waits for user to tap scan
+            // Camera preview with language selector and scan button
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
             ) {
+                // Camera preview
                 AndroidView(
                     factory = { ctx ->
                         val previewView = PreviewView(ctx).apply {
@@ -283,8 +423,6 @@ fun OcrScannerScreen(
                                     it.setSurfaceProvider(previewView.surfaceProvider)
                                 }
 
-                                // ImageAnalysis is created but no analyzer is set yet.
-                                // Analyzer is attached only when the user taps the scan button.
                                 val imageAnalysis = ImageAnalysis.Builder()
                                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                     .build()
@@ -307,6 +445,84 @@ fun OcrScannerScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
+                // Language selector chip at the top
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp)
+                ) {
+                    AssistChip(
+                        onClick = { showLanguagePicker = true },
+                        label = {
+                            Text(
+                                "${stringResource(R.string.ocr_language)}: ${selectedLanguage.displayName}",
+                                color = Color.White
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Language,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Color.Black.copy(alpha = 0.6f)
+                        ),
+                        border = AssistChipDefaults.assistChipBorder(
+                            borderColor = Color.White.copy(alpha = 0.4f)
+                        ),
+                        shape = RoundedCornerShape(20.dp)
+                    )
+
+                    // Language dropdown menu
+                    DropdownMenu(
+                        expanded = showLanguagePicker,
+                        onDismissRequest = { showLanguagePicker = false }
+                    ) {
+                        OcrLanguage.entries.forEach { lang ->
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(lang.displayName)
+                                        if (!lang.usesMlKit) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                "Tesseract",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    selectedLanguage = lang
+                                    showLanguagePicker = false
+                                    downloadError = null
+                                },
+                                leadingIcon = {
+                                    if (lang == selectedLanguage) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+
                 // Scan frame overlay
                 Column(
                     modifier = Modifier
@@ -328,7 +544,7 @@ fun OcrScannerScreen(
                     )
                 }
 
-                // Bottom area with instructions and scan button
+                // Bottom area: instructions, download progress, and scan button
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -346,7 +562,44 @@ fun OcrScannerScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (isProcessing) {
+                    // Download progress for Tesseract languages
+                    if (isDownloading) {
+                        Text(
+                            stringResource(R.string.downloading_language_data),
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { downloadProgress },
+                            modifier = Modifier
+                                .fillMaxWidth(0.7f)
+                                .height(4.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = Color.White.copy(alpha = 0.3f)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "${(downloadProgress * 100).toInt()}%",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 12.sp
+                        )
+                    } else if (downloadError != null) {
+                        Text(
+                            downloadError!!,
+                            color = Color(0xFFFF6B6B),
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { downloadError = null },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text(stringResource(R.string.try_again))
+                        }
+                    } else if (isProcessing) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(56.dp),
                             color = Color.White,
@@ -404,14 +657,11 @@ fun parseMedicationText(rawText: String): Pair<String, String> {
     )
 
     for (line in lines) {
-        // Find dosage
         val dosageMatch = dosageRegex.find(line)
         if (dosageMatch != null && dosage.isBlank()) {
             dosage = dosageMatch.value
         }
 
-        // Heuristic: medication name is often the first prominent line
-        // that doesn't look like a company name or instruction
         if (name.isBlank() && line.length in 3..50) {
             val lowerLine = line.lowercase()
             val skipPatterns = listOf(
