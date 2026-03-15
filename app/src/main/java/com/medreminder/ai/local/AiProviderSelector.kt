@@ -149,7 +149,7 @@ class AiProviderSelector @Inject constructor(
             ProviderInfo(
                 type = AiProviderType.CUSTOM_LOCAL,
                 displayName = customLocalProvider.displayName,
-                isAvailable = customLocalProvider.isAvailable(),
+                isAvailable = true, // Always selectable; models can be downloaded from setup wizard
                 isLocal = true,
                 privacyNote = "All analysis is performed locally on your device. No data is sent to external servers."
             ),

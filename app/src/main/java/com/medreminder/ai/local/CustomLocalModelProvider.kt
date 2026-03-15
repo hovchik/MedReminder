@@ -20,7 +20,9 @@ class CustomLocalModelProvider @Inject constructor(
     private var activeRuntime: LocalModelRuntime? = null
 
     override fun isAvailable(): Boolean {
-        return modelManager.getInstalledModels().any { it.installState == InstallState.INSTALLED }
+        // activeRuntime is set by loadModel() which is called by
+        // AiProviderSelector.ensureActiveModelLoaded() before the provider is used.
+        return activeRuntime != null
     }
 
     fun getActiveRuntime(): LocalModelRuntime? = activeRuntime

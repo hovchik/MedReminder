@@ -56,8 +56,12 @@ class OnboardingViewModel @Inject constructor(
             downloadManager.downloadState.collect { ds ->
                 _state.update { it.copy(downloadState = ds) }
 
-                // When auto-downloading and completed, move to done
+                // When auto-downloading and completed, activate model and move to done
                 if (_state.value.isAutoDownloading && ds.status == DownloadStatus.COMPLETED) {
+                    val modelId = _state.value.selectedRecommendation?.model?.modelId
+                    if (modelId != null) {
+                        providerSelector.setActiveModelId(modelId)
+                    }
                     providerSelector.setSelectedProviderType(AiProviderType.CUSTOM_LOCAL)
                     _state.update { it.copy(currentStep = OnboardingStep.DONE) }
                 }

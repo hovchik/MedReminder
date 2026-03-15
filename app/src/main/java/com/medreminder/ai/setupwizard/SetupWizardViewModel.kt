@@ -64,6 +64,16 @@ class SetupWizardViewModel @Inject constructor(
         viewModelScope.launch {
             downloadManager.downloadState.collect { ds ->
                 _state.update { it.copy(downloadState = ds) }
+
+                // When download completes, set the model as the active one
+                if (ds.status == DownloadStatus.COMPLETED) {
+                    val modelId = _state.value.selectedRecommendation?.model?.modelId
+                        ?: ds.modelId
+                    if (modelId.isNotEmpty()) {
+                        providerSelector.setActiveModelId(modelId)
+                        providerSelector.setSelectedProviderType(AiProviderType.CUSTOM_LOCAL)
+                    }
+                }
             }
         }
     }
@@ -175,6 +185,9 @@ class SetupWizardViewModel @Inject constructor(
 
         viewModelScope.launch {
             modelInstaller.importModelFromUri(uri, model)
+            // Activate the imported model
+            providerSelector.setActiveModelId(model.modelId)
+            providerSelector.setSelectedProviderType(AiProviderType.CUSTOM_LOCAL)
         }
     }
 
