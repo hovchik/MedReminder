@@ -9,6 +9,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -26,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -34,7 +35,6 @@ import com.medreminder.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicBoolean
 
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,22 +60,69 @@ fun OcrScannerScreen(
     var isProcessing by remember { mutableStateOf(false) }
     var showResults by remember { mutableStateOf(false) }
 
-    // Thread-safe processing flag for the camera executor thread
-    val processingFlag = remember { AtomicBoolean(false) }
-
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val cameraProviderRef = remember { mutableStateOf<ProcessCameraProvider?>(null) }
+    val imageAnalysisRef = remember { mutableStateOf<ImageAnalysis?>(null) }
 
-    // Permission launcher
     val permissionLauncher = rememberPermissionLauncher { granted ->
         hasCameraPermission = granted
     }
 
-    // Clean up camera and executor when composable leaves composition
     DisposableEffect(Unit) {
         onDispose {
             cameraProviderRef.value?.unbindAll()
             cameraExecutor.shutdown()
+        }
+    }
+
+    // Callback to capture and process a single frame when user taps scan
+    val onScanClicked: () -> Unit = {
+        if (!isProcessing) {
+            isProcessing = true
+            val imageAnalysis = imageAnalysisRef.value
+            val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+            imageAnalysis?.setAnalyzer(cameraExecutor) { imageProxy ->
+                val mediaImage = imageProxy.image
+                if (mediaImage != null) {
+                    val image = InputImage.fromMediaImage(
+                        mediaImage,
+                        imageProxy.imageInfo.rotationDegrees
+                    )
+
+                    recognizer.process(image)
+                        .addOnSuccessListener { result ->
+                            coroutineScope.launch(Dispatchers.Main) {
+                                // Clear analyzer after single capture
+                                imageAnalysis.clearAnalyzer()
+                                if (result.text.isNotBlank()) {
+                                    detectedText = result.text
+                                    val parsed = parseMedicationText(result.text)
+                                    parsedName = parsed.first
+                                    parsedDosage = parsed.second
+                                    showResults = true
+                                }
+                                isProcessing = false
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("OCR", "Text recognition failed", e)
+                            coroutineScope.launch(Dispatchers.Main) {
+                                imageAnalysis.clearAnalyzer()
+                                isProcessing = false
+                            }
+                        }
+                        .addOnCompleteListener {
+                            imageProxy.close()
+                        }
+                } else {
+                    imageProxy.close()
+                    coroutineScope.launch(Dispatchers.Main) {
+                        imageAnalysis.clearAnalyzer()
+                        isProcessing = false
+                    }
+                }
+            }
         }
     }
 
@@ -97,7 +144,6 @@ fun OcrScannerScreen(
         }
     ) { padding ->
         if (!hasCameraPermission) {
-            // Permission request screen
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -127,7 +173,6 @@ fun OcrScannerScreen(
                 }
             }
         } else if (showResults) {
-            // Results screen
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -189,16 +234,13 @@ fun OcrScannerScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
-                        onClick = {
-                            showResults = false
-                            processingFlag.set(false)
-                        },
+                        onClick = { showResults = false },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(Icons.Default.CameraAlt, null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.scan_with_camera))
+                        Text(stringResource(R.string.rescan))
                     }
                     Button(
                         onClick = { onMedicationScanned(parsedName, parsedDosage) },
@@ -215,13 +257,12 @@ fun OcrScannerScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
         } else {
-            // Camera preview with overlay
+            // Camera preview - no auto-scanning, waits for user to tap scan
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                // Camera preview
                 AndroidView(
                     factory = { ctx ->
                         val previewView = PreviewView(ctx).apply {
@@ -242,54 +283,12 @@ fun OcrScannerScreen(
                                     it.setSurfaceProvider(previewView.surfaceProvider)
                                 }
 
+                                // ImageAnalysis is created but no analyzer is set yet.
+                                // Analyzer is attached only when the user taps the scan button.
                                 val imageAnalysis = ImageAnalysis.Builder()
                                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                     .build()
-
-                                val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-
-                                imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                                    val mediaImage = imageProxy.image
-                                    if (mediaImage != null && !processingFlag.get()) {
-                                        processingFlag.set(true)
-                                        val image = InputImage.fromMediaImage(
-                                            mediaImage,
-                                            imageProxy.imageInfo.rotationDegrees
-                                        )
-
-                                        recognizer.process(image)
-                                            .addOnSuccessListener { result ->
-                                                if (result.text.isNotBlank()) {
-                                                    val parsed = parseMedicationText(result.text)
-                                                    // Update Compose state on the main thread
-                                                    coroutineScope.launch(Dispatchers.Main) {
-                                                        detectedText = result.text
-                                                        parsedName = parsed.first
-                                                        parsedDosage = parsed.second
-                                                        showResults = true
-                                                        isProcessing = false
-                                                    }
-                                                } else {
-                                                    processingFlag.set(false)
-                                                    coroutineScope.launch(Dispatchers.Main) {
-                                                        isProcessing = false
-                                                    }
-                                                }
-                                            }
-                                            .addOnFailureListener { e ->
-                                                Log.e("OCR", "Text recognition failed", e)
-                                                processingFlag.set(false)
-                                                coroutineScope.launch(Dispatchers.Main) {
-                                                    isProcessing = false
-                                                }
-                                            }
-                                            .addOnCompleteListener {
-                                                imageProxy.close()
-                                            }
-                                    } else {
-                                        imageProxy.close()
-                                    }
-                                }
+                                imageAnalysisRef.value = imageAnalysis
 
                                 cameraProvider.unbindAll()
                                 cameraProvider.bindToLifecycle(
@@ -308,7 +307,7 @@ fun OcrScannerScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Scan overlay
+                // Scan frame overlay
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -316,7 +315,6 @@ fun OcrScannerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Scan frame
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -330,7 +328,7 @@ fun OcrScannerScreen(
                     )
                 }
 
-                // Instructions at bottom
+                // Bottom area with instructions and scan button
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -345,16 +343,40 @@ fun OcrScannerScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     if (isProcessing) {
-                        Spacer(modifier = Modifier.height(12.dp))
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(56.dp),
                             color = Color.White,
-                            strokeWidth = 2.dp
+                            strokeWidth = 3.dp
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             stringResource(R.string.scanning),
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
+                    } else {
+                        // Scan button
+                        FilledIconButton(
+                            onClick = onScanClicked,
+                            modifier = Modifier.size(72.dp),
+                            shape = CircleShape,
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.CameraAlt,
+                                contentDescription = stringResource(R.string.scan_medication),
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            stringResource(R.string.tap_to_scan),
                             color = Color.White.copy(alpha = 0.7f),
                             fontSize = 14.sp
                         )
@@ -392,7 +414,6 @@ fun parseMedicationText(rawText: String): Pair<String, String> {
         // that doesn't look like a company name or instruction
         if (name.isBlank() && line.length in 3..50) {
             val lowerLine = line.lowercase()
-            // Skip lines that look like instructions or metadata
             val skipPatterns = listOf(
                 "take", "use", "apply", "store", "keep", "warning", "caution",
                 "manufactured", "distributed", "lot", "exp", "ndc", "rx only",
@@ -400,7 +421,6 @@ fun parseMedicationText(rawText: String): Pair<String, String> {
                 "www.", "http", ".com", "inc.", "ltd.", "corp."
             )
             if (skipPatterns.none { lowerLine.contains(it) }) {
-                // If line contains a dosage, extract the name part before the dosage
                 if (dosageMatch != null && line.contains(dosageMatch.value)) {
                     val beforeDosage = line.substringBefore(dosageMatch.value).trim()
                     if (beforeDosage.isNotBlank() && beforeDosage.length >= 3) {
@@ -413,12 +433,10 @@ fun parseMedicationText(rawText: String): Pair<String, String> {
         }
     }
 
-    // Fallback: if no name found, use the first non-empty line
     if (name.isBlank() && lines.isNotEmpty()) {
         name = lines.first().take(50)
     }
 
-    // Clean up name - remove trailing punctuation and normalize
     name = name.replace(Regex("""[,;:.]$"""), "").trim()
 
     return name to dosage

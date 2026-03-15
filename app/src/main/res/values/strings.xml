@@ -158,4 +158,6 @@
     <string name="scan_with_camera">Scan with camera</string>
     <string name="or_scan_label">Or scan medication label</string>
     <string name="raw_text">Raw text:</string>
+    <string name="tap_to_scan">Tap to scan</string>
+    <string name="rescan">Rescan</string>
 </resources>
