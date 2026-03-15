@@ -133,4 +133,5 @@
     <string name="grant_permission">Дать разрешение</string>
     <string name="scan_with_camera">Сканировать камерой</string>
     <string name="or_scan_label">Или сканировать этикетку</string>
+    <string name="raw_text">Исходный текст:</string>
 </resources>

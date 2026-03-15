@@ -314,7 +314,7 @@ fun DoseCard(
                 }
             }
 
-            // Action buttons for pending doses
+            // Action buttons for pending/snoozed doses
             if (dose.status == DoseStatus.PENDING || dose.status == DoseStatus.SNOOZED) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -345,6 +345,19 @@ fun DoseCard(
                             )
                         }
                     }
+                }
+            }
+
+            // Action button for missed doses - allow marking as taken
+            if (dose.status == DoseStatus.MISSED) {
+                FilledIconButton(
+                    onClick = onTaken,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Icon(Icons.Default.Check, stringResource(R.string.mark_taken), modifier = Modifier.size(24.dp))
                 }
             }
         }

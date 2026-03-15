@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,11 +26,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.medreminder.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +45,7 @@ fun OcrScannerScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -56,15 +60,23 @@ fun OcrScannerScreen(
     var isProcessing by remember { mutableStateOf(false) }
     var showResults by remember { mutableStateOf(false) }
 
+    // Thread-safe processing flag for the camera executor thread
+    val processingFlag = remember { AtomicBoolean(false) }
+
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
+    val cameraProviderRef = remember { mutableStateOf<ProcessCameraProvider?>(null) }
 
     // Permission launcher
     val permissionLauncher = rememberPermissionLauncher { granted ->
         hasCameraPermission = granted
     }
 
+    // Clean up camera and executor when composable leaves composition
     DisposableEffect(Unit) {
-        onDispose { cameraExecutor.shutdown() }
+        onDispose {
+            cameraProviderRef.value?.unbindAll()
+            cameraExecutor.shutdown()
+        }
     }
 
     Scaffold(
@@ -157,7 +169,7 @@ fun OcrScannerScreen(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                "Raw text:",
+                                stringResource(R.string.raw_text),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -177,7 +189,10 @@ fun OcrScannerScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
-                        onClick = { showResults = false },
+                        onClick = {
+                            showResults = false
+                            processingFlag.set(false)
+                        },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -219,51 +234,63 @@ fun OcrScannerScreen(
 
                         val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                         cameraProviderFuture.addListener({
-                            val cameraProvider = cameraProviderFuture.get()
-
-                            val preview = Preview.Builder().build().also {
-                                it.setSurfaceProvider(previewView.surfaceProvider)
-                            }
-
-                            val imageAnalysis = ImageAnalysis.Builder()
-                                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                .build()
-
-                            val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-
-                            imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                                val mediaImage = imageProxy.image
-                                if (mediaImage != null && !isProcessing) {
-                                    isProcessing = true
-                                    val image = InputImage.fromMediaImage(
-                                        mediaImage,
-                                        imageProxy.imageInfo.rotationDegrees
-                                    )
-
-                                    recognizer.process(image)
-                                        .addOnSuccessListener { result ->
-                                            if (result.text.isNotBlank()) {
-                                                detectedText = result.text
-                                                val parsed = parseMedicationText(result.text)
-                                                parsedName = parsed.first
-                                                parsedDosage = parsed.second
-                                                showResults = true
-                                            }
-                                            isProcessing = false
-                                        }
-                                        .addOnFailureListener { e ->
-                                            Log.e("OCR", "Text recognition failed", e)
-                                            isProcessing = false
-                                        }
-                                        .addOnCompleteListener {
-                                            imageProxy.close()
-                                        }
-                                } else {
-                                    imageProxy.close()
-                                }
-                            }
-
                             try {
+                                val cameraProvider = cameraProviderFuture.get()
+                                cameraProviderRef.value = cameraProvider
+
+                                val preview = Preview.Builder().build().also {
+                                    it.setSurfaceProvider(previewView.surfaceProvider)
+                                }
+
+                                val imageAnalysis = ImageAnalysis.Builder()
+                                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                    .build()
+
+                                val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+                                imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
+                                    val mediaImage = imageProxy.image
+                                    if (mediaImage != null && !processingFlag.get()) {
+                                        processingFlag.set(true)
+                                        val image = InputImage.fromMediaImage(
+                                            mediaImage,
+                                            imageProxy.imageInfo.rotationDegrees
+                                        )
+
+                                        recognizer.process(image)
+                                            .addOnSuccessListener { result ->
+                                                if (result.text.isNotBlank()) {
+                                                    val parsed = parseMedicationText(result.text)
+                                                    // Update Compose state on the main thread
+                                                    coroutineScope.launch(Dispatchers.Main) {
+                                                        detectedText = result.text
+                                                        parsedName = parsed.first
+                                                        parsedDosage = parsed.second
+                                                        showResults = true
+                                                        isProcessing = false
+                                                    }
+                                                } else {
+                                                    processingFlag.set(false)
+                                                    coroutineScope.launch(Dispatchers.Main) {
+                                                        isProcessing = false
+                                                    }
+                                                }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.e("OCR", "Text recognition failed", e)
+                                                processingFlag.set(false)
+                                                coroutineScope.launch(Dispatchers.Main) {
+                                                    isProcessing = false
+                                                }
+                                            }
+                                            .addOnCompleteListener {
+                                                imageProxy.close()
+                                            }
+                                    } else {
+                                        imageProxy.close()
+                                    }
+                                }
+
                                 cameraProvider.unbindAll()
                                 cameraProvider.bindToLifecycle(
                                     lifecycleOwner,
@@ -272,7 +299,7 @@ fun OcrScannerScreen(
                                     imageAnalysis
                                 )
                             } catch (e: Exception) {
-                                Log.e("OCR", "Camera binding failed", e)
+                                Log.e("OCR", "Camera setup failed", e)
                             }
                         }, ContextCompat.getMainExecutor(ctx))
 
@@ -353,9 +380,6 @@ fun parseMedicationText(rawText: String): Pair<String, String> {
         """(\d+\.?\d*)\s*(mg|g|ml|mcg|iu|units?|tablets?|capsules?|drops?|puffs?)\b""",
         RegexOption.IGNORE_CASE
     )
-
-    // Pattern for common medication name indicators
-    val brandIndicators = listOf("tablets", "capsules", "solution", "suspension", "injection", "cream", "ointment", "syrup")
 
     for (line in lines) {
         // Find dosage

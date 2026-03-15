@@ -133,4 +133,5 @@
     <string name="grant_permission">دادن مجوز</string>
     <string name="scan_with_camera">اسکن با دوربین</string>
     <string name="or_scan_label">یا اسکن برچسب دارو</string>
+    <string name="raw_text">\u0645\u062a\u0646\u0020\u062e\u0627\u0645\u003a</string>
 </resources>

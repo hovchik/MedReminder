@@ -33,9 +33,12 @@ sealed class Screen(val route: String) {
     data object EditMedication : Screen("edit_medication/{medicationId}") {
         fun createRoute(medicationId: Long) = "edit_medication/$medicationId"
     }
-    data object AddMedicationFromScan : Screen("add_medication_scan/{name}/{dosage}") {
-        fun createRoute(name: String, dosage: String) =
-            "add_medication_scan/${java.net.URLEncoder.encode(name, "UTF-8")}/${java.net.URLEncoder.encode(dosage, "UTF-8")}"
+    data object AddMedicationFromScan : Screen("add_medication_scan?name={name}&dosage={dosage}") {
+        fun createRoute(name: String, dosage: String): String {
+            val encodedName = java.net.URLEncoder.encode(name.ifBlank { " " }, "UTF-8")
+            val encodedDosage = java.net.URLEncoder.encode(dosage.ifBlank { " " }, "UTF-8")
+            return "add_medication_scan?name=$encodedName&dosage=$encodedDosage"
+        }
     }
     data object OcrScanner : Screen("ocr_scanner")
     data object Adherence : Screen("adherence")
@@ -132,16 +135,12 @@ fun MedReminderNavigation() {
             composable(
                 route = Screen.AddMedicationFromScan.route,
                 arguments = listOf(
-                    navArgument("name") { type = NavType.StringType },
-                    navArgument("dosage") { type = NavType.StringType }
+                    navArgument("name") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("dosage") { type = NavType.StringType; defaultValue = "" }
                 )
             ) { backStackEntry ->
-                val name = java.net.URLDecoder.decode(
-                    backStackEntry.arguments?.getString("name") ?: "", "UTF-8"
-                )
-                val dosage = java.net.URLDecoder.decode(
-                    backStackEntry.arguments?.getString("dosage") ?: "", "UTF-8"
-                )
+                val name = (backStackEntry.arguments?.getString("name") ?: "").trim()
+                val dosage = (backStackEntry.arguments?.getString("dosage") ?: "").trim()
                 AddEditMedicationScreen(
                     medicationId = null,
                     onNavigateBack = { navController.popBackStack() },

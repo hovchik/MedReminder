@@ -133,4 +133,5 @@
     <string name="grant_permission">授予权限</string>
     <string name="scan_with_camera">用相机扫描</string>
     <string name="or_scan_label">或扫描药物标签</string>
+    <string name="raw_text">原始文本：</string>
 </resources>

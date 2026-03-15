@@ -133,4 +133,5 @@
     <string name="grant_permission">Dar permiso</string>
     <string name="scan_with_camera">Escanear con cámara</string>
     <string name="or_scan_label">O escanear etiqueta</string>
+    <string name="raw_text">Texto sin procesar:</string>
 </resources>
