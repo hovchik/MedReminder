@@ -57,33 +57,29 @@ class ModelInstaller @Inject constructor(
         }
 
         // Bridge ModelDownloadManager state to InstallProgress
-        scope.launchIn(scope) // trick: need to collect download state
-        // Actually just collect in the scope
-        kotlinx.coroutines.CoroutineScope(scope.coroutineContext).also { childScope ->
-            downloadManager.downloadState
-                .onEach { ds ->
-                    _installProgress.value = InstallProgress(
-                        modelId = ds.modelId,
-                        state = when (ds.status) {
-                            DownloadStatus.IDLE -> InstallState.NOT_INSTALLED
-                            DownloadStatus.CONNECTING -> InstallState.DOWNLOADING
-                            DownloadStatus.DOWNLOADING -> InstallState.DOWNLOADING
-                            DownloadStatus.PAUSED -> InstallState.PAUSED
-                            DownloadStatus.VERIFYING -> InstallState.VALIDATING
-                            DownloadStatus.COMPLETED -> InstallState.INSTALLED
-                            DownloadStatus.FAILED -> InstallState.FAILED
-                            DownloadStatus.CANCELLED -> InstallState.NOT_INSTALLED
-                        },
-                        progress = ds.progressFraction,
-                        message = ds.message,
-                        downloadedMb = ds.downloadedMb,
-                        totalMb = ds.totalMb,
-                        speedMbPerSec = ds.speedMbPerSec,
-                        etaSeconds = ds.etaSeconds
-                    )
-                }
-                .launchIn(childScope)
-        }
+        downloadManager.downloadState
+            .onEach { ds ->
+                _installProgress.value = InstallProgress(
+                    modelId = ds.modelId,
+                    state = when (ds.status) {
+                        DownloadStatus.IDLE -> InstallState.NOT_INSTALLED
+                        DownloadStatus.CONNECTING -> InstallState.DOWNLOADING
+                        DownloadStatus.DOWNLOADING -> InstallState.DOWNLOADING
+                        DownloadStatus.PAUSED -> InstallState.PAUSED
+                        DownloadStatus.VERIFYING -> InstallState.VALIDATING
+                        DownloadStatus.COMPLETED -> InstallState.INSTALLED
+                        DownloadStatus.FAILED -> InstallState.FAILED
+                        DownloadStatus.CANCELLED -> InstallState.NOT_INSTALLED
+                    },
+                    progress = ds.progressFraction,
+                    message = ds.message,
+                    downloadedMb = ds.downloadedMb,
+                    totalMb = ds.totalMb,
+                    speedMbPerSec = ds.speedMbPerSec,
+                    etaSeconds = ds.etaSeconds
+                )
+            }
+            .launchIn(scope)
 
         downloadManager.startDownload(model, scope)
     }
