@@ -37,6 +37,7 @@ import com.medreminder.ai.local.LocalAiModel
 import com.medreminder.ai.local.ProviderInfo
 import com.medreminder.ai.modelmanager.LocalModelManager
 import com.medreminder.alarm.AlarmScheduler
+import com.medreminder.data.preferences.UserPreferencesManager
 import com.medreminder.domain.repository.MedicationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -50,11 +51,24 @@ class SettingsViewModel @Inject constructor(
     private val alarmScheduler: AlarmScheduler,
     private val repository: MedicationRepository,
     private val providerSelector: AiProviderSelector,
-    private val modelManager: LocalModelManager
+    private val modelManager: LocalModelManager,
+    private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
     val medCount = repository.getActiveMedicationCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val userName: StateFlow<String> = userPreferencesManager.userName
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val userAge: StateFlow<Int> = userPreferencesManager.userAge
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    fun saveUserProfile(name: String, age: Int) {
+        viewModelScope.launch {
+            userPreferencesManager.saveUserProfile(name, age)
+        }
+    }
 
     val selectedProviderType: StateFlow<AiProviderType> = providerSelector.getSelectedProviderType()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiProviderType.AUTO)
@@ -267,6 +281,22 @@ fun SettingsScreen(
     var showAiProviderDialog by remember { mutableStateOf(false) }
     var showModelPickerDialog by remember { mutableStateOf(false) }
 
+    val userName by viewModel.userName.collectAsStateWithLifecycle()
+    val userAge by viewModel.userAge.collectAsStateWithLifecycle()
+    var showEditProfileDialog by remember { mutableStateOf(false) }
+
+    if (showEditProfileDialog) {
+        EditProfileDialog(
+            currentName = userName,
+            currentAge = userAge,
+            onDismiss = { showEditProfileDialog = false },
+            onSave = { name, age ->
+                showEditProfileDialog = false
+                viewModel.saveUserProfile(name, age)
+            }
+        )
+    }
+
     if (showAiProviderDialog) {
         AiProviderDialog(
             currentType = selectedProvider,
@@ -316,7 +346,7 @@ fun SettingsScreen(
                     Text(stringResource(R.string.active_medications, medCount),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                    Text(stringResource(R.string.version),
+                    Text(stringResource(R.string.version, com.medreminder.BuildConfig.VERSION_NAME),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f))
                 }
@@ -324,6 +354,24 @@ fun SettingsScreen(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+
+        // User section
+        Text(stringResource(R.string.user_profile), style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsItem(
+            icon = Icons.Default.Person,
+            title = if (userName.isNotBlank()) userName else stringResource(R.string.your_name),
+            subtitle = if (userAge > 0) {
+                stringResource(R.string.age_display, userAge)
+            } else {
+                stringResource(R.string.tap_to_edit_profile)
+            },
+            onClick = { showEditProfileDialog = true }
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         // AI Engine section
         Text(stringResource(R.string.ai_engine), style = MaterialTheme.typography.titleMedium,
@@ -790,6 +838,72 @@ fun ActiveModelPickerDialog(
             }
         },
         confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        }
+    )
+}
+
+@Composable
+fun EditProfileDialog(
+    currentName: String,
+    currentAge: Int,
+    onDismiss: () -> Unit,
+    onSave: (String, Int) -> Unit
+) {
+    var name by remember { mutableStateOf(currentName) }
+    var ageText by remember { mutableStateOf(if (currentAge > 0) currentAge.toString() else "") }
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var ageError by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.edit_profile)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it; nameError = null },
+                    label = { Text(stringResource(R.string.your_name)) },
+                    singleLine = true,
+                    isError = nameError != null,
+                    supportingText = nameError?.let { { Text(it) } },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = ageText,
+                    onValueChange = { ageText = it; ageError = null },
+                    label = { Text(stringResource(R.string.your_age)) },
+                    singleLine = true,
+                    isError = ageError != null,
+                    supportingText = ageError?.let { { Text(it) } },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val trimmedName = name.trim()
+                    val age = ageText.trim().toIntOrNull()
+                    var hasError = false
+
+                    if (trimmedName.isBlank()) {
+                        nameError = "Please enter your name"
+                        hasError = true
+                    }
+                    if (age == null || age < 1 || age > 150) {
+                        ageError = "Please enter a valid age"
+                        hasError = true
+                    }
+                    if (!hasError) {
+                        onSave(trimmedName, age!!)
+                    }
+                }
+            ) {
+                Text(stringResource(R.string.save_changes))
+            }
+        },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
