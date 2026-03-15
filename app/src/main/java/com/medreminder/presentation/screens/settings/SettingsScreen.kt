@@ -112,24 +112,25 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     var showClearDialog by remember { mutableStateOf(false) }
     var showImportConfirmDialog by remember { mutableStateOf(false) }
     var pendingImportJson by remember { mutableStateOf<String?>(null) }
+    var pendingExportJson by remember { mutableStateOf<String?>(null) }
 
-    // Export file picker
+    // Export file picker — writes pre-generated JSON immediately when URI is returned
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         if (uri != null) {
-            viewModel.exportData { json ->
-                if (json != null) {
-                    try {
-                        context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
-                        Toast.makeText(context, context.getString(R.string.export_success), Toast.LENGTH_SHORT).show()
-                    } catch (_: Exception) {
-                        Toast.makeText(context, context.getString(R.string.export_error), Toast.LENGTH_SHORT).show()
-                    }
-                } else {
+            val json = pendingExportJson
+            pendingExportJson = null
+            if (json != null) {
+                try {
+                    context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
+                    Toast.makeText(context, context.getString(R.string.export_success), Toast.LENGTH_SHORT).show()
+                } catch (_: Exception) {
                     Toast.makeText(context, context.getString(R.string.export_error), Toast.LENGTH_SHORT).show()
                 }
             }
+        } else {
+            pendingExportJson = null
         }
     }
 
@@ -330,8 +331,15 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             title = stringResource(R.string.export_data),
             subtitle = stringResource(R.string.export_data_subtitle),
             onClick = {
-                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-                exportLauncher.launch("medreminder_backup_$timestamp.json")
+                viewModel.exportData { json ->
+                    if (json != null) {
+                        pendingExportJson = json
+                        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+                        exportLauncher.launch("medreminder_backup_$timestamp.json")
+                    } else {
+                        Toast.makeText(context, context.getString(R.string.export_error), Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         )
 
