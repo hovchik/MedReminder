@@ -151,7 +151,7 @@ fun HomeScreen(
                 dose = dose,
                 onTaken = { viewModel.markDoseTaken(dose.id) },
                 onSkip = { viewModel.markDoseSkipped(dose.id) },
-                onSnooze = { viewModel.snoozeDose(dose.id) },
+                onSnooze = { viewModel.snoozeDose(dose) },
                 onEdit = { onEditMedication(dose.medicationId) }
             )
         }

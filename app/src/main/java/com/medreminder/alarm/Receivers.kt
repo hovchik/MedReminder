@@ -22,9 +22,7 @@ class SnoozeReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = androidx.room.Room.databaseBuilder(
-                    context.applicationContext, AppDatabase::class.java, AppDatabase.DATABASE_NAME
-                ).build()
+                val db = AppDatabase.getInstance(context)
                 val snoozeUntil = System.currentTimeMillis() + 10 * 60 * 1000
                 db.doseLogDao().snoozeDose(doseLogId, snoozeUntil)
 
@@ -56,9 +54,7 @@ class TakenReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = androidx.room.Room.databaseBuilder(
-                    context.applicationContext, AppDatabase::class.java, AppDatabase.DATABASE_NAME
-                ).build()
+                val db = AppDatabase.getInstance(context)
                 db.doseLogDao().updateDoseStatus(doseLogId, "taken")
 
                 val log = db.doseLogDao().getDoseLogById(doseLogId)

@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 
 data class HomeUiState(
@@ -121,10 +122,19 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun snoozeDose(logId: Long) {
+    fun snoozeDose(dose: DoseLog) {
         viewModelScope.launch {
             val snoozeUntil = System.currentTimeMillis() + 10 * 60 * 1000
-            repository.snoozeDose(logId, snoozeUntil)
+            repository.snoozeDose(dose.id, snoozeUntil)
+            alarmScheduler.scheduleSnoozeAlarm(
+                doseLogId = dose.id,
+                scheduleId = dose.scheduleId,
+                medicationId = dose.medicationId,
+                medicationName = dose.medicationName,
+                medicationDosage = dose.medicationDosage,
+                medicationColor = dose.medicationColor,
+                snoozeMinutes = 10
+            )
         }
     }
 
@@ -136,27 +146,75 @@ class HomeViewModel @Inject constructor(
 
             for (schedule in schedules) {
                 if (schedule.frequency == ScheduleFrequency.AS_NEEDED) continue
+                if (!isScheduledForToday(schedule)) continue
 
-                val exists = repository.doseLogExistsForWindow(schedule.id, startOfDay, endOfDay)
-                if (!exists) {
-                    val cal = java.util.Calendar.getInstance().apply {
-                        set(java.util.Calendar.HOUR_OF_DAY, schedule.timeHour)
-                        set(java.util.Calendar.MINUTE, schedule.timeMinute)
-                        set(java.util.Calendar.SECOND, 0)
+                if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS && schedule.intervalHours > 0) {
+                    val cal = Calendar.getInstance().apply {
+                        set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                        set(Calendar.MINUTE, schedule.timeMinute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
                     }
-                    repository.createDoseLog(
-                        DoseLog(
-                            medicationId = schedule.medicationId,
-                            scheduleId = schedule.id,
-                            scheduledTime = cal.timeInMillis,
-                            status = if (cal.timeInMillis < System.currentTimeMillis() - 3600000)
-                                DoseStatus.MISSED else DoseStatus.PENDING
+                    while (cal.timeInMillis <= endOfDay) {
+                        if (cal.timeInMillis >= startOfDay) {
+                            val alreadyExists = repository.doseLogExistsForWindow(
+                                schedule.id, cal.timeInMillis - 60000, cal.timeInMillis + 60000
+                            )
+                            if (!alreadyExists) {
+                                repository.createDoseLog(
+                                    DoseLog(
+                                        medicationId = schedule.medicationId,
+                                        scheduleId = schedule.id,
+                                        scheduledTime = cal.timeInMillis,
+                                        status = if (cal.timeInMillis < System.currentTimeMillis() - 3600000)
+                                            DoseStatus.MISSED else DoseStatus.PENDING
+                                    )
+                                )
+                            }
+                        }
+                        cal.add(Calendar.HOUR_OF_DAY, schedule.intervalHours)
+                    }
+                } else {
+                    val exists = repository.doseLogExistsForWindow(schedule.id, startOfDay, endOfDay)
+                    if (!exists) {
+                        val cal = Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                            set(Calendar.MINUTE, schedule.timeMinute)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        repository.createDoseLog(
+                            DoseLog(
+                                medicationId = schedule.medicationId,
+                                scheduleId = schedule.id,
+                                scheduledTime = cal.timeInMillis,
+                                status = if (cal.timeInMillis < System.currentTimeMillis() - 3600000)
+                                    DoseStatus.MISSED else DoseStatus.PENDING
+                            )
                         )
-                    )
+                    }
                 }
             }
             // Reschedule alarms
             alarmScheduler.scheduleAllAlarms()
+        }
+    }
+
+    private fun isScheduledForToday(schedule: Schedule): Boolean {
+        val today = Calendar.getInstance()
+        return when (schedule.frequency) {
+            ScheduleFrequency.DAILY -> true
+            ScheduleFrequency.SPECIFIC_DAYS -> {
+                today.get(Calendar.DAY_OF_WEEK) in schedule.daysOfWeek
+            }
+            ScheduleFrequency.INTERVAL -> {
+                if (schedule.intervalDays <= 0) return false
+                val daysSinceStart = ((today.timeInMillis - schedule.startDate) /
+                        (24 * 60 * 60 * 1000)).toInt()
+                daysSinceStart >= 0 && daysSinceStart % schedule.intervalDays == 0
+            }
+            ScheduleFrequency.EVERY_X_HOURS -> true
+            ScheduleFrequency.AS_NEEDED -> false
         }
     }
 }

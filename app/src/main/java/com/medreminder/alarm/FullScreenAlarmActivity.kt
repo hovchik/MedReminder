@@ -1,6 +1,7 @@
 package com.medreminder.alarm
 
 import android.app.NotificationManager
+import androidx.activity.OnBackPressedCallback
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
@@ -68,6 +69,11 @@ class FullScreenAlarmActivity : ComponentActivity() {
         medicationDosage = intent.getStringExtra(AlarmScheduler.EXTRA_MEDICATION_DOSAGE) ?: ""
         medicationColor = intent.getStringExtra(AlarmScheduler.EXTRA_MEDICATION_COLOR) ?: "#4A90D9"
 
+        // Prevent dismissal with back button - user must choose an action
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() { /* no-op: user must choose an action */ }
+        })
+
         startAlarmSound()
         startVibration()
 
@@ -132,9 +138,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
         stopAlarm()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = androidx.room.Room.databaseBuilder(
-                    applicationContext, AppDatabase::class.java, AppDatabase.DATABASE_NAME
-                ).build()
+                val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
                 db.doseLogDao().updateDoseStatus(doseLogId, "taken")
                 db.medicationDao().decrementStock(medicationId)
                 CaregiverNotificationHelper.notifyCaregiversOnTaken(
@@ -149,9 +153,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
         stopAlarm()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = androidx.room.Room.databaseBuilder(
-                    applicationContext, AppDatabase::class.java, AppDatabase.DATABASE_NAME
-                ).build()
+                val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
                 val snoozeUntil = System.currentTimeMillis() + 10 * 60 * 1000
                 db.doseLogDao().snoozeDose(doseLogId, snoozeUntil)
 
@@ -169,9 +171,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
         stopAlarm()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = androidx.room.Room.databaseBuilder(
-                    applicationContext, AppDatabase::class.java, AppDatabase.DATABASE_NAME
-                ).build()
+                val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
                 db.doseLogDao().updateDoseStatus(doseLogId, "skipped")
             } catch (e: Exception) { e.printStackTrace() }
             withContext(Dispatchers.Main) { finish() }
@@ -183,9 +183,6 @@ class FullScreenAlarmActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    override fun onBackPressed() {
-        // Prevent dismissal with back button - user must choose an action
-    }
 }
 
 @Composable
