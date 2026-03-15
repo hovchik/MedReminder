@@ -147,6 +147,20 @@
     <string name="download_failed">Error de descarga. Comprueba tu conexión a internet.</string>
     <string name="try_again">Intentar de nuevo</string>
 
+    <!-- Onboarding -->
+    <string name="welcome_title">Bienvenido a MedReminder</string>
+    <string name="welcome_subtitle">Tu recordatorio personal de medicamentos con análisis de IA</string>
+    <string name="get_started">Comenzar</string>
+    <string name="ai_powered_insights">Análisis con IA</string>
+
+    <!-- Welcome Screen Features -->
+    <string name="free_features">Funciones gratuitas</string>
+    <string name="emergency_alerts_title">Alertas de medicamentos de emergencia</string>
+    <string name="emergency_alerts_desc">Marca medicamentos críticos como emergencia. Al perder una dosis, los cuidadores reciben un SMS con tu ubicación en vivo para que puedan ayudarte de inmediato.</string>
+    <string name="caregiver_notif_title">Notificaciones a cuidadores</string>
+    <string name="caregiver_notif_desc">Notifica a familiares y cuidadores por SMS o correo electrónico cuando se toman o se pierden dosis.</string>
+    <string name="ai_insights_desc">Obtén análisis personalizados de medicamentos con IA en tu dispositivo. Tus datos permanecen privados.</string>
+
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Texto</string>
     <string name="scan_mode_barcode">C\u00f3digo</string>

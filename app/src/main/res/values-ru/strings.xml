@@ -147,6 +147,20 @@
     <string name="download_failed">Загрузка не удалась. Проверьте подключение к интернету.</string>
     <string name="try_again">Попробовать снова</string>
 
+    <!-- Onboarding -->
+    <string name="welcome_title">Добро пожаловать в MedReminder</string>
+    <string name="welcome_subtitle">Ваш персональный помощник по лекарствам с аналитикой на базе ИИ</string>
+    <string name="get_started">Начать</string>
+    <string name="ai_powered_insights">Аналитика ИИ</string>
+
+    <!-- Welcome Screen Features -->
+    <string name="free_features">Бесплатные функции</string>
+    <string name="emergency_alerts_title">Экстренные оповещения о лекарствах</string>
+    <string name="emergency_alerts_desc">Отметьте важные лекарства как экстренные. При пропуске дозы опекуны получат SMS с вашим местоположением, чтобы помочь вам немедленно.</string>
+    <string name="caregiver_notif_title">Уведомления опекунам</string>
+    <string name="caregiver_notif_desc">Уведомляйте семью и опекунов по SMS или электронной почте о приёме или пропуске лекарств.</string>
+    <string name="ai_insights_desc">Получайте персонализированный анализ лекарств с помощью ИИ на вашем устройстве. Ваши данные остаются конфиденциальными.</string>
+
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Текст</string>
     <string name="scan_mode_barcode">Штрихкод</string>

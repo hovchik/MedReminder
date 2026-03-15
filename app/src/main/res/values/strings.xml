@@ -237,6 +237,14 @@
     <string name="you_are_all_set">You\'re all set!</string>
     <string name="start_using_app">Start Using MedReminder</string>
 
+    <!-- Welcome Screen Features -->
+    <string name="free_features">Free features</string>
+    <string name="emergency_alerts_title">Emergency Medication Alerts</string>
+    <string name="emergency_alerts_desc">Mark critical medications as emergency. When a dose is missed, caregivers receive an SMS with your live location so they can reach you immediately.</string>
+    <string name="caregiver_notif_title">Caregiver Notifications</string>
+    <string name="caregiver_notif_desc">Notify family and caregivers via SMS or email when doses are taken or missed.</string>
+    <string name="ai_insights_desc">Get personalized medication analysis powered by on-device AI. Your data stays private.</string>
+
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Text</string>
     <string name="scan_mode_barcode">Bar code</string>

@@ -1,5 +1,6 @@
 package com.medreminder.presentation.screens.onboarding
 
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,16 +16,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.medreminder.R
 import com.medreminder.ai.modelmanager.CompatibilityTag
 import com.medreminder.ai.modelmanager.DownloadStatus
 import com.medreminder.ai.modelmanager.ModelRecommendation
+import com.medreminder.presentation.screens.settings.supportedLanguages
 
 @Composable
 fun OnboardingScreen(
@@ -93,6 +98,48 @@ fun OnboardingScreen(
 
 @Composable
 private fun WelcomeStep(onContinue: () -> Unit) {
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    val currentLocale = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+    val currentLangName = supportedLanguages.find { it.code == currentLocale }?.displayName
+        ?: supportedLanguages.first().displayName
+
+    if (showLanguageDialog) {
+        AlertDialog(
+            onDismissRequest = { showLanguageDialog = false },
+            title = { Text(stringResource(R.string.select_language)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    supportedLanguages.forEach { lang ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                showLanguageDialog = false
+                                val localeList = LocaleListCompat.forLanguageTags(lang.code)
+                                AppCompatDelegate.setApplicationLocales(localeList)
+                            },
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (lang.code == currentLocale)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surface
+                            )
+                        ) {
+                            Text(
+                                lang.displayName,
+                                modifier = Modifier.padding(16.dp),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLanguageDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -101,7 +148,20 @@ private fun WelcomeStep(onContinue: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        // Language chooser at the top
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            OutlinedButton(
+                onClick = { showLanguageDialog = true },
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Icon(Icons.Default.Language, null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(currentLangName)
+            }
+        }
 
         Icon(
             Icons.Default.MedicalServices,
@@ -111,14 +171,14 @@ private fun WelcomeStep(onContinue: () -> Unit) {
         )
 
         Text(
-            "Welcome to MedReminder",
+            stringResource(R.string.welcome_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
 
         Text(
-            "Your personal medication reminder with AI-powered insights",
+            stringResource(R.string.welcome_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -126,9 +186,8 @@ private fun WelcomeStep(onContinue: () -> Unit) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Feature highlights
         Text(
-            "Free features",
+            stringResource(R.string.free_features),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
         )
@@ -154,14 +213,14 @@ private fun WelcomeStep(onContinue: () -> Unit) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        "Emergency Medication Alerts",
+                        stringResource(R.string.emergency_alerts_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        "Mark critical medications as emergency. When a dose is missed, caregivers receive an SMS with your live location so they can reach you immediately.",
+                        stringResource(R.string.emergency_alerts_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
@@ -190,12 +249,12 @@ private fun WelcomeStep(onContinue: () -> Unit) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        "Caregiver Notifications",
+                        stringResource(R.string.caregiver_notif_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        "Notify family and caregivers via SMS or email when doses are taken or missed.",
+                        stringResource(R.string.caregiver_notif_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -224,12 +283,12 @@ private fun WelcomeStep(onContinue: () -> Unit) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        "AI-Powered Insights",
+                        stringResource(R.string.ai_powered_insights),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        "Get personalized medication analysis powered by on-device AI. Your data stays private.",
+                        stringResource(R.string.ai_insights_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -243,7 +302,7 @@ private fun WelcomeStep(onContinue: () -> Unit) {
             onClick = onContinue,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Get Started")
+            Text(stringResource(R.string.get_started))
             Spacer(modifier = Modifier.width(8.dp))
             Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp))
         }

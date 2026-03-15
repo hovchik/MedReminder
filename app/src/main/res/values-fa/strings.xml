@@ -147,6 +147,20 @@
     <string name="download_failed">دانلود ناموفق بود. اتصال اینترنت خود را بررسی کنید.</string>
     <string name="try_again">تلاش مجدد</string>
 
+    <!-- Onboarding -->
+    <string name="welcome_title">به MedReminder خوش آمدید</string>
+    <string name="welcome_subtitle">یادآور شخصی دارو با تحلیل هوش مصنوعی</string>
+    <string name="get_started">شروع کنید</string>
+    <string name="ai_powered_insights">تحلیل هوش مصنوعی</string>
+
+    <!-- Welcome Screen Features -->
+    <string name="free_features">امکانات رایگان</string>
+    <string name="emergency_alerts_title">هشدارهای داروی اضطراری</string>
+    <string name="emergency_alerts_desc">داروهای حیاتی را به عنوان اضطراری علامت بزنید. در صورت فراموشی، مراقبان پیامکی با موقعیت مکانی شما دریافت می‌کنند تا فوراً به شما کمک کنند.</string>
+    <string name="caregiver_notif_title">اطلاع‌رسانی به مراقبان</string>
+    <string name="caregiver_notif_desc">خانواده و مراقبان را از طریق پیامک یا ایمیل از مصرف یا فراموشی دارو مطلع کنید.</string>
+    <string name="ai_insights_desc">تحلیل شخصی‌سازی شده داروها با هوش مصنوعی روی دستگاه شما. داده‌های شما خصوصی می‌ماند.</string>
+
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">متن</string>
     <string name="scan_mode_barcode">بارکد</string>

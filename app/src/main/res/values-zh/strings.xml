@@ -147,6 +147,20 @@
     <string name="download_failed">下载失败，请检查网络连接。</string>
     <string name="try_again">重试</string>
 
+    <!-- Onboarding -->
+    <string name="welcome_title">欢迎使用 MedReminder</string>
+    <string name="welcome_subtitle">您的个人用药提醒助手，配备 AI 智能分析</string>
+    <string name="get_started">开始使用</string>
+    <string name="ai_powered_insights">AI 智能分析</string>
+
+    <!-- Welcome Screen Features -->
+    <string name="free_features">免费功能</string>
+    <string name="emergency_alerts_title">紧急药物警报</string>
+    <string name="emergency_alerts_desc">将关键药物标记为紧急。错过用药时，看护人将收到包含您实时位置的短信，以便立即帮助您。</string>
+    <string name="caregiver_notif_title">看护人通知</string>
+    <string name="caregiver_notif_desc">通过短信或电子邮件通知家人和看护人用药或错过用药的情况。</string>
+    <string name="ai_insights_desc">获取设备上 AI 驱动的个性化药物分析。您的数据保持私密。</string>
+
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">文字</string>
     <string name="scan_mode_barcode">条码</string>
