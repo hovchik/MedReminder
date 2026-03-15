@@ -50,10 +50,10 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
 
 /**
- * Scan mode: text OCR or barcode scanning.
+ * Scan mode: text OCR, barcode scanning, or QR code scanning.
  */
 enum class ScanMode {
-    TEXT, BARCODE
+    TEXT, BARCODE, QR_CODE
 }
 
 /**
@@ -179,24 +179,34 @@ fun OcrScannerScreen(
         }
     }
 
-    // Barcode scan handler
-    val onBarcodeScanClicked: () -> Unit = {
+    // Barcode / QR code scan handler
+    val onCodeScanClicked: (ScanMode) -> Unit = { mode ->
         if (!isProcessing && !isLookingUp) {
             isProcessing = true
             val imageAnalysis = imageAnalysisRef.value
 
-            val options = BarcodeScannerOptions.Builder()
-                .setBarcodeFormats(
-                    Barcode.FORMAT_UPC_A,
-                    Barcode.FORMAT_UPC_E,
-                    Barcode.FORMAT_EAN_13,
-                    Barcode.FORMAT_EAN_8,
-                    Barcode.FORMAT_CODE_128,
-                    Barcode.FORMAT_CODE_39,
-                    Barcode.FORMAT_DATA_MATRIX,
-                    Barcode.FORMAT_QR_CODE
-                )
-                .build()
+            val options = when (mode) {
+                ScanMode.QR_CODE -> BarcodeScannerOptions.Builder()
+                    .setBarcodeFormats(
+                        Barcode.FORMAT_QR_CODE,
+                        Barcode.FORMAT_DATA_MATRIX,
+                        Barcode.FORMAT_AZTEC,
+                        Barcode.FORMAT_PDF417
+                    )
+                    .build()
+                else -> BarcodeScannerOptions.Builder()
+                    .setBarcodeFormats(
+                        Barcode.FORMAT_UPC_A,
+                        Barcode.FORMAT_UPC_E,
+                        Barcode.FORMAT_EAN_13,
+                        Barcode.FORMAT_EAN_8,
+                        Barcode.FORMAT_CODE_128,
+                        Barcode.FORMAT_CODE_39,
+                        Barcode.FORMAT_ITF,
+                        Barcode.FORMAT_CODABAR
+                    )
+                    .build()
+            }
             val scanner = BarcodeScanning.getClient(options)
 
             imageAnalysis?.setAnalyzer(cameraExecutor) { imageProxy ->
@@ -219,29 +229,72 @@ fun OcrScannerScreen(
 
                                 coroutineScope.launch {
                                     barcodeValue = rawValue
-                                    isLookingUp = true
                                     isProcessing = false
 
-                                    val result = BarcodeLookupService.lookup(rawValue)
-
-                                    launch(Dispatchers.Main) {
-                                        isLookingUp = false
-                                        if (result != null) {
-                                            parsedName = result.name
-                                            parsedDosage = result.dosage
-                                            detectedText = buildString {
-                                                append("Barcode: $rawValue\n")
-                                                append("Name: ${result.name}\n")
-                                                if (result.dosage.isNotBlank()) append("Dosage: ${result.dosage}\n")
-                                                if (result.form.isNotBlank()) append("Form: ${result.form}")
+                                    if (mode == ScanMode.QR_CODE) {
+                                        // QR codes may contain text, URLs, or encoded drug info
+                                        // Try to parse the content directly as medication text
+                                        launch(Dispatchers.Main) {
+                                            val qrContent = rawValue
+                                            // If QR contains digits that look like an NDC, try lookup
+                                            val numericOnly = qrContent.replace(Regex("[^0-9]"), "")
+                                            if (numericOnly.length >= 10) {
+                                                isLookingUp = true
+                                                launch(Dispatchers.Default) {
+                                                    val result = BarcodeLookupService.lookup(numericOnly)
+                                                    launch(Dispatchers.Main) {
+                                                        isLookingUp = false
+                                                        if (result != null) {
+                                                            parsedName = result.name
+                                                            parsedDosage = result.dosage
+                                                            detectedText = buildString {
+                                                                append("QR: $rawValue\n")
+                                                                append("Name: ${result.name}\n")
+                                                                if (result.dosage.isNotBlank()) append("Dosage: ${result.dosage}\n")
+                                                                if (result.form.isNotBlank()) append("Form: ${result.form}")
+                                                            }
+                                                        } else {
+                                                            // Parse QR text content as medication text
+                                                            val parsed = parseMedicationText(qrContent)
+                                                            parsedName = parsed.first
+                                                            parsedDosage = parsed.second
+                                                            detectedText = "QR: $rawValue"
+                                                        }
+                                                        showResults = true
+                                                    }
+                                                }
+                                            } else {
+                                                // Parse QR text content directly
+                                                val parsed = parseMedicationText(qrContent)
+                                                parsedName = parsed.first
+                                                parsedDosage = parsed.second
+                                                detectedText = "QR: $rawValue"
+                                                showResults = true
                                             }
-                                            showResults = true
-                                        } else {
-                                            // Barcode found but no medication match
-                                            parsedName = ""
-                                            parsedDosage = ""
-                                            detectedText = "Barcode: $rawValue\n${context.getString(R.string.barcode_no_match)}"
-                                            showResults = true
+                                        }
+                                    } else {
+                                        // Barcode: look up via OpenFDA
+                                        isLookingUp = true
+                                        val result = BarcodeLookupService.lookup(rawValue)
+
+                                        launch(Dispatchers.Main) {
+                                            isLookingUp = false
+                                            if (result != null) {
+                                                parsedName = result.name
+                                                parsedDosage = result.dosage
+                                                detectedText = buildString {
+                                                    append("Barcode: $rawValue\n")
+                                                    append("Name: ${result.name}\n")
+                                                    if (result.dosage.isNotBlank()) append("Dosage: ${result.dosage}\n")
+                                                    if (result.form.isNotBlank()) append("Form: ${result.form}")
+                                                }
+                                                showResults = true
+                                            } else {
+                                                parsedName = ""
+                                                parsedDosage = ""
+                                                detectedText = "Barcode: $rawValue\n${context.getString(R.string.barcode_no_match)}"
+                                                showResults = true
+                                            }
                                         }
                                     }
                                 }
@@ -392,7 +445,8 @@ fun OcrScannerScreen(
     val onScanClicked: () -> Unit = {
         when (scanMode) {
             ScanMode.TEXT -> onTextScanClicked()
-            ScanMode.BARCODE -> onBarcodeScanClicked()
+            ScanMode.BARCODE -> onCodeScanClicked(ScanMode.BARCODE)
+            ScanMode.QR_CODE -> onCodeScanClicked(ScanMode.QR_CODE)
         }
     }
 
@@ -591,7 +645,7 @@ fun OcrScannerScreen(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Scan mode toggle (Text / Barcode)
+                    // Scan mode toggle (Text / Barcode / QR)
                     SingleChoiceSegmentedButtonRow(
                         modifier = Modifier
                             .background(
@@ -600,7 +654,7 @@ fun OcrScannerScreen(
                             )
                     ) {
                         SegmentedButton(
-                            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
                             onClick = { scanMode = ScanMode.TEXT },
                             selected = scanMode == ScanMode.TEXT,
                             colors = SegmentedButtonDefaults.colors(
@@ -623,9 +677,32 @@ fun OcrScannerScreen(
                             )
                         }
                         SegmentedButton(
-                            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
                             onClick = { scanMode = ScanMode.BARCODE },
                             selected = scanMode == ScanMode.BARCODE,
+                            colors = SegmentedButtonDefaults.colors(
+                                activeContainerColor = MaterialTheme.colorScheme.primary,
+                                activeContentColor = Color.White,
+                                inactiveContainerColor = Color.Transparent,
+                                inactiveContentColor = Color.White.copy(alpha = 0.7f)
+                            ),
+                            icon = {}
+                        ) {
+                            Icon(
+                                Icons.Default.ViewWeek,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                stringResource(R.string.scan_mode_barcode),
+                                fontSize = 13.sp
+                            )
+                        }
+                        SegmentedButton(
+                            shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                            onClick = { scanMode = ScanMode.QR_CODE },
+                            selected = scanMode == ScanMode.QR_CODE,
                             colors = SegmentedButtonDefaults.colors(
                                 activeContainerColor = MaterialTheme.colorScheme.primary,
                                 activeContentColor = Color.White,
@@ -641,14 +718,14 @@ fun OcrScannerScreen(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                stringResource(R.string.scan_mode_barcode),
+                                stringResource(R.string.scan_mode_qr),
                                 fontSize = 13.sp
                             )
                         }
                     }
                 }
 
-                // Language selector chip (only shown in text mode)
+                // Language selector chip (only visible in text mode)
                 if (scanMode == ScanMode.TEXT) {
                     Box(
                         modifier = Modifier
@@ -734,16 +811,21 @@ fun OcrScannerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
+                    val frameColor = when (scanMode) {
+                        ScanMode.TEXT -> Color.White.copy(alpha = 0.8f)
+                        ScanMode.BARCODE -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        ScanMode.QR_CODE -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
+                    }
+                    val frameModifier = when (scanMode) {
+                        ScanMode.QR_CODE -> Modifier.size(220.dp)
+                        ScanMode.BARCODE -> Modifier.fillMaxWidth().height(160.dp)
+                        ScanMode.TEXT -> Modifier.fillMaxWidth().height(200.dp)
+                    }
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(if (scanMode == ScanMode.BARCODE) 160.dp else 200.dp)
+                        modifier = frameModifier
                             .border(
                                 width = 2.dp,
-                                color = if (scanMode == ScanMode.BARCODE)
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                                else
-                                    Color.White.copy(alpha = 0.8f),
+                                color = frameColor,
                                 shape = RoundedCornerShape(16.dp)
                             )
                             .clip(RoundedCornerShape(16.dp))
@@ -760,10 +842,11 @@ fun OcrScannerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        if (scanMode == ScanMode.BARCODE)
-                            stringResource(R.string.barcode_instruction)
-                        else
-                            stringResource(R.string.scan_instruction),
+                        when (scanMode) {
+                            ScanMode.BARCODE -> stringResource(R.string.barcode_instruction)
+                            ScanMode.QR_CODE -> stringResource(R.string.qr_instruction)
+                            ScanMode.TEXT -> stringResource(R.string.scan_instruction)
+                        },
                         color = Color.White,
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center
@@ -843,10 +926,11 @@ fun OcrScannerScreen(
                             )
                         ) {
                             Icon(
-                                if (scanMode == ScanMode.BARCODE)
-                                    Icons.Default.QrCodeScanner
-                                else
-                                    Icons.Default.CameraAlt,
+                                when (scanMode) {
+                                    ScanMode.BARCODE -> Icons.Default.ViewWeek
+                                    ScanMode.QR_CODE -> Icons.Default.QrCodeScanner
+                                    ScanMode.TEXT -> Icons.Default.CameraAlt
+                                },
                                 contentDescription = stringResource(R.string.scan_medication),
                                 modifier = Modifier.size(32.dp)
                             )

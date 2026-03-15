@@ -165,10 +165,12 @@
     <string name="download_failed">Download failed. Check your internet connection.</string>
     <string name="try_again">Try again</string>
 
-    <!-- Barcode Scanner -->
+    <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Text</string>
     <string name="scan_mode_barcode">Barcode</string>
+    <string name="scan_mode_qr">QR Code</string>
     <string name="barcode_instruction">Point camera at medication barcode</string>
+    <string name="qr_instruction">Point camera at medication QR code</string>
     <string name="looking_up_barcode">Looking up medication…</string>
     <string name="barcode_no_match">No medication found for this barcode. You can enter the name manually.</string>
 </resources>
