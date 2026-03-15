@@ -153,6 +153,12 @@
     <string name="get_started">Comenzar</string>
     <string name="ai_powered_insights">Análisis con IA</string>
 
+    <!-- SMS Failure -->
+    <string name="sms_failure_channel_name">Fallos de SMS</string>
+    <string name="sms_failure_channel_desc">Alertas cuando falla el envío de SMS a cuidadores</string>
+    <string name="sms_failed_title">SMS fallido - toca para llamar</string>
+    <string name="sms_failed_body">No se pudo enviar SMS a %1$s sobre %2$s. Toca para llamar directamente.</string>
+
     <!-- Welcome Screen Features -->
     <string name="free_features">Funciones gratuitas</string>
     <string name="emergency_alerts_title">Alertas de medicamentos de emergencia</string>

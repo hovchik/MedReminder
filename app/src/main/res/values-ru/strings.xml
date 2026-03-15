@@ -153,6 +153,12 @@
     <string name="get_started">Начать</string>
     <string name="ai_powered_insights">Аналитика ИИ</string>
 
+    <!-- SMS Failure -->
+    <string name="sms_failure_channel_name">Ошибки SMS</string>
+    <string name="sms_failure_channel_desc">Уведомления при неудачной отправке SMS опекунам</string>
+    <string name="sms_failed_title">SMS не отправлено - нажмите для звонка</string>
+    <string name="sms_failed_body">Не удалось отправить SMS %1$s о %2$s. Нажмите для звонка.</string>
+
     <!-- Welcome Screen Features -->
     <string name="free_features">Бесплатные функции</string>
     <string name="emergency_alerts_title">Экстренные оповещения о лекарствах</string>

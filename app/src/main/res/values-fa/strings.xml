@@ -153,6 +153,12 @@
     <string name="get_started">شروع کنید</string>
     <string name="ai_powered_insights">تحلیل هوش مصنوعی</string>
 
+    <!-- SMS Failure -->
+    <string name="sms_failure_channel_name">خطاهای پیامک</string>
+    <string name="sms_failure_channel_desc">هشدار در صورت ارسال ناموفق پیامک به مراقبان</string>
+    <string name="sms_failed_title">ارسال پیامک ناموفق - برای تماس لمس کنید</string>
+    <string name="sms_failed_body">ارسال پیامک به %1$s درباره %2$s ناموفق بود. برای تماس مستقیم لمس کنید.</string>
+
     <!-- Welcome Screen Features -->
     <string name="free_features">امکانات رایگان</string>
     <string name="emergency_alerts_title">هشدارهای داروی اضطراری</string>

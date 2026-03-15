@@ -1,6 +1,7 @@
 package com.medreminder.alarm
 
 import android.Manifest
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -71,7 +72,7 @@ object CaregiverNotificationHelper {
         for (caregiver in caregivers) {
             val domain = caregiver.toDomain()
             if (domain.phone.isNotBlank()) {
-                sendSms(context, domain.phone, message)
+                sendSms(context, domain.phone, message, domain.name, medicationName)
             }
             if (domain.email.isNotBlank()) {
                 val subject = if (medication.isEmergency && isMissed) {
@@ -111,19 +112,61 @@ object CaregiverNotificationHelper {
         }
     }
 
-    private fun sendSms(context: Context, phone: String, message: String) {
+    private fun sendSms(
+        context: Context,
+        phone: String,
+        message: String,
+        caregiverName: String,
+        medicationName: String
+    ) {
         try {
             val smsManager = SmsManager.getDefault()
-            // Split long messages (SMS limit is 160 chars)
             val parts = smsManager.divideMessage(message)
-            if (parts.size > 1) {
-                smsManager.sendMultipartTextMessage(phone, null, parts, null, null)
-            } else {
-                smsManager.sendTextMessage(phone, null, message, null, null)
+
+            // Create sent PendingIntent per part to track delivery
+            val sentIntents = ArrayList<PendingIntent>(parts.size)
+            for (i in parts.indices) {
+                val sentIntent = Intent(context, SmsSentReceiver::class.java).apply {
+                    putExtra(SmsSentReceiver.EXTRA_PHONE_NUMBER, phone)
+                    putExtra(SmsSentReceiver.EXTRA_CAREGIVER_NAME, caregiverName)
+                    putExtra(SmsSentReceiver.EXTRA_MEDICATION_NAME, medicationName)
+                }
+                val requestCode = (phone.hashCode() + i) and 0x7FFFFFFF
+                val pi = PendingIntent.getBroadcast(
+                    context, requestCode, sentIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                sentIntents.add(pi)
             }
-            Log.d(TAG, "SMS sent to $phone")
+
+            if (parts.size > 1) {
+                smsManager.sendMultipartTextMessage(phone, null, parts, sentIntents, null)
+            } else {
+                smsManager.sendTextMessage(phone, null, message, sentIntents[0], null)
+            }
+            Log.d(TAG, "SMS sent to $phone (tracking enabled)")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send SMS to $phone", e)
+            Log.e(TAG, "Failed to send SMS to $phone, attempting call fallback", e)
+            makeCallFallback(context, phone)
+        }
+    }
+
+    private fun makeCallFallback(context: Context, phone: String) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            try {
+                val callIntent = Intent(Intent.ACTION_CALL).apply {
+                    data = Uri.parse("tel:$phone")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(callIntent)
+                Log.d(TAG, "Fallback call initiated to $phone")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to initiate fallback call to $phone", e)
+            }
+        } else {
+            Log.w(TAG, "CALL_PHONE permission not granted for fallback call to $phone")
         }
     }
 

@@ -237,6 +237,12 @@
     <string name="you_are_all_set">You\'re all set!</string>
     <string name="start_using_app">Start Using MedReminder</string>
 
+    <!-- SMS Failure -->
+    <string name="sms_failure_channel_name">SMS Failures</string>
+    <string name="sms_failure_channel_desc">Alerts when SMS to caregivers fails</string>
+    <string name="sms_failed_title">SMS failed - tap to call</string>
+    <string name="sms_failed_body">Could not send SMS to %1$s about %2$s. Tap to call them directly.</string>
+
     <!-- Welcome Screen Features -->
     <string name="free_features">Free features</string>
     <string name="emergency_alerts_title">Emergency Medication Alerts</string>

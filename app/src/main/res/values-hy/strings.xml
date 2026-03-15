@@ -153,6 +153,12 @@
     <string name="get_started">Սկսել</string>
     <string name="ai_powered_insights">Արհեստական բանականության վերլուծություն</string>
 
+    <!-- SMS Failure -->
+    <string name="sms_failure_channel_name">Սմս սխալներ</string>
+    <string name="sms_failure_channel_desc">Ծանուցում երբ խնամակալներին SMS չի ուղարկվում</string>
+    <string name="sms_failed_title">SMS չի ուղարկվել - սեղմեք զանգելու համար</string>
+    <string name="sms_failed_body">Չհաջողվեց SMS ուղարկել %1$s-ին %2$s-ի մասին։ Սեղմեք ուղղակի զանգի համար։</string>
+
     <!-- Welcome Screen Features -->
     <string name="free_features">Անվճար հնարավորություններ</string>
     <string name="emergency_alerts_title">Արտակարգ դեղի ահազանգեր</string>

@@ -153,6 +153,12 @@
     <string name="get_started">开始使用</string>
     <string name="ai_powered_insights">AI 智能分析</string>
 
+    <!-- SMS Failure -->
+    <string name="sms_failure_channel_name">短信发送失败</string>
+    <string name="sms_failure_channel_desc">向看护人发送短信失败时提醒</string>
+    <string name="sms_failed_title">短信发送失败 - 点击拨打电话</string>
+    <string name="sms_failed_body">无法向 %1$s 发送关于 %2$s 的短信。点击直接拨打电话。</string>
+
     <!-- Welcome Screen Features -->
     <string name="free_features">免费功能</string>
     <string name="emergency_alerts_title">紧急药物警报</string>

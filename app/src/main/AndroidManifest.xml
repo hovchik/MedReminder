@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -63,6 +64,10 @@
 
         <receiver
             android:name=".alarm.TakenReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".alarm.SmsSentReceiver"
             android:exported="false" />
 
         <receiver
