@@ -6,6 +6,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.LocaleList
 import android.provider.Settings
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -34,6 +37,8 @@ import com.medreminder.domain.repository.MedicationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -47,6 +52,40 @@ class SettingsViewModel @Inject constructor(
 
     fun rescheduleAllAlarms() {
         viewModelScope.launch { alarmScheduler.scheduleAllAlarms() }
+    }
+
+    fun clearAllData(onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                repository.clearAllData()
+                onResult(true)
+            } catch (_: Exception) {
+                onResult(false)
+            }
+        }
+    }
+
+    fun exportData(onResult: (String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val json = repository.exportAllData()
+                onResult(json)
+            } catch (_: Exception) {
+                onResult(null)
+            }
+        }
+    }
+
+    fun importData(json: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                repository.importAllData(json)
+                alarmScheduler.scheduleAllAlarms()
+                onResult(true)
+            } catch (_: Exception) {
+                onResult(false)
+            }
+        }
     }
 }
 
@@ -70,6 +109,46 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val medCount by viewModel.medCount.collectAsStateWithLifecycle()
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showClearDialog by remember { mutableStateOf(false) }
+    var showImportConfirmDialog by remember { mutableStateOf(false) }
+    var pendingImportJson by remember { mutableStateOf<String?>(null) }
+
+    // Export file picker
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            viewModel.exportData { json ->
+                if (json != null) {
+                    try {
+                        context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
+                        Toast.makeText(context, context.getString(R.string.export_success), Toast.LENGTH_SHORT).show()
+                    } catch (_: Exception) {
+                        Toast.makeText(context, context.getString(R.string.export_error), Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(context, context.getString(R.string.export_error), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    // Import file picker
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()
+                if (json != null) {
+                    pendingImportJson = json
+                    showImportConfirmDialog = true
+                }
+            } catch (_: Exception) {
+                Toast.makeText(context, context.getString(R.string.import_error), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     if (showLanguageDialog) {
         LanguageDialog(
@@ -78,6 +157,67 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 showLanguageDialog = false
                 val localeList = LocaleListCompat.forLanguageTags(langCode)
                 AppCompatDelegate.setApplicationLocales(localeList)
+            }
+        )
+    }
+
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            title = { Text(stringResource(R.string.clear_all_confirm_title)) },
+            text = { Text(stringResource(R.string.clear_all_confirm_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showClearDialog = false
+                        viewModel.clearAllData { success ->
+                            val msg = if (success) R.string.clear_all_success else R.string.export_error
+                            Toast.makeText(context, context.getString(msg), Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (showImportConfirmDialog && pendingImportJson != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showImportConfirmDialog = false
+                pendingImportJson = null
+            },
+            title = { Text(stringResource(R.string.import_confirm_title)) },
+            text = { Text(stringResource(R.string.import_confirm_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showImportConfirmDialog = false
+                        val json = pendingImportJson!!
+                        pendingImportJson = null
+                        viewModel.importData(json) { success ->
+                            val msg = if (success) R.string.import_success else R.string.import_error
+                            Toast.makeText(context, context.getString(msg), Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showImportConfirmDialog = false
+                    pendingImportJson = null
+                }) {
+                    Text(stringResource(R.string.cancel))
+                }
             }
         )
     }
@@ -176,6 +316,39 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             title = stringResource(R.string.reschedule_alarms),
             subtitle = stringResource(R.string.reschedule_subtitle),
             onClick = { viewModel.rescheduleAllAlarms() }
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        // Data management section
+        Text(stringResource(R.string.data_management), style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsItem(
+            icon = Icons.Default.Upload,
+            title = stringResource(R.string.export_data),
+            subtitle = stringResource(R.string.export_data_subtitle),
+            onClick = {
+                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+                exportLauncher.launch("medreminder_backup_$timestamp.json")
+            }
+        )
+
+        SettingsItem(
+            icon = Icons.Default.Download,
+            title = stringResource(R.string.import_data),
+            subtitle = stringResource(R.string.import_data_subtitle),
+            onClick = {
+                importLauncher.launch(arrayOf("application/json", "*/*"))
+            }
+        )
+
+        SettingsItem(
+            icon = Icons.Default.DeleteForever,
+            title = stringResource(R.string.clear_all_data),
+            subtitle = stringResource(R.string.clear_all_data_subtitle),
+            onClick = { showClearDialog = true }
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

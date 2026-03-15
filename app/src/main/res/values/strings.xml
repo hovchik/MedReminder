@@ -135,6 +135,23 @@
     <string name="language">Language</string>
     <string name="language_subtitle">Change app language</string>
     <string name="select_language">Select language</string>
+    <string name="data_management">Data management</string>
+    <string name="export_data">Export data</string>
+    <string name="export_data_subtitle">Save all data as JSON file</string>
+    <string name="import_data">Import data</string>
+    <string name="import_data_subtitle">Restore data from JSON file</string>
+    <string name="clear_all_data">Clear all data</string>
+    <string name="clear_all_data_subtitle">Delete all medications, history, and caregivers</string>
+    <string name="clear_all_confirm_title">Clear all data?</string>
+    <string name="clear_all_confirm_message">This will permanently delete all medications, schedules, dose history, and caregivers. This cannot be undone.</string>
+    <string name="clear_all_success">All data cleared</string>
+    <string name="export_success">Data exported successfully</string>
+    <string name="export_error">Failed to export data</string>
+    <string name="import_success">Data imported successfully</string>
+    <string name="import_error">Failed to import data. The file may be invalid.</string>
+    <string name="import_confirm_title">Import data?</string>
+    <string name="import_confirm_message">This will replace all existing data with the imported data. This cannot be undone.</string>
+    <string name="confirm">Confirm</string>
 
     <!-- Alarm Screen -->
     <string name="time_to_take">Time to take</string>

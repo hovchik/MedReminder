@@ -151,4 +151,23 @@
     <string name="no_barcode_detected">未检测到条码。请重试。</string>
     <string name="no_qr_detected">未检测到二维码。请重试。</string>
     <string name="barcode_no_match">未找到与此条码匹配的药物。您可以手动输入名称。</string>
+
+    <!-- Data management -->
+    <string name="data_management">数据管理</string>
+    <string name="export_data">导出数据</string>
+    <string name="export_data_subtitle">将所有数据保存为 JSON 文件</string>
+    <string name="import_data">导入数据</string>
+    <string name="import_data_subtitle">从 JSON 文件恢复数据</string>
+    <string name="clear_all_data">清除所有数据</string>
+    <string name="clear_all_data_subtitle">删除所有药物、历史和看护人</string>
+    <string name="clear_all_confirm_title">清除所有数据？</string>
+    <string name="clear_all_confirm_message">这将永久删除所有药物、用药时间、用药记录和看护人。此操作无法撤消。</string>
+    <string name="clear_all_success">所有数据已清除</string>
+    <string name="export_success">数据导出成功</string>
+    <string name="export_error">数据导出失败</string>
+    <string name="import_success">数据导入成功</string>
+    <string name="import_error">数据导入失败。文件可能无效。</string>
+    <string name="import_confirm_title">导入数据？</string>
+    <string name="import_confirm_message">这将用导入的数据替换所有现有数据。此操作无法撤消。</string>
+    <string name="confirm">确认</string>
 </resources>

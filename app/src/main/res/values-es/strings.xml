@@ -151,4 +151,23 @@
     <string name="no_barcode_detected">No se detectó código de barras. Intenta de nuevo.</string>
     <string name="no_qr_detected">No se detectó código QR. Intenta de nuevo.</string>
     <string name="barcode_no_match">No se encontr\u00f3 medicamento para este c\u00f3digo de barras. Puedes ingresar el nombre manualmente.</string>
+
+    <!-- Data management -->
+    <string name="data_management">Gestión de datos</string>
+    <string name="export_data">Exportar datos</string>
+    <string name="export_data_subtitle">Guardar todos los datos como archivo JSON</string>
+    <string name="import_data">Importar datos</string>
+    <string name="import_data_subtitle">Restaurar datos desde archivo JSON</string>
+    <string name="clear_all_data">Borrar todos los datos</string>
+    <string name="clear_all_data_subtitle">Eliminar todos los medicamentos, historial y cuidadores</string>
+    <string name="clear_all_confirm_title">¿Borrar todos los datos?</string>
+    <string name="clear_all_confirm_message">Esto eliminará permanentemente todos los medicamentos, horarios, historial de dosis y cuidadores. Esta acción no se puede deshacer.</string>
+    <string name="clear_all_success">Todos los datos borrados</string>
+    <string name="export_success">Datos exportados exitosamente</string>
+    <string name="export_error">Error al exportar datos</string>
+    <string name="import_success">Datos importados exitosamente</string>
+    <string name="import_error">Error al importar datos. El archivo puede ser inválido.</string>
+    <string name="import_confirm_title">¿Importar datos?</string>
+    <string name="import_confirm_message">Esto reemplazará todos los datos existentes con los datos importados. Esta acción no se puede deshacer.</string>
+    <string name="confirm">Confirmar</string>
 </resources>

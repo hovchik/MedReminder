@@ -51,4 +51,10 @@ interface MedicationDao {
 
     @Query("UPDATE medications SET isActive = 0, updatedAt = :timestamp WHERE id = :id")
     suspend fun deactivateMedication(id: Long, timestamp: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM medications")
+    suspend fun getAllMedicationsSync(): List<MedicationEntity>
+
+    @Query("DELETE FROM medications")
+    suspend fun deleteAllMedications()
 }

@@ -98,10 +98,16 @@ interface DoseLogDao {
     // For generating pending doses check
     @Query("""
         SELECT EXISTS(
-            SELECT 1 FROM dose_logs 
-            WHERE scheduleId = :scheduleId 
+            SELECT 1 FROM dose_logs
+            WHERE scheduleId = :scheduleId
             AND scheduledTime BETWEEN :windowStart AND :windowEnd
         )
     """)
     suspend fun doseLogExistsForWindow(scheduleId: Long, windowStart: Long, windowEnd: Long): Boolean
+
+    @Query("SELECT * FROM dose_logs")
+    suspend fun getAllDoseLogsSync(): List<DoseLogEntity>
+
+    @Query("DELETE FROM dose_logs")
+    suspend fun deleteAllDoseLogs()
 }

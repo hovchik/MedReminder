@@ -151,4 +151,23 @@
     <string name="no_barcode_detected">Շտրիխկոդ չի հայտնաբերվել. Փորձեք կրկին.</string>
     <string name="no_qr_detected">QR կոդ չի հայտնաբերվել. Փորձեք կրկին.</string>
     <string name="barcode_no_match">\u0531\u0575\u057d \u0577\u057f\u0580\u056b\u056d\u056f\u0578\u0564\u056b \u0570\u0561\u0574\u0561\u0580 \u0564\u0565\u0572 \u0579\u056b \u0563\u057f\u0576\u057e\u0565\u056c\u002e \u053f\u0561\u0580\u0578\u0572 \u0565\u0584 \u0574\u0578\u0582\u057f\u0584\u0561\u0563\u0580\u0565\u056c \u0571\u0565\u057c\u0584\u0578\u057e\u002e</string>
+
+    <!-- Data management -->
+    <string name="data_management">Տվյալների կառավարում</string>
+    <string name="export_data">Արտահանել տվյալները</string>
+    <string name="export_data_subtitle">Պահել բոլоր տվյալները JSON ֆայլում</string>
+    <string name="import_data">Ներմուծել տվյալներ</string>
+    <string name="import_data_subtitle">Վերականգնել տվյալները JSON ֆայլից</string>
+    <string name="clear_all_data">Ջնջել բոլоր տվյալները</string>
+    <string name="clear_all_data_subtitle">Ջնջել բոլоր դեղերը, պատմությունը և խնամակալները</string>
+    <string name="clear_all_confirm_title">Ջնջե՞լ բոլоր տվյալները՞</string>
+    <string name="clear_all_confirm_message">Սա կվերացնելիորեն կջնջի բոլоր դեղերը, գրաֆիկները, դոզային պատմությունը և խնամակալները. Հնարավоր չէ հետ վերադարձնել.</string>
+    <string name="clear_all_success">Բոլоր տվյալները ջնջվեց</string>
+    <string name="export_success">Տվյալները հաջողությամբ արտահանվեց</string>
+    <string name="export_error">Տվյալների արտահանման սխալ</string>
+    <string name="import_success">Տվյալները հաջողությամբ ներմուծվեց</string>
+    <string name="import_error">Ներմուծման սխալ. Ֆայլը կարող է անվավեր լինել.</string>
+    <string name="import_confirm_title">Ներմուծե՞լ տվյալները՞</string>
+    <string name="import_confirm_message">Սա կֆոխարինի բոլоր գոյություն ունեցող տվյալները ներմուծվածներоվ. Հնարավоր չէ հետ վերադարձնել.</string>
+    <string name="confirm">Հաստատել</string>
 </resources>

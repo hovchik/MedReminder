@@ -151,4 +151,23 @@
     <string name="no_barcode_detected">Штрихкод не обнаружен. Попробуйте снова.</string>
     <string name="no_qr_detected">QR-код не обнаружен. Попробуйте снова.</string>
     <string name="barcode_no_match">Лекарство не найдено по этому штрихкоду. Вы можете ввести название вручную.</string>
+
+    <!-- Data management -->
+    <string name="data_management">Управление данными</string>
+    <string name="export_data">Экспорт данных</string>
+    <string name="export_data_subtitle">Сохранить все данные в JSON файл</string>
+    <string name="import_data">Импорт данных</string>
+    <string name="import_data_subtitle">Восстановить данные из JSON файла</string>
+    <string name="clear_all_data">Очистить все данные</string>
+    <string name="clear_all_data_subtitle">Удалить все лекарства, историю и опекунов</string>
+    <string name="clear_all_confirm_title">Очистить все данные?</string>
+    <string name="clear_all_confirm_message">Это навсегда удалит все лекарства, расписания, историю доз и опекунов. Это действие нельзя отменить.</string>
+    <string name="clear_all_success">Все данные очищены</string>
+    <string name="export_success">Данные успешно экспортированы</string>
+    <string name="export_error">Ошибка экспорта данных</string>
+    <string name="import_success">Данные успешно импортированы</string>
+    <string name="import_error">Ошибка импорта. Файл может быть недействительным.</string>
+    <string name="import_confirm_title">Импортировать данные?</string>
+    <string name="import_confirm_message">Это заменит все существующие данные импортированными. Это действие нельзя отменить.</string>
+    <string name="confirm">Подтвердить</string>
 </resources>
