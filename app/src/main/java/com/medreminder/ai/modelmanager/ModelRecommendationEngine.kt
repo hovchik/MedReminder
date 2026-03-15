@@ -50,11 +50,53 @@ class ModelRecommendationEngine @Inject constructor(
      * (infinite loops, defunct URLs).
      */
     fun getFullModelCatalog(): List<LocalAiModel> = listOf(
-        // --- Qwen3 0.6B — smallest, runs on nearly any device ---
+        // --- SmolLM 135M — ultra-tiny, instant on any device ---
+        LocalAiModel(
+            modelId = "smollm-135m-instruct-q8",
+            displayName = "SmolLM 135M (Q8)",
+            description = "Tiny 135M model, only 159 MB. Fastest load time, basic text generation.",
+            runtimeType = RuntimeType.MEDIA_PIPE,
+            fileFormat = "task",
+            quantization = "Q8",
+            requiredRamMb = 256,
+            recommendedRamMb = 512,
+            sizeMb = 159,
+            downloadUrl = "https://huggingface.co/litert-community/SmolLM-135M-Instruct/resolve/main/SmolLM-135M-Instruct_multi-prefill-seq_q8_ekv1280.task",
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "1.0",
+            supportsStructuredJson = false,
+            supportsStreaming = true,
+            supportsTextGeneration = true,
+            parameterCount = "135M"
+        ),
+        // --- Qwen2.5 0.5B — small and capable, MediaPipe ---
+        LocalAiModel(
+            modelId = "qwen2.5-0.5b-instruct-q8",
+            displayName = "Qwen2.5 0.5B (Q8)",
+            description = "Compact 0.5B instruction-tuned model. Good quality for its size, MediaPipe-compatible.",
+            runtimeType = RuntimeType.MEDIA_PIPE,
+            fileFormat = "task",
+            quantization = "Q8",
+            requiredRamMb = 512,
+            recommendedRamMb = 1024,
+            sizeMb = 521,
+            downloadUrl = "https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task",
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "2.5",
+            supportsStructuredJson = false,
+            supportsStreaming = true,
+            supportsTextGeneration = true,
+            parameterCount = "0.5B"
+        ),
+        // --- Qwen3 0.6B — compact, newest generation ---
         LocalAiModel(
             modelId = "qwen3-0.6b",
             displayName = "Qwen3 0.6B",
-            description = "Ultra-compact 0.6B model. Runs on virtually any Android device with minimal RAM.",
+            description = "Newest Qwen generation, 0.6B parameters. Great quality for low-RAM devices.",
             runtimeType = RuntimeType.LITE_RT,
             fileFormat = "litertlm",
             quantization = "INT4",
@@ -70,6 +112,27 @@ class ModelRecommendationEngine @Inject constructor(
             supportsStreaming = true,
             supportsTextGeneration = true,
             parameterCount = "0.6B"
+        ),
+        // --- DeepSeek-R1 Distill 1.5B — reasoning model, Q8 ---
+        LocalAiModel(
+            modelId = "deepseek-r1-distill-qwen-1.5b-q8",
+            displayName = "DeepSeek-R1 1.5B (Q8)",
+            description = "Reasoning-focused 1.5B model distilled from DeepSeek-R1. Strong analytical capabilities.",
+            runtimeType = RuntimeType.LITE_RT,
+            fileFormat = "litertlm",
+            quantization = "Q8",
+            requiredRamMb = 2048,
+            recommendedRamMb = 3072,
+            sizeMb = 1749,
+            downloadUrl = "https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-1.5B/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv4096.litertlm",
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "1.0",
+            supportsStructuredJson = false,
+            supportsStreaming = true,
+            supportsTextGeneration = true,
+            parameterCount = "1.5B"
         ),
         // --- Qwen3.5 2B — mid-range, good quality-to-size ratio ---
         LocalAiModel(
