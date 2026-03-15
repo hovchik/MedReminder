@@ -202,6 +202,26 @@
     <string name="download_failed">Download failed. Check your internet connection.</string>
     <string name="try_again">Try again</string>
 
+    <!-- Onboarding -->
+    <string name="welcome_title">Welcome to MedReminder</string>
+    <string name="welcome_subtitle">Your personal medication reminder with AI-powered insights</string>
+    <string name="get_started">Get Started</string>
+    <string name="tell_us_about_yourself">Tell us about yourself</string>
+    <string name="personalize_experience">This helps us personalize your experience</string>
+    <string name="your_name">Your name</string>
+    <string name="your_age">Your age</string>
+    <string name="name_required">Please enter your name</string>
+    <string name="age_invalid">Please enter a valid age</string>
+    <string name="ai_powered_insights">AI-Powered Insights</string>
+    <string name="download_automatically">Download automatically</string>
+    <string name="choose_model_manually">Choose model manually</string>
+    <string name="skip_for_now">Skip for now</string>
+    <string name="continue_in_background">Continue in background</string>
+    <string name="no_wifi_title">No WiFi Connection</string>
+    <string name="download_anyway">Download Anyway</string>
+    <string name="you_are_all_set">You\'re all set!</string>
+    <string name="start_using_app">Start Using MedReminder</string>
+
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Text</string>
     <string name="scan_mode_barcode">Bar code</string>
