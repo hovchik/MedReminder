@@ -19,7 +19,7 @@ import java.net.URL
  * Manages Tesseract OCR engine for languages not supported by ML Kit
  * (Armenian, Russian, Farsi).
  *
- * Downloads traineddata files on first use from the tessdata_fast repository,
+ * Downloads traineddata files on first use from the tessdata_best repository,
  * then caches them in the app's internal storage.
  */
 class TesseractManager(private val context: Context) {
@@ -35,6 +35,7 @@ class TesseractManager(private val context: Context) {
     }
 
     private var tessApi: TessBaseAPI? = null
+    private var currentLangCode: String? = null
 
     /**
      * Returns the parent directory that contains the tessdata/ folder.
@@ -125,15 +126,20 @@ class TesseractManager(private val context: Context) {
      * @return true if initialization succeeded
      */
     fun initEngine(langCode: String): Boolean {
+        // Reuse existing engine if already initialized for this language
+        if (tessApi != null && currentLangCode == langCode) return true
+
         try {
             release()
             val api = TessBaseAPI()
-            val success = api.init(getDataPath(), langCode)
+            // Use LSTM-only mode — required for tessdata_best models
+            val success = api.init(getDataPath(), langCode, TessBaseAPI.OEM_LSTM_ONLY)
             if (success) {
                 // Use single block of text PSM for medication labels
                 api.pageSegMode = TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK
                 tessApi = api
-                Log.d(TAG, "Tesseract initialized for $langCode")
+                currentLangCode = langCode
+                Log.d(TAG, "Tesseract initialized for $langCode (LSTM-only)")
             } else {
                 Log.e(TAG, "Tesseract init failed for $langCode")
                 api.recycle()
@@ -150,14 +156,28 @@ class TesseractManager(private val context: Context) {
      * converts to grayscale and increases contrast.
      */
     private fun preprocessBitmap(bitmap: Bitmap): Bitmap {
-        val width = bitmap.width
-        val height = bitmap.height
+        // Upscale small images — Tesseract needs ~300 DPI / min ~1500px width
+        val minWidth = 1500
+        val source = if (bitmap.width < minWidth) {
+            val scale = minWidth.toFloat() / bitmap.width
+            Bitmap.createScaledBitmap(
+                bitmap,
+                (bitmap.width * scale).toInt(),
+                (bitmap.height * scale).toInt(),
+                true
+            )
+        } else {
+            bitmap
+        }
+
+        val width = source.width
+        val height = source.height
         val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(result)
-        val paint = Paint()
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
         // Convert to high-contrast grayscale
-        val contrast = 1.5f // boost contrast
+        val contrast = 1.5f
         val translate = (-(128f * contrast) + 128f)
         val colorMatrix = ColorMatrix(
             floatArrayOf(
@@ -168,7 +188,8 @@ class TesseractManager(private val context: Context) {
             )
         )
         paint.colorFilter = ColorMatrixColorFilter(colorMatrix)
-        canvas.drawBitmap(bitmap, 0f, 0f, paint)
+        canvas.drawBitmap(source, 0f, 0f, paint)
+        if (source != bitmap) source.recycle()
         return result
     }
 
@@ -201,5 +222,6 @@ class TesseractManager(private val context: Context) {
             tessApi?.recycle()
         } catch (_: Exception) {}
         tessApi = null
+        currentLangCode = null
     }
 }

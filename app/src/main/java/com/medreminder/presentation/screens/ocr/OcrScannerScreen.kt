@@ -4,6 +4,7 @@ import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
+import android.graphics.Matrix
 import android.graphics.Rect
 import android.graphics.YuvImage
 import android.util.Log
@@ -124,7 +125,7 @@ fun OcrScannerScreen(
         }
     }
 
-    // Convert ImageProxy to Bitmap for Tesseract
+    // Convert ImageProxy to Bitmap for Tesseract, applying camera rotation
     fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
         return try {
             val mediaImage = imageProxy.image ?: return null
@@ -141,9 +142,20 @@ fun OcrScannerScreen(
             uBuffer.get(nv21, ySize + vSize, uSize)
             val yuvImage = YuvImage(nv21, ImageFormat.NV21, mediaImage.width, mediaImage.height, null)
             val out = ByteArrayOutputStream()
-            yuvImage.compressToJpeg(Rect(0, 0, mediaImage.width, mediaImage.height), 90, out)
+            yuvImage.compressToJpeg(Rect(0, 0, mediaImage.width, mediaImage.height), 100, out)
             val bytes = out.toByteArray()
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+
+            // Apply rotation from camera sensor
+            val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+            if (rotationDegrees != 0) {
+                val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
+                val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                if (rotated != bitmap) bitmap.recycle()
+                rotated
+            } else {
+                bitmap
+            }
         } catch (e: Exception) {
             Log.e("OCR", "Failed to convert ImageProxy to Bitmap", e)
             null

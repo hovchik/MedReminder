@@ -90,7 +90,7 @@ dependencies {
     implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
 
     // Tesseract OCR for Armenian, Russian, Farsi scripts
-    implementation("cz.adaptech.tesseract4android:tesseract4android:4.7.0")
+    implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
 
     // CameraX
     implementation("androidx.camera:camera-core:1.3.1")
