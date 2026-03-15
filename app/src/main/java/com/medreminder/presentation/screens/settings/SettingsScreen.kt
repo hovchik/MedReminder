@@ -33,6 +33,7 @@ import androidx.lifecycle.viewModelScope
 import com.medreminder.R
 import com.medreminder.ai.AiProviderType
 import com.medreminder.ai.local.AiProviderSelector
+import com.medreminder.ai.local.LocalAiModel
 import com.medreminder.ai.local.ProviderInfo
 import com.medreminder.ai.modelmanager.LocalModelManager
 import com.medreminder.alarm.AlarmScheduler
@@ -61,6 +62,12 @@ class SettingsViewModel @Inject constructor(
     val installedModels = modelManager.getInstalledModelsFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val activeModelId: StateFlow<String?> = providerSelector.getActiveModelId()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _isLoadingModel = MutableStateFlow(false)
+    val isLoadingModel: StateFlow<Boolean> = _isLoadingModel.asStateFlow()
+
     fun getAllProviders(): List<ProviderInfo> = providerSelector.getAllProviders()
 
     fun getActiveProviderInfo(): ProviderInfo = providerSelector.getActiveProviderInfo()
@@ -68,6 +75,22 @@ class SettingsViewModel @Inject constructor(
     fun setAiProvider(type: AiProviderType) {
         viewModelScope.launch {
             providerSelector.setSelectedProviderType(type)
+        }
+    }
+
+    fun setActiveModel(modelId: String) {
+        viewModelScope.launch {
+            _isLoadingModel.value = true
+            providerSelector.setActiveModelId(modelId)
+            // Auto-switch to CUSTOM_LOCAL when a local model is activated
+            providerSelector.setSelectedProviderType(AiProviderType.CUSTOM_LOCAL)
+            _isLoadingModel.value = false
+        }
+    }
+
+    fun clearActiveModel() {
+        viewModelScope.launch {
+            providerSelector.setActiveModelId(null)
         }
     }
 
@@ -237,9 +260,12 @@ fun SettingsScreen(
 
     val selectedProvider by viewModel.selectedProviderType.collectAsStateWithLifecycle()
     val installedModels by viewModel.installedModels.collectAsStateWithLifecycle()
+    val activeModelId by viewModel.activeModelId.collectAsStateWithLifecycle()
+    val isLoadingModel by viewModel.isLoadingModel.collectAsStateWithLifecycle()
     val activeProviderInfo = remember { viewModel.getActiveProviderInfo() }
     val allProviders = remember { viewModel.getAllProviders() }
     var showAiProviderDialog by remember { mutableStateOf(false) }
+    var showModelPickerDialog by remember { mutableStateOf(false) }
 
     if (showAiProviderDialog) {
         AiProviderDialog(
@@ -249,6 +275,18 @@ fun SettingsScreen(
             onSelectProvider = { type ->
                 showAiProviderDialog = false
                 viewModel.setAiProvider(type)
+            }
+        )
+    }
+
+    if (showModelPickerDialog) {
+        ActiveModelPickerDialog(
+            models = installedModels,
+            activeModelId = activeModelId,
+            onDismiss = { showModelPickerDialog = false },
+            onSelectModel = { modelId ->
+                showModelPickerDialog = false
+                viewModel.setActiveModel(modelId)
             }
         )
     }
@@ -343,6 +381,22 @@ fun SettingsScreen(
                     )
                 }
             }
+        }
+
+        if (installedModels.isNotEmpty()) {
+            val activeModelName = installedModels.find { it.modelId == activeModelId }?.displayName
+            SettingsItem(
+                icon = Icons.Default.Memory,
+                title = stringResource(R.string.active_local_model),
+                subtitle = if (isLoadingModel) {
+                    stringResource(R.string.loading_model)
+                } else if (activeModelName != null) {
+                    activeModelName
+                } else {
+                    stringResource(R.string.no_model_selected)
+                },
+                onClick = { showModelPickerDialog = true }
+            )
         }
 
         SettingsItem(
@@ -670,5 +724,74 @@ fun AiProviderDialog(
         },
         confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    )
+}
+
+@Composable
+fun ActiveModelPickerDialog(
+    models: List<LocalAiModel>,
+    activeModelId: String?,
+    onDismiss: () -> Unit,
+    onSelectModel: (String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.select_active_model)) },
+        text = {
+            if (models.isEmpty()) {
+                Text(
+                    stringResource(R.string.no_models_installed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    models.forEach { model ->
+                        val isSelected = model.modelId == activeModelId
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelectModel(model.modelId) },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        model.displayName,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        "${model.parameterCount} \u2022 ${model.quantization} \u2022 ${model.sizeMb} MB",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (isSelected) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        }
     )
 }

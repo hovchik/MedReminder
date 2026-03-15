@@ -34,6 +34,9 @@ interface LocalAiModelDao {
     @Query("UPDATE local_ai_models SET downloadedBytes = :bytes WHERE modelId = :modelId")
     suspend fun updateDownloadedBytes(modelId: String, bytes: Long)
 
+    @Query("SELECT * FROM local_ai_models WHERE installState = 'installed'")
+    suspend fun getInstalledModelsList(): List<LocalAiModelEntity>
+
     @Query("SELECT COUNT(*) FROM local_ai_models WHERE installState = 'installed'")
     suspend fun getInstalledModelCount(): Int
 

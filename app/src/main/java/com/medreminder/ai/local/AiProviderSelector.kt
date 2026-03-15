@@ -26,6 +26,7 @@ class AiProviderSelector @Inject constructor(
 ) {
     companion object {
         private val KEY_SELECTED_PROVIDER = stringPreferencesKey("selected_ai_provider")
+        private val KEY_ACTIVE_MODEL_ID = stringPreferencesKey("active_local_model_id")
     }
 
     fun getSelectedProviderType(): Flow<AiProviderType> =
@@ -44,8 +45,44 @@ class AiProviderSelector @Inject constructor(
         }
     }
 
+    /** Returns the persisted active local model ID, or null if none is set. */
+    fun getActiveModelId(): Flow<String?> =
+        context.aiPrefsDataStore.data.map { prefs ->
+            prefs[KEY_ACTIVE_MODEL_ID]
+        }
+
+    /** Persist the selected local model as the active one, and load it into the runtime. */
+    suspend fun setActiveModelId(modelId: String?) {
+        context.aiPrefsDataStore.edit { prefs ->
+            if (modelId != null) {
+                prefs[KEY_ACTIVE_MODEL_ID] = modelId
+            } else {
+                prefs.remove(KEY_ACTIVE_MODEL_ID)
+            }
+        }
+        if (modelId != null) {
+            customLocalProvider.loadModel(modelId)
+        } else {
+            customLocalProvider.unloadModel()
+        }
+    }
+
+    /**
+     * Ensure the persisted active model is loaded into the runtime.
+     * Call this on app startup or when the provider is first needed.
+     */
+    suspend fun ensureActiveModelLoaded() {
+        val modelId = getActiveModelId().first() ?: return
+        if (customLocalProvider.getActiveRuntime()?.isLoaded() != true) {
+            customLocalProvider.loadModel(modelId)
+        }
+    }
+
     suspend fun selectProvider(): AiProvider {
         val userChoice = getSelectedProviderType().first()
+        if (userChoice == AiProviderType.CUSTOM_LOCAL || userChoice == AiProviderType.AUTO) {
+            ensureActiveModelLoaded()
+        }
         return resolveProvider(userChoice)
     }
 

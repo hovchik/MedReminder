@@ -16,8 +16,11 @@ class LocalModelManager @Inject constructor(
     fun getInstalledModelsFlow(): Flow<List<LocalAiModel>> =
         modelDao.getInstalledModels().map { list -> list.map { it.toDomain() } }
 
+    suspend fun getInstalledModelsSuspend(): List<LocalAiModel> =
+        modelDao.getInstalledModelsList().map { it.toDomain() }
+
     fun getInstalledModels(): List<LocalAiModel> {
-        return emptyList() // Prefer Flow-based access
+        return emptyList() // Prefer Flow-based or suspend access
     }
 
     suspend fun getModel(modelId: String): LocalAiModel? =
