@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">MedReminder</string>
     <string name="nav_today">Сегодня</string>
-    <string name="nav_stats">Статистика</string>
+    <string name="nav_stats">Сводка</string>
     <string name="nav_history">История</string>
     <string name="nav_family">Семья</string>
     <string name="nav_settings">Настройки</string>
@@ -147,11 +147,50 @@
     <string name="download_failed">Загрузка не удалась. Проверьте подключение к интернету.</string>
     <string name="try_again">Попробовать снова</string>
 
+    <!-- User Profile -->
+    <string name="user_profile">Пользователь</string>
+    <string name="age_display">Возраст: %1$d</string>
+    <string name="tap_to_edit_profile">Нажмите для редактирования профиля</string>
+
     <!-- Onboarding -->
     <string name="welcome_title">Добро пожаловать в MedReminder</string>
+    <string name="tell_us_about_yourself">Расскажите о себе</string>
+    <string name="personalize_experience">Это поможет нам персонализировать ваш опыт</string>
+    <string name="your_name">Ваше имя</string>
+    <string name="your_age">Ваш возраст</string>
+    <string name="name_required">Пожалуйста, введите ваше имя</string>
+    <string name="age_invalid">Пожалуйста, введите корректный возраст</string>
     <string name="welcome_subtitle">Ваш персональный помощник по лекарствам с аналитикой на базе ИИ</string>
     <string name="get_started">Начать</string>
     <string name="ai_powered_insights">Аналитика ИИ</string>
+    <string name="onboarding_continue">Продолжить</string>
+    <string name="onboarding_ai_description">MedReminder использует ИИ для анализа ваших привычек приёма лекарств и предоставления персонализированных рекомендаций. Вы можете запустить ИИ прямо на вашем устройстве для полной конфиденциальности.</string>
+    <string name="best_for_device">Лучшее для вашего устройства</string>
+    <string name="cloud_ai_recommended">Рекомендуется облачный ИИ</string>
+    <string name="cloud_ai_no_compatible">Совместимые модели локального ИИ для вашего устройства не найдены. Вы можете использовать облачный ИИ для анализа лекарств.</string>
+    <string name="local_ai_privacy_note">Локальный ИИ хранит все ваши данные о здоровье на устройстве. Ничего не отправляется на внешние серверы.</string>
+    <string name="skip_use_cloud_ai">Пропустить (использовать облачный ИИ)</string>
+    <string name="gpu_accelerated">Ускорение GPU</string>
+    <string name="choose_a_model">Выберите модель</string>
+    <string name="models_ranked">Модели отсортированы по совместимости с вашим устройством:</string>
+    <string name="download_model_name">Скачать %1$s</string>
+    <string name="connecting">Подключение…</string>
+    <string name="retry_attempt">Попытка %1$d</string>
+    <string name="downloading_model">Загрузка %1$s</string>
+    <string name="pause">Пауза</string>
+    <string name="download_paused">Загрузка приостановлена</string>
+    <string name="resume">Продолжить</string>
+    <string name="continue_bg_finish">Продолжить в фоне и завершить настройку</string>
+    <string name="verifying_download">Проверка загрузки…</string>
+    <string name="model_ready">%1$s готова!</string>
+    <string name="ai_analyze_locally">ИИ будет анализировать ваши привычки приёма лекарств локально на вашем устройстве.</string>
+    <string name="download_failed_title">Ошибка загрузки</string>
+    <string name="retry">Повторить</string>
+    <string name="go_back">Назад</string>
+    <string name="preparing">Подготовка…</string>
+    <string name="all_set_name">Всё готово, %1$s!</string>
+    <string name="start_adding_meds">Начните добавлять лекарства, и MedReminder поможет вам не пропустить приём.</string>
+    <string name="no_wifi_download_warning">Загрузка %1$s (%2$d МБ) будет использовать мобильные данные. Рекомендуем подключиться к WiFi.</string>
 
     <!-- SMS Failure -->
     <string name="sms_failure_channel_name">Ошибки SMS</string>
@@ -166,6 +205,8 @@
     <string name="caregiver_notif_title">Уведомления опекунам</string>
     <string name="caregiver_notif_desc">Уведомляйте семью и опекунов по SMS или электронной почте о приёме или пропуске лекарств.</string>
     <string name="ai_insights_desc">Получайте персонализированный анализ лекарств с помощью ИИ на вашем устройстве. Ваши данные остаются конфиденциальными.</string>
+    <string name="phone_call_title">Автоматический звонок опекуну</string>
+    <string name="phone_call_desc">Если SMS не удалось доставить опекуну, приложение автоматически позвонит ему, чтобы он был проинформирован без каких-либо действий с вашей стороны.</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">Текст</string>
@@ -196,4 +237,47 @@
     <string name="import_confirm_title">Импортировать данные?</string>
     <string name="import_confirm_message">Это заменит все существующие данные импортированными. Это действие нельзя отменить.</string>
     <string name="confirm">Подтвердить</string>
+
+    <!-- Missing onboarding strings -->
+    <string name="download_automatically">Скачать автоматически</string>
+    <string name="choose_model_manually">Выбрать модель вручную</string>
+    <string name="start_using_app">Начать использовать MedReminder</string>
+    <string name="you_are_all_set">Всё готово!</string>
+    <string name="skip_for_now">Пропустить</string>
+    <string name="continue_in_background">Продолжить в фоне</string>
+    <string name="no_wifi_title">Нет подключения WiFi</string>
+    <string name="download_anyway">Скачать всё равно</string>
+    <string name="edit_profile">Редактировать профиль</string>
+
+    <!-- Theme -->
+    <string name="appearance">Оформление</string>
+    <string name="theme">Тема</string>
+    <string name="theme_subtitle">Выберите светлую, тёмную или системную тему</string>
+    <string name="select_theme">Выберите тему</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="theme_system">По умолчанию системы</string>
+
+    <!-- Settings extras -->
+    <string name="not_available_device">Недоступно на этом устройстве</string>
+
+    <!-- Permissions -->
+    <string name="permissions_title">Разрешения приложения</string>
+    <string name="permissions_subtitle">MedReminder нуждается в нескольких разрешениях для работы</string>
+    <string name="permission_notifications">Уведомления</string>
+    <string name="permission_notifications_desc">Получать напоминания о лекарствах вовремя</string>
+    <string name="permission_camera">Камера</string>
+    <string name="permission_camera_desc">Сканировать этикетки и штрихкоды лекарств</string>
+    <string name="permission_sms">SMS</string>
+    <string name="permission_sms_desc">Отправлять оповещения опекунам при пропуске дозы</string>
+    <string name="permission_phone">Телефонные звонки</string>
+    <string name="permission_phone_desc">Автоматически звонить опекунам при неудаче SMS</string>
+    <string name="permission_location">Местоположение</string>
+    <string name="permission_location_desc">Передавать ваше местоположение опекунам в экстренных случаях</string>
+    <string name="permission_granted">Разрешено</string>
+    <string name="permission_denied">Нажмите для разрешения</string>
+    <string name="grant_all_permissions">Разрешить всё</string>
+    <string name="permissions_can_change">Вы можете изменить разрешения позже в Настройках</string>
+    <string name="permissions">Разрешения</string>
+    <string name="permissions_settings_subtitle">Управление разрешениями приложения</string>
 </resources>

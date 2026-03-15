@@ -147,11 +147,51 @@
     <string name="download_failed">دانلود ناموفق بود. اتصال اینترنت خود را بررسی کنید.</string>
     <string name="try_again">تلاش مجدد</string>
 
+    <!-- User Profile -->
+    <string name="user_profile">کاربر</string>
+    <string name="age_display">سن: %1$d</string>
+    <string name="tap_to_edit_profile">برای ویرایش پروفایل لمس کنید</string>
+
     <!-- Onboarding -->
     <string name="welcome_title">به MedReminder خوش آمدید</string>
+    <string name="tell_us_about_yourself">درباره خودتان بگویید</string>
+    <string name="personalize_experience">این به ما کمک می‌کند تجربه شما را شخصی‌سازی کنیم</string>
+    <string name="your_name">نام شما</string>
+    <string name="your_age">سن شما</string>
+    <string name="name_required">لطفاً نام خود را وارد کنید</string>
+    <string name="age_invalid">لطفاً سن معتبر وارد کنید</string>
+
     <string name="welcome_subtitle">یادآور شخصی دارو با تحلیل هوش مصنوعی</string>
     <string name="get_started">شروع کنید</string>
     <string name="ai_powered_insights">تحلیل هوش مصنوعی</string>
+    <string name="onboarding_continue">ادامه</string>
+    <string name="onboarding_ai_description">MedReminder از هوش مصنوعی برای تحلیل الگوهای مصرف دارو و ارائه پیشنهادهای شخصی استفاده می‌کند. می‌توانید هوش مصنوعی را مستقیماً روی دستگاه خود اجرا کنید.</string>
+    <string name="best_for_device">بهترین برای دستگاه شما</string>
+    <string name="cloud_ai_recommended">هوش مصنوعی ابری پیشنهاد می‌شود</string>
+    <string name="cloud_ai_no_compatible">مدل هوش مصنوعی محلی سازگار با دستگاه شما یافت نشد. می‌توانید از هوش مصنوعی ابری استفاده کنید.</string>
+    <string name="local_ai_privacy_note">هوش مصنوعی محلی تمام داده‌های سلامت شما را در دستگاه نگه می‌دارد. چیزی به سرورهای خارجی ارسال نمی‌شود.</string>
+    <string name="skip_use_cloud_ai">فعلاً رد شود (استفاده از هوش مصنوعی ابری)</string>
+    <string name="gpu_accelerated">شتاب GPU</string>
+    <string name="choose_a_model">انتخاب مدل</string>
+    <string name="models_ranked">مدل‌ها بر اساس سازگاری با دستگاه شما رتبه‌بندی شده‌اند:</string>
+    <string name="download_model_name">دانلود %1$s</string>
+    <string name="connecting">در حال اتصال…</string>
+    <string name="retry_attempt">تلاش %1$d</string>
+    <string name="downloading_model">در حال دانلود %1$s</string>
+    <string name="pause">توقف</string>
+    <string name="download_paused">دانلود متوقف شد</string>
+    <string name="resume">ادامه</string>
+    <string name="continue_bg_finish">ادامه در پس‌زمینه و اتمام تنظیمات</string>
+    <string name="verifying_download">در حال تأیید…</string>
+    <string name="model_ready">%1$s آماده است!</string>
+    <string name="ai_analyze_locally">هوش مصنوعی الگوهای مصرف داروی شما را به صورت محلی تحلیل می‌کند.</string>
+    <string name="download_failed_title">دانلود ناموفق</string>
+    <string name="retry">تلاش مجدد</string>
+    <string name="go_back">بازگشت</string>
+    <string name="preparing">در حال آماده‌سازی…</string>
+    <string name="all_set_name">همه چیز آماده است، %1$s!</string>
+    <string name="start_adding_meds">داروهای خود را اضافه کنید و MedReminder به شما کمک می‌کند.</string>
+    <string name="no_wifi_download_warning">دانلود %1$s (%2$d مگابایت) از داده موبایل استفاده می‌کند. پیشنهاد می‌کنیم به WiFi متصل شوید.</string>
 
     <!-- SMS Failure -->
     <string name="sms_failure_channel_name">خطاهای پیامک</string>
@@ -166,6 +206,8 @@
     <string name="caregiver_notif_title">اطلاع‌رسانی به مراقبان</string>
     <string name="caregiver_notif_desc">خانواده و مراقبان را از طریق پیامک یا ایمیل از مصرف یا فراموشی دارو مطلع کنید.</string>
     <string name="ai_insights_desc">تحلیل شخصی‌سازی شده داروها با هوش مصنوعی روی دستگاه شما. داده‌های شما خصوصی می‌ماند.</string>
+    <string name="phone_call_title">تماس خودکار با مراقب</string>
+    <string name="phone_call_desc">وقتی پیامک به مراقب نمی‌رسد، برنامه به طور خودکار با آنها تماس می‌گیرد تا بدون نیاز به اقدام شما مطلع شوند.</string>
 
     <!-- Barcode / QR Scanner -->
     <string name="scan_mode_text">متن</string>
@@ -196,4 +238,47 @@
     <string name="import_confirm_title">داده‌ها ورودی شود؟</string>
     <string name="import_confirm_message">این کار همه داده‌های موجود را با داده‌های ورودی جایگزین می‌کند. این عمل قابل بازگشت نیست.</string>
     <string name="confirm">تأیید</string>
+
+    <!-- Missing onboarding strings -->
+    <string name="download_automatically">دانلود خودکار</string>
+    <string name="choose_model_manually">انتخاب دستی مدل</string>
+    <string name="start_using_app">شروع استفاده از MedReminder</string>
+    <string name="you_are_all_set">همه چیز آماده است!</string>
+    <string name="skip_for_now">فعلاً رد شود</string>
+    <string name="continue_in_background">ادامه در پس‌زمینه</string>
+    <string name="no_wifi_title">بدون اتصال WiFi</string>
+    <string name="download_anyway">به هر حال دانلود شود</string>
+    <string name="edit_profile">ویرایش پروفایل</string>
+
+    <!-- Theme -->
+    <string name="appearance">ظاهر</string>
+    <string name="theme">تم</string>
+    <string name="theme_subtitle">انتخاب تم روشن، تاریک یا سیستمی</string>
+    <string name="select_theme">انتخاب تم</string>
+    <string name="theme_light">روشن</string>
+    <string name="theme_dark">تاریک</string>
+    <string name="theme_system">پیش‌فرض سیستم</string>
+
+    <!-- Settings extras -->
+    <string name="not_available_device">در این دستگاه موجود نیست</string>
+
+    <!-- Permissions -->
+    <string name="permissions_title">مجوزهای برنامه</string>
+    <string name="permissions_subtitle">MedReminder به چند مجوز برای عملکرد صحیح نیاز دارد</string>
+    <string name="permission_notifications">اعلان‌ها</string>
+    <string name="permission_notifications_desc">دریافت یادآوری دارو به موقع</string>
+    <string name="permission_camera">دوربین</string>
+    <string name="permission_camera_desc">اسکن برچسب و بارکد دارو</string>
+    <string name="permission_sms">پیامک</string>
+    <string name="permission_sms_desc">ارسال هشدار به مراقبان در صورت فراموشی دارو</string>
+    <string name="permission_phone">تماس تلفنی</string>
+    <string name="permission_phone_desc">تماس خودکار با مراقبان در صورت عدم ارسال پیامک</string>
+    <string name="permission_location">موقعیت مکانی</string>
+    <string name="permission_location_desc">اشتراک موقعیت با مراقبان در شرایط اضطراری</string>
+    <string name="permission_granted">اعطا شده</string>
+    <string name="permission_denied">برای اعطا لمس کنید</string>
+    <string name="grant_all_permissions">اعطای همه مجوزها</string>
+    <string name="permissions_can_change">می‌توانید مجوزها را بعداً در تنظیمات تغییر دهید</string>
+    <string name="permissions">مجوزها</string>
+    <string name="permissions_settings_subtitle">مدیریت مجوزهای برنامه</string>
 </resources>
