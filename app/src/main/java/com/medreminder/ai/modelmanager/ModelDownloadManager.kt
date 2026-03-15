@@ -66,8 +66,8 @@ class ModelDownloadManager @Inject constructor(
         private const val BUFFER_SIZE = 64 * 1024           // 64 KB read buffer
         private const val PROGRESS_UPDATE_INTERVAL_MS = 250L
         private const val MAX_RETRIES = 4
-        private const val CONNECT_TIMEOUT_MS = 15_000
-        private const val READ_TIMEOUT_MS = 30_000
+        private const val CONNECT_TIMEOUT_MS = 30_000
+        private const val READ_TIMEOUT_MS = 60_000
     }
 
     private val _downloadState = MutableStateFlow(DownloadState())
@@ -150,17 +150,25 @@ class ModelDownloadManager @Inject constructor(
     }
 
     fun isWifiConnected(): Boolean {
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = cm.activeNetwork ?: return false
-        val caps = cm.getNetworkCapabilities(network) ?: return false
-        return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+        return try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network = cm.activeNetwork ?: return false
+            val caps = cm.getNetworkCapabilities(network) ?: return false
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+        } catch (_: Exception) {
+            false
+        }
     }
 
     fun isNetworkAvailable(): Boolean {
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = cm.activeNetwork ?: return false
-        val caps = cm.getNetworkCapabilities(network) ?: return false
-        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        return try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network = cm.activeNetwork ?: return false
+            val caps = cm.getNetworkCapabilities(network) ?: return false
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private suspend fun executeDownload(model: LocalAiModel) {
@@ -168,7 +176,9 @@ class ModelDownloadManager @Inject constructor(
         val finalFile = getFinalFile(model)
 
         // If already fully downloaded, skip to verification
-        if (finalFile.exists() && finalFile.length() == model.sizeMb * 1024 * 1024) {
+        // Use a tolerance check instead of exact match
+        val expectedBytes = model.sizeMb * 1024L * 1024L
+        if (finalFile.exists() && expectedBytes > 0 && finalFile.length() >= expectedBytes * 0.8) {
             _downloadState.update {
                 DownloadState(
                     modelId = model.modelId,
@@ -206,7 +216,11 @@ class ModelDownloadManager @Inject constructor(
 
                 if (success && !isCancelled) {
                     // Rename partial -> final
-                    partialFile.renameTo(finalFile)
+                    if (!partialFile.renameTo(finalFile)) {
+                        // Fallback: copy and delete if rename fails (cross-filesystem)
+                        partialFile.copyTo(finalFile, overwrite = true)
+                        partialFile.delete()
+                    }
                     finishDownload(model, finalFile)
                     return
                 } else if (isPaused) {
@@ -214,7 +228,7 @@ class ModelDownloadManager @Inject constructor(
                     modelManager.registerModel(
                         model.copy(
                             installState = InstallState.PAUSED,
-                            downloadedBytes = partialFile.length()
+                            downloadedBytes = if (partialFile.exists()) partialFile.length() else 0L
                         )
                     )
                     return
@@ -231,7 +245,7 @@ class ModelDownloadManager @Inject constructor(
                         it.copy(
                             status = DownloadStatus.CONNECTING,
                             retryCount = retryCount,
-                            message = "Connection error. Retrying in ${delayMs / 1000}s..."
+                            message = "Network error: ${e.message}. Retrying in ${delayMs / 1000}s..."
                         )
                     }
                     delay(delayMs)
@@ -251,7 +265,7 @@ class ModelDownloadManager @Inject constructor(
                 modelId = model.modelId,
                 status = DownloadStatus.FAILED,
                 downloadedBytes = if (partialFile.exists()) partialFile.length() else 0L,
-                totalBytes = model.sizeMb * 1024 * 1024,
+                totalBytes = expectedBytes,
                 retryCount = retryCount,
                 message = "Download failed: ${lastError?.message ?: "Unknown error"}"
             )
@@ -270,11 +284,14 @@ class ModelDownloadManager @Inject constructor(
     ): Boolean = withContext(Dispatchers.IO) {
         var connection: HttpURLConnection? = null
         try {
-            connection = (URL(model.downloadUrl).openConnection() as HttpURLConnection).apply {
+            val url = URL(model.downloadUrl)
+            connection = (url.openConnection() as HttpURLConnection).apply {
                 connectTimeout = CONNECT_TIMEOUT_MS
                 readTimeout = READ_TIMEOUT_MS
                 requestMethod = "GET"
+                instanceFollowRedirects = true
                 setRequestProperty("User-Agent", "MedReminder/1.0")
+                setRequestProperty("Accept", "*/*")
 
                 // Request resume from offset
                 if (resumeOffset > 0) {
@@ -284,34 +301,53 @@ class ModelDownloadManager @Inject constructor(
 
             val responseCode = connection.responseCode
 
+            // Handle redirects manually for cases where HttpURLConnection doesn't follow
+            if (responseCode in 301..308) {
+                val redirectUrl = connection.getHeaderField("Location")
+                connection.disconnect()
+                if (redirectUrl != null) {
+                    connection = (URL(redirectUrl).openConnection() as HttpURLConnection).apply {
+                        connectTimeout = CONNECT_TIMEOUT_MS
+                        readTimeout = READ_TIMEOUT_MS
+                        requestMethod = "GET"
+                        instanceFollowRedirects = true
+                        setRequestProperty("User-Agent", "MedReminder/1.0")
+                        setRequestProperty("Accept", "*/*")
+                        if (resumeOffset > 0) {
+                            setRequestProperty("Range", "bytes=$resumeOffset-")
+                        }
+                    }
+                } else {
+                    throw IOException("Redirect without Location header")
+                }
+            }
+
+            val finalResponseCode = connection.responseCode
+
             // Determine total size and whether server supports resume
             val totalBytes: Long
-            val serverSupportsResume: Boolean
             val startOffset: Long
 
-            when (responseCode) {
+            when (finalResponseCode) {
                 HttpURLConnection.HTTP_PARTIAL -> {
                     // Server supports Range, sending remaining bytes
-                    serverSupportsResume = true
                     startOffset = resumeOffset
-                    val contentLength = connection.getHeaderField("Content-Length")?.toLongOrNull() ?: 0L
-                    totalBytes = startOffset + contentLength
 
-                    // Also try Content-Range header: "bytes 1000-9999/10000"
+                    // Prefer Content-Range for total size: "bytes 1000-9999/10000"
                     val contentRange = connection.getHeaderField("Content-Range")
-                    if (contentRange != null) {
-                        val fullSize = contentRange.substringAfter("/", "").toLongOrNull()
-                        if (fullSize != null && fullSize > 0) {
-                            // totalBytes = fullSize // Already computed from offset + content-length
-                        }
+                    val fullSize = contentRange?.substringAfter("/", "")?.toLongOrNull()
+                    if (fullSize != null && fullSize > 0) {
+                        totalBytes = fullSize
+                    } else {
+                        val contentLength = connection.getHeaderField("Content-Length")?.toLongOrNull() ?: 0L
+                        totalBytes = startOffset + contentLength
                     }
                 }
                 HttpURLConnection.HTTP_OK -> {
                     // Server returned full file (no Range support or fresh download)
-                    serverSupportsResume = false
                     startOffset = 0L
                     totalBytes = connection.getHeaderField("Content-Length")?.toLongOrNull()
-                        ?: (model.sizeMb * 1024 * 1024)
+                        ?: (model.sizeMb * 1024L * 1024L)
 
                     // If we had a partial file but server doesn't support resume, start over
                     if (resumeOffset > 0) {
@@ -319,7 +355,10 @@ class ModelDownloadManager @Inject constructor(
                     }
                 }
                 else -> {
-                    throw IOException("HTTP $responseCode: ${connection.responseMessage}")
+                    val errorBody = try {
+                        connection.errorStream?.bufferedReader()?.readText()?.take(200) ?: ""
+                    } catch (_: Exception) { "" }
+                    throw IOException("HTTP $finalResponseCode: ${connection.responseMessage}. $errorBody".trim())
                 }
             }
 
@@ -335,26 +374,26 @@ class ModelDownloadManager @Inject constructor(
 
             // Stream data to disk
             val inputStream = connection.inputStream
+                ?: throw IOException("Server returned no data")
             val raf = RandomAccessFile(partialFile, "rw")
-            raf.seek(startOffset)
-
-            val buffer = ByteArray(BUFFER_SIZE)
-            var bytesWritten = startOffset
-            var bytesRead: Int
-            var lastProgressUpdate = System.currentTimeMillis()
-            var lastSpeedCalcTime = System.currentTimeMillis()
-            var lastSpeedCalcBytes = bytesWritten
-            var currentSpeed = 0L
 
             try {
+                raf.seek(startOffset)
+
+                val buffer = ByteArray(BUFFER_SIZE)
+                var bytesWritten = startOffset
+                var bytesRead: Int
+                var lastProgressUpdate = System.currentTimeMillis()
+                var lastSpeedCalcTime = System.currentTimeMillis()
+                var lastSpeedCalcBytes = bytesWritten
+                var currentSpeed = 0L
+
                 while (inputStream.read(buffer).also { bytesRead = it } != -1) {
                     if (isCancelled) {
-                        raf.close()
                         return@withContext false
                     }
 
                     if (isPaused) {
-                        raf.close()
                         return@withContext false
                     }
 
@@ -388,19 +427,17 @@ class ModelDownloadManager @Inject constructor(
                     }
                 }
 
-                raf.close()
+                // Final progress update
+                _downloadState.update {
+                    it.copy(
+                        downloadedBytes = bytesWritten,
+                        speedBytesPerSec = 0,
+                        etaSeconds = 0
+                    )
+                }
             } finally {
                 try { raf.close() } catch (_: Exception) {}
                 try { inputStream.close() } catch (_: Exception) {}
-            }
-
-            // Final progress update
-            _downloadState.update {
-                it.copy(
-                    downloadedBytes = bytesWritten,
-                    speedBytesPerSec = 0,
-                    etaSeconds = 0
-                )
             }
 
             return@withContext !isCancelled && !isPaused
@@ -434,20 +471,22 @@ class ModelDownloadManager @Inject constructor(
             }
         }
 
-        // Verify file size is reasonable
-        val fileSizeMb = file.length() / (1024 * 1024)
-        if (fileSizeMb < model.sizeMb * 0.8) {
-            // File is significantly smaller than expected – likely incomplete
-            file.delete()
-            modelManager.updateInstallState(model.modelId, InstallState.FAILED)
-            _downloadState.update {
-                DownloadState(
-                    modelId = model.modelId,
-                    status = DownloadStatus.FAILED,
-                    message = "Download incomplete (${fileSizeMb}MB vs expected ${model.sizeMb}MB)"
-                )
+        // Verify file size is reasonable (only if we have an expected size)
+        if (model.sizeMb > 0) {
+            val fileSizeMb = file.length() / (1024L * 1024L)
+            if (fileSizeMb < 1) {
+                // File is essentially empty
+                file.delete()
+                modelManager.updateInstallState(model.modelId, InstallState.FAILED)
+                _downloadState.update {
+                    DownloadState(
+                        modelId = model.modelId,
+                        status = DownloadStatus.FAILED,
+                        message = "Downloaded file is empty or too small (${file.length()} bytes)"
+                    )
+                }
+                return
             }
-            return
         }
 
         // Mark installed
