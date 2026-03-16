@@ -46,7 +46,7 @@ interface MedicationDao {
     @Query("UPDATE medications SET currentStock = currentStock - 1 WHERE id = :id AND currentStock > 0")
     suspend fun decrementStock(id: Long)
 
-    @Query("SELECT * FROM medications WHERE isActive = 1 AND refillReminder = 1 AND currentStock <= refillThreshold")
+    @Query("SELECT * FROM medications WHERE isActive = 1 AND refillReminder = 1 AND currentStock > 0 AND currentStock <= refillThreshold")
     fun getMedicationsNeedingRefill(): Flow<List<MedicationEntity>>
 
     @Query("UPDATE medications SET isActive = 0, updatedAt = :timestamp WHERE id = :id")

@@ -102,31 +102,60 @@ class DailyDoseWorker @AssistedInject constructor(
             if (!medication.isActive || !schedule.isEnabled) continue
             if (schedule.frequency == ScheduleFrequency.AS_NEEDED) continue
 
-            // Check if dose already exists
-            val exists = database.doseLogDao().doseLogExistsForWindow(
-                schedule.id, startOfDay, endOfDay
-            )
-            if (exists) continue
-
             // Check if schedule applies today
             if (!isScheduledForToday(schedule)) continue
 
-            val cal = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, schedule.timeHour)
-                set(Calendar.MINUTE, schedule.timeMinute)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-
-            database.doseLogDao().insertDoseLog(
-                DoseLogEntity(
-                    medicationId = medication.id,
-                    scheduleId = schedule.id,
-                    scheduledTime = cal.timeInMillis,
-                    status = "pending"
+            if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS && schedule.intervalHours > 0) {
+                // Generate multiple dose logs for every-X-hours schedules
+                val cal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                    set(Calendar.MINUTE, schedule.timeMinute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                while (cal.timeInMillis <= endOfDay) {
+                    if (cal.timeInMillis >= startOfDay) {
+                        val alreadyExists = database.doseLogDao().doseLogExistsForWindow(
+                            schedule.id, cal.timeInMillis - 60000, cal.timeInMillis + 60000
+                        )
+                        if (!alreadyExists) {
+                            database.doseLogDao().insertDoseLog(
+                                DoseLogEntity(
+                                    medicationId = medication.id,
+                                    scheduleId = schedule.id,
+                                    scheduledTime = cal.timeInMillis,
+                                    status = "pending"
+                                )
+                            )
+                            Log.d(TAG, "Created dose log for ${medication.name} at ${cal.get(Calendar.HOUR_OF_DAY)}:${cal.get(Calendar.MINUTE)}")
+                        }
+                    }
+                    cal.add(Calendar.HOUR_OF_DAY, schedule.intervalHours)
+                }
+            } else {
+                // Single dose per day for other frequencies
+                val exists = database.doseLogDao().doseLogExistsForWindow(
+                    schedule.id, startOfDay, endOfDay
                 )
-            )
-            Log.d(TAG, "Created dose log for ${medication.name} at ${schedule.timeHour}:${schedule.timeMinute}")
+                if (exists) continue
+
+                val cal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                    set(Calendar.MINUTE, schedule.timeMinute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                database.doseLogDao().insertDoseLog(
+                    DoseLogEntity(
+                        medicationId = medication.id,
+                        scheduleId = schedule.id,
+                        scheduledTime = cal.timeInMillis,
+                        status = "pending"
+                    )
+                )
+                Log.d(TAG, "Created dose log for ${medication.name} at ${schedule.timeHour}:${schedule.timeMinute}")
+            }
         }
     }
 
@@ -138,9 +167,10 @@ class DailyDoseWorker @AssistedInject constructor(
                 today.get(Calendar.DAY_OF_WEEK) in schedule.daysOfWeek
             }
             ScheduleFrequency.INTERVAL -> {
+                if (schedule.intervalDays <= 0) return false
                 val daysSinceStart = ((today.timeInMillis - schedule.startDate) /
                         (24 * 60 * 60 * 1000)).toInt()
-                daysSinceStart % schedule.intervalDays == 0
+                daysSinceStart >= 0 && daysSinceStart % schedule.intervalDays == 0
             }
             ScheduleFrequency.EVERY_X_HOURS -> true // always scheduled, alarm handles timing
             ScheduleFrequency.AS_NEEDED -> false

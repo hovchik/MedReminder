@@ -31,6 +31,17 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         const val DATABASE_NAME = "medreminder_db"
 
+        /**
+         * Returns a properly configured database instance with all migrations.
+         * Use this in BroadcastReceivers and Activities that cannot use Hilt injection.
+         */
+        fun getInstance(context: android.content.Context): AppDatabase =
+            androidx.room.Room.databaseBuilder(
+                context.applicationContext, AppDatabase::class.java, DATABASE_NAME
+            ).addMigrations(
+                MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6
+            ).fallbackToDestructiveMigration().build()
+
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE local_ai_models ADD COLUMN description TEXT NOT NULL DEFAULT ''")

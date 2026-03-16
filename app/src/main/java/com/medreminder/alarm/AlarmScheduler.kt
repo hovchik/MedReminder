@@ -208,6 +208,7 @@ class AlarmScheduler @Inject constructor(
                 if (!found) return null
             }
             com.medreminder.domain.model.ScheduleFrequency.INTERVAL -> {
+                if (schedule.intervalDays <= 0) return null
                 if (calendar.timeInMillis <= System.currentTimeMillis()) {
                     val daysSinceStart = ((System.currentTimeMillis() - schedule.startDate) /
                             (24 * 60 * 60 * 1000)).toInt()

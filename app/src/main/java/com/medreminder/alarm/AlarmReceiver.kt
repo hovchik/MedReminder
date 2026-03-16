@@ -39,9 +39,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = androidx.room.Room.databaseBuilder(
-                    context.applicationContext, AppDatabase::class.java, AppDatabase.DATABASE_NAME
-                ).build()
+                val db = AppDatabase.getInstance(context)
 
                 // Create dose log entry if not a snooze
                 val doseLogId = if (existingDoseLogId > 0) {

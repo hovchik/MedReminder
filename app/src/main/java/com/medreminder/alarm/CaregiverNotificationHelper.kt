@@ -119,6 +119,13 @@ object CaregiverNotificationHelper {
         caregiverName: String,
         medicationName: String
     ) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.w(TAG, "SEND_SMS permission not granted, falling back to call for $phone")
+            makeCallFallback(context, phone)
+            return
+        }
         try {
             val smsManager = SmsManager.getDefault()
             val parts = smsManager.divideMessage(message)

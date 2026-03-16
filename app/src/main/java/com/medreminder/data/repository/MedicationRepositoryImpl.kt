@@ -55,14 +55,16 @@ class MedicationRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateMedication(medication: Medication, schedules: List<Schedule>) {
-        medicationDao.updateMedication(
-            medication.toEntity().copy(updatedAt = System.currentTimeMillis())
-        )
-        scheduleDao.deleteSchedulesForMedication(medication.id)
-        val scheduleEntities = schedules.map {
-            it.copy(id = 0, medicationId = medication.id).toEntity()
+        database.withTransaction {
+            medicationDao.updateMedication(
+                medication.toEntity().copy(updatedAt = System.currentTimeMillis())
+            )
+            scheduleDao.deleteSchedulesForMedication(medication.id)
+            val scheduleEntities = schedules.map {
+                it.copy(id = 0, medicationId = medication.id).toEntity()
+            }
+            scheduleDao.insertSchedules(scheduleEntities)
         }
-        scheduleDao.insertSchedules(scheduleEntities)
     }
 
     override suspend fun deleteMedication(id: Long) {
@@ -178,21 +180,23 @@ class MedicationRepositoryImpl @Inject constructor(
             )
         }
 
+        val currentStreak = getCurrentStreak()
+
         return AdherenceStats(
             totalDoses = total,
             takenDoses = taken,
             missedDoses = missed,
             skippedDoses = skipped,
             adherenceRate = rate,
-            currentStreak = getCurrentStreak(),
+            currentStreak = currentStreak,
+            longestStreak = calculateLongestStreak(startTime, endTime),
             weeklyData = weeklyData
         )
     }
 
     override suspend fun getCurrentStreak(): Int {
-        val calendar = Calendar.getInstance()
         var streak = 0
-        var checkDate = Calendar.getInstance()
+        val checkDate = Calendar.getInstance()
 
         // Go back day by day checking if all doses were taken
         for (i in 0..365) {
@@ -202,14 +206,15 @@ class MedicationRepositoryImpl @Inject constructor(
             checkDate.set(Calendar.MILLISECOND, 0)
             val dayStart = checkDate.timeInMillis
 
-            checkDate.add(Calendar.DAY_OF_YEAR, 1)
-            val dayEnd = checkDate.timeInMillis
-            checkDate.add(Calendar.DAY_OF_YEAR, -1)
+            val dayEndCal = checkDate.clone() as Calendar
+            dayEndCal.add(Calendar.DAY_OF_YEAR, 1)
+            val dayEnd = dayEndCal.timeInMillis
 
             val dayTotal = doseLogDao.getTotalCompletedCount(dayStart, dayEnd)
             val dayTaken = doseLogDao.getTakenCount(dayStart, dayEnd)
 
             if (dayTotal == 0) {
+                // No doses on this day - skip today (might not be over yet), stop on earlier days
                 if (i == 0) {
                     checkDate.add(Calendar.DAY_OF_YEAR, -1)
                     continue
@@ -220,6 +225,7 @@ class MedicationRepositoryImpl @Inject constructor(
             if (dayTaken == dayTotal) {
                 streak++
             } else {
+                // Today may not be finished yet, so don't break the streak on i==0
                 if (i > 0) break
             }
 
@@ -227,6 +233,40 @@ class MedicationRepositoryImpl @Inject constructor(
         }
 
         return streak
+    }
+
+    private suspend fun calculateLongestStreak(startTime: Long, endTime: Long): Int {
+        var longestStreak = 0
+        var currentRun = 0
+        val checkDate = Calendar.getInstance().apply { timeInMillis = startTime }
+        val endCal = Calendar.getInstance().apply { timeInMillis = endTime }
+
+        while (!checkDate.after(endCal)) {
+            checkDate.set(Calendar.HOUR_OF_DAY, 0)
+            checkDate.set(Calendar.MINUTE, 0)
+            checkDate.set(Calendar.SECOND, 0)
+            checkDate.set(Calendar.MILLISECOND, 0)
+            val dayStart = checkDate.timeInMillis
+
+            val dayEndCal = checkDate.clone() as Calendar
+            dayEndCal.add(Calendar.DAY_OF_YEAR, 1)
+            val dayEnd = dayEndCal.timeInMillis
+
+            val dayTotal = doseLogDao.getTotalCompletedCount(dayStart, dayEnd)
+            val dayTaken = doseLogDao.getTakenCount(dayStart, dayEnd)
+
+            if (dayTotal > 0 && dayTaken == dayTotal) {
+                currentRun++
+                if (currentRun > longestStreak) longestStreak = currentRun
+            } else if (dayTotal > 0) {
+                currentRun = 0
+            }
+            // If dayTotal == 0 (no doses scheduled), don't break the streak
+
+            checkDate.add(Calendar.DAY_OF_YEAR, 1)
+        }
+
+        return longestStreak
     }
 
     // Caregivers
