@@ -57,15 +57,15 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun sortDoses(doses: List<DoseLog>): List<DoseLog> =
-        doses.sortedBy { d ->
+        doses.sortedWith(compareBy<DoseLog> { d ->
             when (d.status) {
                 DoseStatus.PENDING -> 0
                 DoseStatus.SNOOZED -> 1
-                DoseStatus.TAKEN -> 2
-                DoseStatus.SKIPPED -> 3
-                DoseStatus.MISSED -> 4
+                DoseStatus.MISSED -> 2
+                DoseStatus.TAKEN -> 3
+                DoseStatus.SKIPPED -> 4
             }
-        }
+        }.thenBy { it.scheduledTime })
 
     private fun buildUserDoseGroups(doses: List<DoseLog>): List<UserDoseGroup> {
         val grouped = doses.groupBy { it.assignedToId }

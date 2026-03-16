@@ -28,6 +28,18 @@
     <string name="add_first_medication">Add your first medication to get started</string>
     <string name="add_medication">Add medication</string>
 
+    <!-- Today Screen - Time sections -->
+    <string name="time_section_morning">Morning</string>
+    <string name="time_section_afternoon">Afternoon</string>
+    <string name="time_section_evening">Evening</string>
+    <string name="time_section_night">Night</string>
+    <string name="next_dose_in">Next in %1$s</string>
+    <string name="snoozed_until">Snoozed until %1$s</string>
+    <string name="all_done_title">All done for today!</string>
+    <string name="all_done_subtitle">Great job staying on track</string>
+    <string name="upcoming">Upcoming</string>
+    <string name="overdue">Overdue</string>
+
     <!-- Dose Status -->
     <string name="status_taken">Taken</string>
     <string name="status_skipped">Skipped</string>

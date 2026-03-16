@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import com.medreminder.R
 import com.medreminder.data.local.AppDatabase
 import com.medreminder.data.local.entity.DoseLogEntity
+import com.medreminder.util.DateUtils
 import kotlinx.coroutines.*
 
 class AlarmReceiver : BroadcastReceiver() {
@@ -41,11 +42,17 @@ class AlarmReceiver : BroadcastReceiver() {
             try {
                 val db = AppDatabase.getInstance(context)
 
-                // Create dose log entry if not a snooze
+                // Reuse existing dose log if available (from generateTodayDoses or snooze)
                 val doseLogId = if (existingDoseLogId > 0) {
                     existingDoseLogId
                 } else {
-                    db.doseLogDao().insertDoseLog(
+                    // Check if a dose log already exists for this schedule today
+                    val startOfDay = DateUtils.getStartOfDay()
+                    val endOfDay = DateUtils.getEndOfDay()
+                    val existing = db.doseLogDao().findActiveDoseLogForSchedule(
+                        scheduleId, startOfDay, endOfDay
+                    )
+                    existing?.id ?: db.doseLogDao().insertDoseLog(
                         DoseLogEntity(
                             medicationId = medicationId,
                             scheduleId = scheduleId,
