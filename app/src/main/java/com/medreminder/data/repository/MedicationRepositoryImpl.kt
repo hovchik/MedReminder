@@ -120,7 +120,9 @@ class MedicationRepositoryImpl @Inject constructor(
                 log.toDomain().copy(
                     medicationName = med?.name ?: "Unknown",
                     medicationDosage = "${med?.dosage ?: ""} ${med?.dosageUnit ?: ""}".trim(),
-                    medicationColor = med?.color ?: "#4A90D9"
+                    medicationColor = med?.color ?: "#4A90D9",
+                    assignedToId = med?.assignedToId,
+                    assignedToName = med?.assignedToName ?: ""
                 )
             }
         }
@@ -132,7 +134,9 @@ class MedicationRepositoryImpl @Inject constructor(
                 log.toDomain().copy(
                     medicationName = med?.name ?: "Unknown",
                     medicationDosage = "${med?.dosage ?: ""} ${med?.dosageUnit ?: ""}".trim(),
-                    medicationColor = med?.color ?: "#4A90D9"
+                    medicationColor = med?.color ?: "#4A90D9",
+                    assignedToId = med?.assignedToId,
+                    assignedToName = med?.assignedToName ?: ""
                 )
             }
         }

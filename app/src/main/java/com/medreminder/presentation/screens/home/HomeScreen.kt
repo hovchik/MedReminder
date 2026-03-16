@@ -139,25 +139,125 @@ fun HomeScreen(
             }
         }
 
-        // Dose cards
+        // Dose cards grouped by user
         if (uiState.todayDoses.isEmpty() && !uiState.isLoading) {
             item {
                 EmptyStateCard(onAddMedication)
             }
         }
 
-        items(uiState.todayDoses, key = { it.id }) { dose ->
-            DoseCard(
-                dose = dose,
-                onTaken = { viewModel.markDoseTaken(dose.id) },
-                onSkip = { viewModel.markDoseSkipped(dose.id) },
-                onSnooze = { viewModel.snoozeDose(dose) },
-                onEdit = { onEditMedication(dose.medicationId) }
-            )
+        val groups = uiState.userDoseGroups
+        val hasMultipleGroups = groups.size > 1
+
+        if (hasMultipleGroups) {
+            // Show grouped sections when there are multiple users
+            groups.forEach { group ->
+                item(key = "header_${group.userId ?: "self"}") {
+                    UserSectionHeader(
+                        userName = group.userName,
+                        isSelf = group.userId == null,
+                        takenCount = group.takenCount,
+                        totalCount = group.totalCount
+                    )
+                }
+                items(group.doses, key = { it.id }) { dose ->
+                    DoseCard(
+                        dose = dose,
+                        onTaken = { viewModel.markDoseTaken(dose.id) },
+                        onSkip = { viewModel.markDoseSkipped(dose.id) },
+                        onSnooze = { viewModel.snoozeDose(dose) },
+                        onEdit = { onEditMedication(dose.medicationId) }
+                    )
+                }
+            }
+        } else {
+            // Single user (or no groups) - show flat list as before
+            items(uiState.todayDoses, key = { it.id }) { dose ->
+                DoseCard(
+                    dose = dose,
+                    onTaken = { viewModel.markDoseTaken(dose.id) },
+                    onSkip = { viewModel.markDoseSkipped(dose.id) },
+                    onSnooze = { viewModel.snoozeDose(dose) },
+                    onEdit = { onEditMedication(dose.medicationId) }
+                )
+            }
         }
 
         // Bottom spacer
         item { Spacer(modifier = Modifier.height(8.dp)) }
+    }
+}
+
+@Composable
+fun UserSectionHeader(
+    userName: String,
+    isSelf: Boolean,
+    takenCount: Int,
+    totalCount: Int
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelf)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+            else
+                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
+        ),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(
+                            if (isSelf) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            else MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isSelf) Icons.Default.Person else Icons.Default.Face,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = if (isSelf) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.tertiary
+                    )
+                }
+                Text(
+                    text = userName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 180.dp)
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = if (isSelf) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                else MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+            ) {
+                Text(
+                    text = stringResource(R.string.taken_of_total_short, takenCount, totalCount),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isSelf) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.tertiary
+                )
+            }
+        }
     }
 }
 
@@ -431,4 +531,3 @@ fun EmptyStateCard(onAdd: () -> Unit) {
         }
     }
 }
-

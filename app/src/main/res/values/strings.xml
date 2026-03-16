@@ -14,6 +14,9 @@
     <string name="greeting_evening">Good evening</string>
     <string name="refill_needed">Refill needed</string>
     <string name="today_medications">Today\'s medications</string>
+    <string name="my_medications_label">My Medications</string>
+    <string name="persons_medications">%1$s\'s Medications</string>
+    <string name="taken_of_total_short">%1$d of %2$d taken</string>
     <string name="add">Add</string>
     <string name="medications_taken_today">medications taken today</string>
     <string name="percent_complete">%1$d%% complete</string>

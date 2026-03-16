@@ -10,6 +10,9 @@
     <string name="greeting_evening">عصر بخیر</string>
     <string name="refill_needed">نیاز به تهیه مجدد</string>
     <string name="today_medications">داروهای امروز</string>
+    <string name="my_medications_label">داروهای من</string>
+    <string name="persons_medications">داروهای %1$s</string>
+    <string name="taken_of_total_short">%1$d از %2$d مصرف شده</string>
     <string name="add">افزودن</string>
     <string name="medications_taken_today">دارو مصرف شده امروز</string>
     <string name="percent_complete">%1$d%% انجام شده</string>

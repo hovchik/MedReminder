@@ -15,8 +15,17 @@ import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
 
+data class UserDoseGroup(
+    val userId: Long?,       // null = self
+    val userName: String,    // display name ("Me" for self, family member name otherwise)
+    val doses: List<DoseLog>,
+    val takenCount: Int,
+    val totalCount: Int
+)
+
 data class HomeUiState(
     val todayDoses: List<DoseLog> = emptyList(),
+    val userDoseGroups: List<UserDoseGroup> = emptyList(),
     val medications: List<Medication> = emptyList(),
     val takenCount: Int = 0,
     val totalCount: Int = 0,
@@ -45,6 +54,32 @@ class HomeViewModel @Inject constructor(
         updateGreeting()
     }
 
+    private fun sortDoses(doses: List<DoseLog>): List<DoseLog> =
+        doses.sortedBy { d ->
+            when (d.status) {
+                DoseStatus.PENDING -> 0
+                DoseStatus.SNOOZED -> 1
+                DoseStatus.TAKEN -> 2
+                DoseStatus.SKIPPED -> 3
+                DoseStatus.MISSED -> 4
+            }
+        }
+
+    private fun buildUserDoseGroups(doses: List<DoseLog>): List<UserDoseGroup> {
+        val grouped = doses.groupBy { it.assignedToId }
+        val selfLabel = context.getString(R.string.my_medications_label)
+        return grouped.map { (userId, userDoses) ->
+            val sorted = sortDoses(userDoses)
+            UserDoseGroup(
+                userId = userId,
+                userName = if (userId == null) selfLabel else userDoses.first().assignedToName,
+                doses = sorted,
+                takenCount = userDoses.count { it.status == DoseStatus.TAKEN },
+                totalCount = userDoses.size
+            )
+        }.sortedBy { if (it.userId == null) 0 else 1 } // Self first
+    }
+
     private fun loadTodayData() {
         val startOfDay = DateUtils.getStartOfDay()
         val endOfDay = DateUtils.getEndOfDay()
@@ -57,15 +92,8 @@ class HomeViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
-                        todayDoses = doses.sortedBy { d ->
-                            when (d.status) {
-                                DoseStatus.PENDING -> 0
-                                DoseStatus.SNOOZED -> 1
-                                DoseStatus.TAKEN -> 2
-                                DoseStatus.SKIPPED -> 3
-                                DoseStatus.MISSED -> 4
-                            }
-                        },
+                        todayDoses = sortDoses(doses),
+                        userDoseGroups = buildUserDoseGroups(doses),
                         takenCount = taken,
                         totalCount = total,
                         adherenceRate = rate,

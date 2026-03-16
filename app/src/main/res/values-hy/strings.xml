@@ -10,6 +10,9 @@
     <string name="greeting_evening">Բարի երեկո</string>
     <string name="refill_needed">Լիցքավորման կարիք կա</string>
     <string name="today_medications">Այսօրվա դեղեր</string>
+    <string name="my_medications_label">Իմ դեղերը</string>
+    <string name="persons_medications">%1$s-ի դեղերը</string>
+    <string name="taken_of_total_short">%1$d / %2$d</string>
     <string name="add">Ավելացնել</string>
     <string name="medications_taken_today">դեղեր ընդունված այսօր</string>
     <string name="percent_complete">%1$d%% ավարտված</string>
