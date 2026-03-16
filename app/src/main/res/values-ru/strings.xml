@@ -8,6 +8,7 @@
     <string name="greeting_morning">Доброе утро</string>
     <string name="greeting_afternoon">Добрый день</string>
     <string name="greeting_evening">Добрый вечер</string>
+    <string name="greeting_with_name">%1$s, %2$s</string>
     <string name="refill_needed">Необходимо пополнить</string>
     <string name="today_medications">Лекарства на сегодня</string>
     <string name="my_medications_label">Мои лекарства</string>

@@ -8,6 +8,7 @@
     <string name="greeting_morning">Բարի լույս</string>
     <string name="greeting_afternoon">Բարի օր</string>
     <string name="greeting_evening">Բարի երեկո</string>
+    <string name="greeting_with_name">%1$s, %2$s</string>
     <string name="refill_needed">Լիցքավորման կարիք կա</string>
     <string name="today_medications">Այսօրվա դեղեր</string>
     <string name="my_medications_label">Իմ դեղերը</string>

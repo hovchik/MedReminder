@@ -8,6 +8,7 @@
     <string name="greeting_morning">صبح بخیر</string>
     <string name="greeting_afternoon">بعدازظهر بخیر</string>
     <string name="greeting_evening">عصر بخیر</string>
+    <string name="greeting_with_name">%2$s، %1$s</string>
     <string name="refill_needed">نیاز به تهیه مجدد</string>
     <string name="today_medications">داروهای امروز</string>
     <string name="my_medications_label">داروهای من</string>

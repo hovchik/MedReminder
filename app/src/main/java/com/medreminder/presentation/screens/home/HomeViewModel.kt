@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.medreminder.R
 import com.medreminder.alarm.AlarmScheduler
+import com.medreminder.data.preferences.UserPreferencesManager
 import com.medreminder.domain.model.*
 import com.medreminder.domain.repository.MedicationRepository
 import com.medreminder.util.DateUtils
@@ -40,6 +41,7 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     private val repository: MedicationRepository,
     private val alarmScheduler: AlarmScheduler,
+    private val userPreferencesManager: UserPreferencesManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -129,12 +131,21 @@ class HomeViewModel @Inject constructor(
 
     private fun updateGreeting() {
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-        val greeting = when {
+        val timeGreeting = when {
             hour < 12 -> context.getString(R.string.greeting_morning)
             hour < 17 -> context.getString(R.string.greeting_afternoon)
             else -> context.getString(R.string.greeting_evening)
         }
-        _uiState.update { it.copy(greeting = greeting) }
+        viewModelScope.launch {
+            userPreferencesManager.userName.collect { name ->
+                val greeting = if (name.isNotBlank()) {
+                    context.getString(R.string.greeting_with_name, timeGreeting, name)
+                } else {
+                    timeGreeting
+                }
+                _uiState.update { it.copy(greeting = greeting) }
+            }
+        }
     }
 
     fun markDoseTaken(logId: Long) {
