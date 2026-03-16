@@ -13,9 +13,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +42,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val expandedGroups = rememberSaveable { mutableStateMapOf<String, Boolean>() }
 
     LaunchedEffect(Unit) { viewModel.generateTodayDoses() }
 
@@ -152,22 +155,30 @@ fun HomeScreen(
         if (hasMultipleGroups) {
             // Show grouped sections when there are multiple users
             groups.forEach { group ->
-                item(key = "header_${group.userId ?: "self"}") {
+                val groupKey = group.userId?.toString() ?: "self"
+                val isExpanded = expandedGroups.getOrDefault(groupKey, true)
+
+                item(key = "header_$groupKey") {
                     UserSectionHeader(
                         userName = group.userName,
                         isSelf = group.userId == null,
                         takenCount = group.takenCount,
-                        totalCount = group.totalCount
+                        totalCount = group.totalCount,
+                        expanded = isExpanded,
+                        onToggle = { expandedGroups[groupKey] = !isExpanded }
                     )
                 }
-                items(group.doses, key = { it.id }) { dose ->
-                    DoseCard(
-                        dose = dose,
-                        onTaken = { viewModel.markDoseTaken(dose.id) },
-                        onSkip = { viewModel.markDoseSkipped(dose.id) },
-                        onSnooze = { viewModel.snoozeDose(dose) },
-                        onEdit = { onEditMedication(dose.medicationId) }
-                    )
+
+                if (isExpanded) {
+                    items(group.doses, key = { it.id }) { dose ->
+                        DoseCard(
+                            dose = dose,
+                            onTaken = { viewModel.markDoseTaken(dose.id) },
+                            onSkip = { viewModel.markDoseSkipped(dose.id) },
+                            onSnooze = { viewModel.snoozeDose(dose) },
+                            onEdit = { onEditMedication(dose.medicationId) }
+                        )
+                    }
                 }
             }
         } else {
@@ -193,10 +204,28 @@ fun UserSectionHeader(
     userName: String,
     isSelf: Boolean,
     takenCount: Int,
-    totalCount: Int
+    totalCount: Int,
+    expanded: Boolean = true,
+    onToggle: () -> Unit = {}
 ) {
+    val accentColor = if (isSelf) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.tertiary
+    val progress = if (totalCount > 0) takenCount.toFloat() / totalCount else 0f
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(600, easing = FastOutSlowInEasing),
+        label = "userProgress"
+    )
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(300),
+        label = "chevron"
+    )
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() },
         colors = CardDefaults.cardColors(
             containerColor = if (isSelf)
                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
@@ -205,58 +234,76 @@ fun UserSectionHeader(
         ),
         shape = RoundedCornerShape(14.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(
-                            if (isSelf) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                            else MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Icon(
-                        imageVector = if (isSelf) Icons.Default.Person else Icons.Default.Face,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = if (isSelf) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.tertiary
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                accentColor.copy(alpha = 0.15f),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isSelf) Icons.Default.Person else Icons.Default.Face,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = accentColor
+                        )
+                    }
+                    Text(
+                        text = userName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 140.dp)
                     )
                 }
-                Text(
-                    text = userName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = 180.dp)
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = accentColor.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = stringResource(R.string.taken_of_total_short, takenCount, totalCount),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = accentColor
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowUp,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    modifier = Modifier
+                        .size(24.dp)
+                        .graphicsLayer { rotationZ = rotationAngle },
+                    tint = accentColor
                 )
             }
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = if (isSelf) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                else MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
-            ) {
-                Text(
-                    text = stringResource(R.string.taken_of_total_short, takenCount, totalCount),
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (isSelf) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.tertiary
-                )
-            }
+
+            // Per-user progress bar
+            Spacer(modifier = Modifier.height(10.dp))
+            LinearProgressIndicator(
+                progress = { animatedProgress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp)),
+                trackColor = accentColor.copy(alpha = 0.15f),
+                color = accentColor
+            )
         }
     }
 }

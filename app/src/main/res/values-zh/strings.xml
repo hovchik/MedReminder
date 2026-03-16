@@ -8,6 +8,7 @@
     <string name="greeting_morning">早上好</string>
     <string name="greeting_afternoon">下午好</string>
     <string name="greeting_evening">晚上好</string>
+    <string name="greeting_with_name">%1$s，%2$s</string>
     <string name="refill_needed">需要补充</string>
     <string name="today_medications">今日药物</string>
     <string name="my_medications_label">我的药物</string>
