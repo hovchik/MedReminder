@@ -110,4 +110,13 @@ interface DoseLogDao {
 
     @Query("DELETE FROM dose_logs")
     suspend fun deleteAllDoseLogs()
+
+    @Query("""
+        SELECT * FROM dose_logs
+        WHERE scheduleId = :scheduleId
+        AND scheduledTime BETWEEN :windowStart AND :windowEnd
+        AND status IN ('pending', 'snoozed')
+        LIMIT 1
+    """)
+    suspend fun findActiveDoseLogForSchedule(scheduleId: Long, windowStart: Long, windowEnd: Long): DoseLogEntity?
 }
