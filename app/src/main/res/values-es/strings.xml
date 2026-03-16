@@ -10,6 +10,9 @@
     <string name="greeting_evening">Buenas noches</string>
     <string name="refill_needed">Recarga necesaria</string>
     <string name="today_medications">Medicamentos de hoy</string>
+    <string name="my_medications_label">Mis medicamentos</string>
+    <string name="persons_medications">Medicamentos de %1$s</string>
+    <string name="taken_of_total_short">%1$d de %2$d tomados</string>
     <string name="add">Agregar</string>
     <string name="medications_taken_today">medicamentos tomados hoy</string>
     <string name="percent_complete">%1$d%% completado</string>

@@ -10,6 +10,9 @@
     <string name="greeting_evening">Добрый вечер</string>
     <string name="refill_needed">Необходимо пополнить</string>
     <string name="today_medications">Лекарства на сегодня</string>
+    <string name="my_medications_label">Мои лекарства</string>
+    <string name="persons_medications">Лекарства: %1$s</string>
+    <string name="taken_of_total_short">Принято %1$d из %2$d</string>
     <string name="add">Добавить</string>
     <string name="medications_taken_today">лекарств принято сегодня</string>
     <string name="percent_complete">%1$d%% выполнено</string>

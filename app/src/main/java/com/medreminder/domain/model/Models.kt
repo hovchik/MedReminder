@@ -102,7 +102,9 @@ data class DoseLog(
     val notes: String = "",
     val medicationName: String = "",
     val medicationDosage: String = "",
-    val medicationColor: String = "#4A90D9"
+    val medicationColor: String = "#4A90D9",
+    val assignedToId: Long? = null,
+    val assignedToName: String = ""
 )
 
 enum class DoseStatus(val displayName: String) {
