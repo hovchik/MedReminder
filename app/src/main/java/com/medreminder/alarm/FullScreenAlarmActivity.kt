@@ -39,6 +39,18 @@ import java.util.*
 
 class FullScreenAlarmActivity : ComponentActivity() {
 
+    companion object {
+        private var currentInstance: FullScreenAlarmActivity? = null
+
+        /** Called from TakenReceiver / SnoozeReceiver to dismiss the alarm screen. */
+        fun finishIfShowing() {
+            currentInstance?.let {
+                it.stopAlarm()
+                it.finish()
+            }
+        }
+    }
+
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private var doseLogId: Long = -1
@@ -50,6 +62,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        currentInstance = this
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
@@ -179,6 +192,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        if (currentInstance == this) currentInstance = null
         stopAlarm()
         super.onDestroy()
     }
