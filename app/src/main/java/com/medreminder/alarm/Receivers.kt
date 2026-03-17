@@ -35,6 +35,7 @@ class SnoozeReceiver : BroadcastReceiver() {
                 nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogId.toInt())
 
                 withContext(Dispatchers.Main) {
+                    FullScreenAlarmActivity.finishIfShowing()
                     Toast.makeText(context, context.getString(R.string.snoozed_10m), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
@@ -69,6 +70,7 @@ class TakenReceiver : BroadcastReceiver() {
                 nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogId.toInt())
 
                 withContext(Dispatchers.Main) {
+                    FullScreenAlarmActivity.finishIfShowing()
                     Toast.makeText(context, context.getString(R.string.marked_as_taken, name), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
