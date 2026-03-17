@@ -11,12 +11,13 @@ import com.medreminder.R
 import com.medreminder.ai.local.InstallState
 import com.medreminder.ai.local.LocalAiModel
 import com.medreminder.ai.local.RuntimeType
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import java.io.File
+import java.io.IOException
 import java.io.RandomAccessFile
 import java.net.HttpURLConnection
 import java.net.URL
@@ -50,11 +51,14 @@ class ModelDownloadWorker @AssistedInject constructor(
 
         private const val NOTIFICATION_CHANNEL_ID = "model_download"
         private const val NOTIFICATION_ID = 9001
-        private const val BUFFER_SIZE = 64 * 1024
+        private const val BUFFER_SIZE = 256 * 1024
         private const val MAX_RETRIES = 4
         private const val CONNECT_TIMEOUT_MS = 15_000
         private const val READ_TIMEOUT_MS = 30_000
         private const val PROGRESS_UPDATE_INTERVAL_MS = 500L
+        private const val CHUNK_CONNECTIONS_WIFI = 4
+        private const val CHUNK_CONNECTIONS_MOBILE = 2
+        private const val MIN_CHUNK_SIZE = 2L * 1024 * 1024
 
         fun buildWorkRequest(model: LocalAiModel): OneTimeWorkRequest {
             val inputData = Data.Builder()
@@ -150,6 +154,139 @@ class ModelDownloadWorker @AssistedInject constructor(
         Result.failure()
     }
 
+    private fun isWifiConnected(): Boolean {
+        return try {
+            val cm = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network = cm.activeNetwork ?: return false
+            val caps = cm.getNetworkCapabilities(network) ?: return false
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Probes the server via HEAD to resolve redirects and check Range support.
+     */
+    private fun probeDownload(downloadUrl: String, expectedSizeMb: Long): Triple<String, Long, Boolean> {
+        var url = downloadUrl
+        var supportsRange = false
+        var totalBytes = expectedSizeMb * 1024 * 1024
+
+        var connection: HttpURLConnection? = null
+        try {
+            connection = (URL(url).openConnection() as HttpURLConnection).apply {
+                connectTimeout = CONNECT_TIMEOUT_MS
+                readTimeout = READ_TIMEOUT_MS
+                requestMethod = "HEAD"
+                instanceFollowRedirects = true
+                setRequestProperty("User-Agent", "MedReminder/1.0")
+                setRequestProperty("Range", "bytes=0-0")
+            }
+            val code = connection.responseCode
+            val finalUrl = connection.url?.toString() ?: url
+            url = finalUrl
+
+            when (code) {
+                HttpURLConnection.HTTP_PARTIAL, 206 -> {
+                    supportsRange = true
+                    val contentRange = connection.getHeaderField("Content-Range")
+                    val fullSize = contentRange?.substringAfter("/", "")?.toLongOrNull()
+                    if (fullSize != null && fullSize > 0) totalBytes = fullSize
+                }
+                HttpURLConnection.HTTP_OK -> {
+                    val acceptRanges = connection.getHeaderField("Accept-Ranges")
+                    supportsRange = acceptRanges?.contains("bytes", ignoreCase = true) == true
+                    val cl = connection.getHeaderField("Content-Length")?.toLongOrNull()
+                    if (cl != null && cl > 0) totalBytes = cl
+                }
+            }
+        } catch (_: Exception) {
+            // Fall back to single-stream
+        } finally {
+            connection?.disconnect()
+        }
+
+        return Triple(url, totalBytes, supportsRange)
+    }
+
+    private fun openRangeConnection(url: String, rangeStart: Long, rangeEnd: Long): HttpURLConnection {
+        var connection = (URL(url).openConnection() as HttpURLConnection).apply {
+            connectTimeout = CONNECT_TIMEOUT_MS
+            readTimeout = READ_TIMEOUT_MS
+            requestMethod = "GET"
+            instanceFollowRedirects = true
+            setRequestProperty("User-Agent", "MedReminder/1.0")
+            setRequestProperty("Range", "bytes=$rangeStart-$rangeEnd")
+        }
+        val code = connection.responseCode
+        if (code in 301..308) {
+            val loc = connection.getHeaderField("Location")
+            connection.disconnect()
+            if (loc != null) {
+                connection = (URL(loc).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = CONNECT_TIMEOUT_MS
+                    readTimeout = READ_TIMEOUT_MS
+                    requestMethod = "GET"
+                    instanceFollowRedirects = true
+                    setRequestProperty("User-Agent", "MedReminder/1.0")
+                    setRequestProperty("Range", "bytes=$rangeStart-$rangeEnd")
+                }
+            }
+        }
+        return connection
+    }
+
+    /**
+     * Downloads a single chunk of the file.
+     */
+    private fun downloadChunk(
+        url: String,
+        chunkFile: File,
+        rangeStart: Long,
+        rangeEnd: Long,
+        chunkBytesWritten: LongArray,
+        chunkIndex: Int
+    ): Boolean {
+        val existingBytes = if (chunkFile.exists()) chunkFile.length() else 0L
+        val actualStart = rangeStart + existingBytes
+        if (actualStart > rangeEnd) {
+            chunkBytesWritten[chunkIndex] = rangeEnd - rangeStart + 1
+            return true
+        }
+
+        var connection: HttpURLConnection? = null
+        try {
+            connection = openRangeConnection(url, actualStart, rangeEnd)
+            val code = connection.responseCode
+            if (code != HttpURLConnection.HTTP_PARTIAL && code != HttpURLConnection.HTTP_OK) {
+                throw IOException("HTTP $code for chunk $chunkIndex")
+            }
+
+            val inputStream = connection.inputStream ?: throw IOException("No data for chunk $chunkIndex")
+            val raf = RandomAccessFile(chunkFile, "rw")
+            raf.seek(existingBytes)
+
+            try {
+                val buffer = ByteArray(BUFFER_SIZE)
+                var written = existingBytes
+                var bytesRead: Int
+                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                    if (isStopped) return false
+                    raf.write(buffer, 0, bytesRead)
+                    written += bytesRead
+                    chunkBytesWritten[chunkIndex] = written
+                }
+            } finally {
+                try { raf.close() } catch (_: Exception) {}
+                try { inputStream.close() } catch (_: Exception) {}
+            }
+            return true
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
     private suspend fun performDownload(
         url: String,
         partialFile: File,
@@ -157,7 +294,122 @@ class ModelDownloadWorker @AssistedInject constructor(
         modelId: String,
         modelName: String,
         expectedSizeMb: Long
-    ): Boolean {
+    ): Boolean = withContext(Dispatchers.IO) {
+        // Probe for Range support and total size
+        val (resolvedUrl, totalBytes, supportsRange) = probeDownload(url, expectedSizeMb)
+
+        if (totalBytes <= 0) {
+            throw IOException("Cannot determine file size")
+        }
+
+        val remainingBytes = totalBytes - resumeOffset
+        val maxConnections = if (isWifiConnected()) CHUNK_CONNECTIONS_WIFI else CHUNK_CONNECTIONS_MOBILE
+        val useChunked = supportsRange && remainingBytes > MIN_CHUNK_SIZE * 2 && maxConnections > 1
+
+        if (!useChunked) {
+            // Single-stream fallback
+            return@withContext singleStreamDownload(
+                resolvedUrl, partialFile, resumeOffset, totalBytes, modelId, modelName
+            )
+        }
+
+        // Split into chunks
+        val chunkCount = maxConnections.coerceAtMost(
+            (remainingBytes / MIN_CHUNK_SIZE).toInt().coerceAtLeast(1)
+        )
+        val chunkSize = remainingBytes / chunkCount
+
+        data class Chunk(val index: Int, val start: Long, val end: Long)
+        val chunks = (0 until chunkCount).map { i ->
+            val start = resumeOffset + i * chunkSize
+            val end = if (i == chunkCount - 1) totalBytes - 1 else start + chunkSize - 1
+            Chunk(i, start, end)
+        }
+        val chunkFiles = chunks.map { c ->
+            File(partialFile.parent, "${partialFile.name}.chunk${c.index}")
+        }
+        val chunkBytesWritten = LongArray(chunkCount) { i ->
+            if (chunkFiles[i].exists()) chunkFiles[i].length() else 0L
+        }
+
+        // Progress reporting coroutine
+        val progressJob = launch {
+            var lastSpeedTime = System.currentTimeMillis()
+            var lastSpeedBytes = chunkBytesWritten.sum() + resumeOffset
+            while (isActive) {
+                delay(PROGRESS_UPDATE_INTERVAL_MS)
+                val totalWritten = chunkBytesWritten.sum() + resumeOffset
+                val now = System.currentTimeMillis()
+                val timeDelta = now - lastSpeedTime
+                val speed = if (timeDelta > 0) ((totalWritten - lastSpeedBytes) * 1000) / timeDelta else 0L
+                lastSpeedTime = now
+                lastSpeedBytes = totalWritten
+                val progress = if (totalBytes > 0) ((totalWritten * 100) / totalBytes).toInt() else 0
+
+                setProgressAsync(
+                    Data.Builder()
+                        .putInt(KEY_PROGRESS, progress)
+                        .putLong(KEY_DOWNLOADED_BYTES, totalWritten)
+                        .putLong(KEY_TOTAL_BYTES, totalBytes)
+                        .putLong(KEY_SPEED, speed)
+                        .build()
+                )
+                showProgressNotification(modelName, progress, speed)
+            }
+        }
+
+        var allSuccess = true
+        try {
+            val deferreds = chunks.map { chunk ->
+                async {
+                    downloadChunk(
+                        resolvedUrl, chunkFiles[chunk.index],
+                        chunk.start, chunk.end,
+                        chunkBytesWritten, chunk.index
+                    )
+                }
+            }
+            for (d in deferreds) {
+                if (!d.await()) {
+                    allSuccess = false
+                    break
+                }
+            }
+        } finally {
+            progressJob.cancel()
+        }
+
+        if (!allSuccess || isStopped) return@withContext false
+
+        // Merge chunks
+        RandomAccessFile(partialFile, "rw").use { raf ->
+            for (i in chunks.indices) {
+                raf.seek(chunks[i].start)
+                chunkFiles[i].inputStream().buffered(BUFFER_SIZE).use { input ->
+                    val buffer = ByteArray(BUFFER_SIZE)
+                    var bytesRead: Int
+                    while (input.read(buffer).also { bytesRead = it } != -1) {
+                        raf.write(buffer, 0, bytesRead)
+                    }
+                }
+                chunkFiles[i].delete()
+            }
+        }
+
+        return@withContext true
+    }
+
+    /**
+     * Single-stream download fallback when server doesn't support Range or file is small.
+     */
+    private suspend fun singleStreamDownload(
+        url: String,
+        partialFile: File,
+        resumeOffset: Long,
+        totalBytes: Long,
+        modelId: String,
+        modelName: String
+    ): Boolean = withContext(Dispatchers.IO) {
         var connection: HttpURLConnection? = null
         try {
             connection = (URL(url).openConnection() as HttpURLConnection).apply {
@@ -170,27 +422,13 @@ class ModelDownloadWorker @AssistedInject constructor(
             }
 
             val responseCode = connection.responseCode
-
-            val totalBytes: Long
-            val startOffset: Long
-
-            when (responseCode) {
-                HttpURLConnection.HTTP_PARTIAL -> {
-                    startOffset = resumeOffset
-                    val contentLength = connection.getHeaderField("Content-Length")?.toLongOrNull() ?: 0L
-                    totalBytes = startOffset + contentLength
-                }
+            val startOffset: Long = when (responseCode) {
+                HttpURLConnection.HTTP_PARTIAL -> resumeOffset
                 HttpURLConnection.HTTP_OK -> {
-                    startOffset = 0L
-                    totalBytes = connection.getHeaderField("Content-Length")?.toLongOrNull()
-                        ?: (expectedSizeMb * 1024 * 1024)
-                    if (resumeOffset > 0) {
-                        partialFile.delete()
-                    }
+                    if (resumeOffset > 0) partialFile.delete()
+                    0L
                 }
-                else -> {
-                    throw java.io.IOException("HTTP $responseCode: ${connection.responseMessage}")
-                }
+                else -> throw IOException("HTTP $responseCode: ${connection.responseMessage}")
             }
 
             val inputStream = connection.inputStream
@@ -206,11 +444,7 @@ class ModelDownloadWorker @AssistedInject constructor(
 
             try {
                 while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                    if (isStopped) {
-                        raf.close()
-                        return false
-                    }
-
+                    if (isStopped) return@withContext false
                     raf.write(buffer, 0, bytesRead)
                     bytesWritten += bytesRead
 
@@ -222,10 +456,7 @@ class ModelDownloadWorker @AssistedInject constructor(
                         } else 0L
                         lastSpeedTime = now
                         lastSpeedBytes = bytesWritten
-
-                        val progress = if (totalBytes > 0) {
-                            ((bytesWritten * 100) / totalBytes).toInt()
-                        } else 0
+                        val progress = if (totalBytes > 0) ((bytesWritten * 100) / totalBytes).toInt() else 0
 
                         setProgressAsync(
                             Data.Builder()
@@ -235,20 +466,15 @@ class ModelDownloadWorker @AssistedInject constructor(
                                 .putLong(KEY_SPEED, speed)
                                 .build()
                         )
-
                         showProgressNotification(modelName, progress, speed)
                         lastUpdate = now
                     }
                 }
-
-                raf.close()
             } finally {
                 try { raf.close() } catch (_: Exception) {}
                 try { inputStream.close() } catch (_: Exception) {}
             }
-
-            return !isStopped
-
+            return@withContext !isStopped
         } finally {
             connection?.disconnect()
         }
