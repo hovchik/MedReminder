@@ -113,6 +113,14 @@ interface DoseLogDao {
 
     @Query("""
         SELECT * FROM dose_logs
+        WHERE status IN ('pending', 'snoozed')
+        AND scheduledTime BETWEEN :windowStart AND :windowEnd
+        ORDER BY scheduledTime ASC
+    """)
+    suspend fun getPendingDoseLogsInWindow(windowStart: Long, windowEnd: Long): List<DoseLogEntity>
+
+    @Query("""
+        SELECT * FROM dose_logs
         WHERE scheduleId = :scheduleId
         AND scheduledTime BETWEEN :windowStart AND :windowEnd
         AND status IN ('pending', 'snoozed')

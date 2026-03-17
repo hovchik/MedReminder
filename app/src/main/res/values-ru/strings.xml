@@ -131,6 +131,11 @@
     <string name="time_to_take_med">Время принять %1$s</string>
     <string name="snoozed_10m">Отложено на 10 минут</string>
     <string name="marked_as_taken">%1$s отмечено как принято</string>
+    <string name="all_marked_as_taken">Все лекарства отмечены как принятые</string>
+    <string name="medications_count">%1$d Препаратов</string>
+    <string name="i_took_all">Я принял все</string>
+    <string name="skip_all">Пропустить все</string>
+    <string name="time_to_take_meds_count">Время принять %1$d препаратов</string>
     <string name="scan_medication">Сканировать лекарство</string>
     <string name="scan_instruction">Наведите камеру на этикетку лекарства или рецепт</string>
     <string name="scanning">Сканирование…</string>

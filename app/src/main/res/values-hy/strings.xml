@@ -131,6 +131,11 @@
     <string name="time_to_take_med">Պետք է ընդունել %1$s</string>
     <string name="snoozed_10m">Հետաձգված է 10 րոպե</string>
     <string name="marked_as_taken">%1$s նշված է ընդունված</string>
+    <string name="all_marked_as_taken">Բոլոր դեղերը նշված են ընդունված</string>
+    <string name="medications_count">%1$d Դեղեր</string>
+    <string name="i_took_all">Բոլորը ընդունեցի</string>
+    <string name="skip_all">Բոլորը բաց թողնել</string>
+    <string name="time_to_take_meds_count">Պետք է ընդունել %1$d դեղ</string>
     <string name="scan_medication">Սկանավորել դեղը</string>
     <string name="scan_instruction">Ուղղեք տեսախցիկը դեղի պիտակին</string>
     <string name="scanning">Սկանավորում…</string>

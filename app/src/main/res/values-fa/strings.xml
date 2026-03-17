@@ -131,6 +131,11 @@
     <string name="time_to_take_med">وقت مصرف %1$s</string>
     <string name="snoozed_10m">10 دقیقه به تعویق افتاد</string>
     <string name="marked_as_taken">%1$s مصرف شده علامت خورد</string>
+    <string name="all_marked_as_taken">همه داروها مصرف شده علامت خوردند</string>
+    <string name="medications_count">%1$d دارو</string>
+    <string name="i_took_all">همه را مصرف کردم</string>
+    <string name="skip_all">رد شدن از همه</string>
+    <string name="time_to_take_meds_count">وقت مصرف %1$d دارو</string>
     <string name="scan_medication">اسکن دارو</string>
     <string name="scan_instruction">دوربین را به سمت برچسب دارو بگیرید</string>
     <string name="scanning">در حال اسکن…</string>

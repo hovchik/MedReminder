@@ -131,6 +131,11 @@
     <string name="time_to_take_med">该服用 %1$s 了</string>
     <string name="snoozed_10m">已推迟 10 分钟</string>
     <string name="marked_as_taken">%1$s 已标记为已服用</string>
+    <string name="all_marked_as_taken">所有药物已标记为已服用</string>
+    <string name="medications_count">%1$d 种药物</string>
+    <string name="i_took_all">我已全部服用</string>
+    <string name="skip_all">全部跳过</string>
+    <string name="time_to_take_meds_count">该服用 %1$d 种药物了</string>
     <string name="scan_medication">扫描药物</string>
     <string name="scan_instruction">将相机对准药物标签或处方</string>
     <string name="scanning">扫描中…</string>

@@ -131,6 +131,11 @@
     <string name="time_to_take_med">Hora de tomar %1$s</string>
     <string name="snoozed_10m">Pospuesto 10 minutos</string>
     <string name="marked_as_taken">%1$s marcado como tomado</string>
+    <string name="all_marked_as_taken">Todos los medicamentos marcados como tomados</string>
+    <string name="medications_count">%1$d Medicamentos</string>
+    <string name="i_took_all">Tomé todos</string>
+    <string name="skip_all">Omitir todos</string>
+    <string name="time_to_take_meds_count">Hora de tomar %1$d medicamentos</string>
     <string name="scan_medication">Escanear medicamento</string>
     <string name="scan_instruction">Apunta la cámara a la etiqueta del medicamento o receta</string>
     <string name="scanning">Escaneando…</string>

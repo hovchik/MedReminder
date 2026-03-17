@@ -23,7 +23,9 @@ class AlarmReceiver : BroadcastReceiver() {
         const val CHANNEL_ID = "medication_alarm"
         const val CHANNEL_NAME = "Medication Alarms"
         const val NOTIFICATION_ID_BASE = 10000
+        const val COMBINED_NOTIFICATION_ID = 9999
         const val TAG = "AlarmReceiver"
+        private const val TOLERANCE_MINUTES = 2L
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -62,12 +64,62 @@ class AlarmReceiver : BroadcastReceiver() {
                     )
                 }
 
+                // Query for all concurrent pending dose logs within tolerance window
+                val now = System.currentTimeMillis()
+                val windowStart = now - TOLERANCE_MINUTES * 60 * 1000
+                val windowEnd = now + TOLERANCE_MINUTES * 60 * 1000
+                val concurrentDoseLogs = db.doseLogDao().getPendingDoseLogsInWindow(windowStart, windowEnd)
+
+                // Build arrays of medication data for all concurrent alarms
+                val doseLogIds = mutableListOf<Long>()
+                val scheduleIds = mutableListOf<Long>()
+                val medicationIds = mutableListOf<Long>()
+                val medicationNames = mutableListOf<String>()
+                val medicationDosages = mutableListOf<String>()
+                val medicationColors = mutableListOf<String>()
+
+                for (doseLog in concurrentDoseLogs) {
+                    val med = db.medicationDao().getMedicationById(doseLog.medicationId)
+                    if (med != null && med.isActive) {
+                        doseLogIds.add(doseLog.id)
+                        scheduleIds.add(doseLog.scheduleId)
+                        medicationIds.add(doseLog.medicationId)
+                        medicationNames.add(med.name)
+                        medicationDosages.add("${med.dosage} ${med.dosageUnit}")
+                        medicationColors.add(med.color)
+                    }
+                }
+
+                // Fallback: if query returned nothing (edge case), use the current alarm data
+                if (doseLogIds.isEmpty()) {
+                    doseLogIds.add(doseLogId)
+                    scheduleIds.add(scheduleId)
+                    medicationIds.add(medicationId)
+                    medicationNames.add(medicationName)
+                    medicationDosages.add(medicationDosage)
+                    medicationColors.add(medicationColor)
+                }
+
                 withContext(Dispatchers.Main) {
                     createNotificationChannel(context)
-                    showFullScreenAlarm(context, doseLogId, scheduleId, medicationId,
-                        medicationName, medicationDosage, medicationColor)
-                    showNotification(context, doseLogId, scheduleId, medicationId,
-                        medicationName, medicationDosage)
+                    showFullScreenAlarm(
+                        context,
+                        doseLogIds.toLongArray(),
+                        scheduleIds.toLongArray(),
+                        medicationIds.toLongArray(),
+                        medicationNames.toTypedArray(),
+                        medicationDosages.toTypedArray(),
+                        medicationColors.toTypedArray()
+                    )
+                    showNotification(
+                        context,
+                        doseLogIds.toLongArray(),
+                        scheduleIds.toLongArray(),
+                        medicationIds.toLongArray(),
+                        medicationNames.toTypedArray(),
+                        medicationDosages.toTypedArray(),
+                        medicationColors.toTypedArray()
+                    )
                 }
 
                 // Reschedule for next occurrence
@@ -105,75 +157,102 @@ class AlarmReceiver : BroadcastReceiver() {
 
     private fun showFullScreenAlarm(
         context: Context,
-        doseLogId: Long,
-        scheduleId: Long,
-        medicationId: Long,
-        name: String,
-        dosage: String,
-        color: String
+        doseLogIds: LongArray,
+        scheduleIds: LongArray,
+        medicationIds: LongArray,
+        names: Array<String>,
+        dosages: Array<String>,
+        colors: Array<String>
     ) {
         val alarmIntent = Intent(context, FullScreenAlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_NO_USER_ACTION or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(AlarmScheduler.EXTRA_DOSE_LOG_ID, doseLogId)
-            putExtra(AlarmScheduler.EXTRA_SCHEDULE_ID, scheduleId)
-            putExtra(AlarmScheduler.EXTRA_MEDICATION_ID, medicationId)
-            putExtra(AlarmScheduler.EXTRA_MEDICATION_NAME, name)
-            putExtra(AlarmScheduler.EXTRA_MEDICATION_DOSAGE, dosage)
-            putExtra(AlarmScheduler.EXTRA_MEDICATION_COLOR, color)
+            putExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS, doseLogIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_SCHEDULE_IDS, scheduleIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_IDS, medicationIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_NAMES, names)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_DOSAGES, dosages)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_COLORS, colors)
         }
         context.startActivity(alarmIntent)
     }
 
     private fun showNotification(
         context: Context,
-        doseLogId: Long,
-        scheduleId: Long,
-        medicationId: Long,
-        name: String,
-        dosage: String
+        doseLogIds: LongArray,
+        scheduleIds: LongArray,
+        medicationIds: LongArray,
+        names: Array<String>,
+        dosages: Array<String>,
+        colors: Array<String>
     ) {
+        val notificationId = if (doseLogIds.size > 1) {
+            COMBINED_NOTIFICATION_ID
+        } else {
+            NOTIFICATION_ID_BASE + doseLogIds.first().toInt()
+        }
+
         // Taken action
         val takenIntent = Intent(context, TakenReceiver::class.java).apply {
-            putExtra(AlarmScheduler.EXTRA_DOSE_LOG_ID, doseLogId)
-            putExtra(AlarmScheduler.EXTRA_MEDICATION_NAME, name)
+            putExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS, doseLogIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_IDS, medicationIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_NAMES, names)
         }
         val takenPending = PendingIntent.getBroadcast(
-            context, (doseLogId * 10).toInt(), takenIntent,
+            context, notificationId * 10, takenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         // Snooze action
         val snoozeIntent = Intent(context, SnoozeReceiver::class.java).apply {
-            putExtra(AlarmScheduler.EXTRA_DOSE_LOG_ID, doseLogId)
-            putExtra(AlarmScheduler.EXTRA_SCHEDULE_ID, scheduleId)
-            putExtra(AlarmScheduler.EXTRA_MEDICATION_ID, medicationId)
-            putExtra(AlarmScheduler.EXTRA_MEDICATION_NAME, name)
-            putExtra(AlarmScheduler.EXTRA_MEDICATION_DOSAGE, dosage)
+            putExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS, doseLogIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_SCHEDULE_IDS, scheduleIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_IDS, medicationIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_NAMES, names)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_DOSAGES, dosages)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_COLORS, colors)
         }
         val snoozePending = PendingIntent.getBroadcast(
-            context, (doseLogId * 10 + 1).toInt(), snoozeIntent,
+            context, notificationId * 10 + 1, snoozeIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         // Full-screen intent
         val fullScreenIntent = Intent(context, FullScreenAlarmActivity::class.java).apply {
-            putExtra(AlarmScheduler.EXTRA_DOSE_LOG_ID, doseLogId)
-            putExtra(AlarmScheduler.EXTRA_SCHEDULE_ID, scheduleId)
-            putExtra(AlarmScheduler.EXTRA_MEDICATION_ID, medicationId)
-            putExtra(AlarmScheduler.EXTRA_MEDICATION_NAME, name)
-            putExtra(AlarmScheduler.EXTRA_MEDICATION_DOSAGE, dosage)
+            putExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS, doseLogIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_SCHEDULE_IDS, scheduleIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_IDS, medicationIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_NAMES, names)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_DOSAGES, dosages)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_COLORS, colors)
         }
         val fullScreenPending = PendingIntent.getActivity(
-            context, (doseLogId * 10 + 2).toInt(), fullScreenIntent,
+            context, notificationId * 10 + 2, fullScreenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val title = if (names.size > 1) {
+            context.getString(R.string.time_to_take_meds_count, names.size)
+        } else {
+            context.getString(R.string.time_to_take_med, names.first())
+        }
+        val contentText = if (names.size > 1) {
+            names.joinToString(", ")
+        } else {
+            dosages.first()
+        }
+
+        // Cancel any previous individual notifications for these dose logs
+        val manager = context.getSystemService(NotificationManager::class.java)
+        for (id in doseLogIds) {
+            manager.cancel(NOTIFICATION_ID_BASE + id.toInt())
+        }
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_pill)
-            .setContentTitle(context.getString(R.string.time_to_take_med, name))
-            .setContentText(dosage)
+            .setContentTitle(title)
+            .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -186,7 +265,6 @@ class AlarmReceiver : BroadcastReceiver() {
             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
             .build()
 
-        val manager = context.getSystemService(NotificationManager::class.java)
-        manager.notify(NOTIFICATION_ID_BASE + doseLogId.toInt(), notification)
+        manager.notify(notificationId, notification)
     }
 }
