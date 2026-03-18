@@ -182,13 +182,12 @@ class AiProviderSelector @Inject constructor(
         }
     }
 
-    fun getActiveProvider(): AiProvider {
-        // Synchronous version for UI display
-        return selectBestAvailable()
+    fun getActiveProvider(selectedType: AiProviderType = AiProviderType.AUTO): AiProvider {
+        return resolveProvider(selectedType)
     }
 
-    fun getActiveProviderInfo(): ProviderInfo {
-        val provider = getActiveProvider()
+    fun getActiveProviderInfo(selectedType: AiProviderType = AiProviderType.AUTO): ProviderInfo {
+        val provider = getActiveProvider(selectedType)
         return ProviderInfo(
             type = provider.type,
             displayName = provider.displayName,

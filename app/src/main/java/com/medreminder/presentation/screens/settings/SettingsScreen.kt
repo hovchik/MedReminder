@@ -95,7 +95,8 @@ class SettingsViewModel @Inject constructor(
 
     fun getAllProviders(): List<ProviderInfo> = providerSelector.getAllProviders()
 
-    fun getActiveProviderInfo(): ProviderInfo = providerSelector.getActiveProviderInfo()
+    fun getActiveProviderInfo(selectedType: AiProviderType): ProviderInfo =
+        providerSelector.getActiveProviderInfo(selectedType)
 
     fun setAiProvider(type: AiProviderType) {
         viewModelScope.launch {
@@ -307,7 +308,7 @@ fun SettingsScreen(
     val installedModels by viewModel.installedModels.collectAsStateWithLifecycle()
     val activeModelId by viewModel.activeModelId.collectAsStateWithLifecycle()
     val isLoadingModel by viewModel.isLoadingModel.collectAsStateWithLifecycle()
-    val activeProviderInfo = remember { viewModel.getActiveProviderInfo() }
+    val activeProviderInfo = remember(selectedProvider) { viewModel.getActiveProviderInfo(selectedProvider) }
     val allProviders = remember { viewModel.getAllProviders() }
     var showAiProviderDialog by remember { mutableStateOf(false) }
     var showModelPickerDialog by remember { mutableStateOf(false) }
