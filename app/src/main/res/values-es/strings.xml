@@ -289,4 +289,16 @@
     <string name="permissions_can_change">Puedes cambiar los permisos más tarde en Ajustes</string>
     <string name="permissions">Permisos</string>
     <string name="permissions_settings_subtitle">Gestionar permisos de la app</string>
+
+    <!-- Cloud AI Service -->
+    <string name="cloud_ai_service">Servicio de IA en la nube</string>
+    <string name="select_cloud_service">Seleccionar servicio de IA en la nube</string>
+    <string name="api_key">Clave API</string>
+    <string name="api_key_title">Clave API de %1$s</string>
+    <string name="api_key_hint">Ingresa tu clave API de %1$s para habilitar el análisis en la nube</string>
+    <string name="api_key_configured">Configurada</string>
+    <string name="api_key_not_set">No configurada — toca para configurar</string>
+    <string name="claude_desc">Anthropic Claude — razonamiento avanzado</string>
+    <string name="chatgpt_desc">OpenAI ChatGPT — asistente de IA versátil</string>
+    <string name="deepseek_desc">DeepSeek — eficiente y económico</string>
 </resources>

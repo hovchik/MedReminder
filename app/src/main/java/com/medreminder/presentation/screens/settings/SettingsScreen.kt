@@ -34,6 +34,7 @@ import com.medreminder.BuildConfig
 import com.medreminder.R
 import com.medreminder.ai.AiProviderType
 import com.medreminder.ai.local.AiProviderSelector
+import com.medreminder.ai.local.CloudAiService
 import com.medreminder.ai.local.LocalAiModel
 import com.medreminder.ai.local.ProviderInfo
 import com.medreminder.ai.modelmanager.LocalModelManager
@@ -115,6 +116,26 @@ class SettingsViewModel @Inject constructor(
     fun clearActiveModel() {
         viewModelScope.launch {
             providerSelector.setActiveModelId(null)
+        }
+    }
+
+    // --- Cloud AI service ---
+
+    val selectedCloudService: StateFlow<CloudAiService> = providerSelector.getSelectedCloudService()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CloudAiService.CLAUDE)
+
+    fun setCloudService(service: CloudAiService) {
+        viewModelScope.launch {
+            providerSelector.setSelectedCloudService(service)
+        }
+    }
+
+    fun getApiKeyForService(service: CloudAiService): Flow<String?> =
+        providerSelector.getApiKeyForService(service)
+
+    fun setApiKey(service: CloudAiService, apiKey: String) {
+        viewModelScope.launch {
+            providerSelector.setApiKeyForService(service, apiKey)
         }
     }
 
@@ -290,6 +311,11 @@ fun SettingsScreen(
     val allProviders = remember { viewModel.getAllProviders() }
     var showAiProviderDialog by remember { mutableStateOf(false) }
     var showModelPickerDialog by remember { mutableStateOf(false) }
+    var showCloudServiceDialog by remember { mutableStateOf(false) }
+    var showApiKeyDialog by remember { mutableStateOf(false) }
+    val selectedCloudService by viewModel.selectedCloudService.collectAsStateWithLifecycle()
+    val currentApiKey by viewModel.getApiKeyForService(selectedCloudService)
+        .collectAsStateWithLifecycle(initialValue = null)
 
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val userAge by viewModel.userAge.collectAsStateWithLifecycle()
@@ -340,6 +366,29 @@ fun SettingsScreen(
             onSelectModel = { modelId ->
                 showModelPickerDialog = false
                 viewModel.setActiveModel(modelId)
+            }
+        )
+    }
+
+    if (showCloudServiceDialog) {
+        CloudServiceDialog(
+            currentService = selectedCloudService,
+            onDismiss = { showCloudServiceDialog = false },
+            onSelectService = { service ->
+                showCloudServiceDialog = false
+                viewModel.setCloudService(service)
+            }
+        )
+    }
+
+    if (showApiKeyDialog) {
+        ApiKeyDialog(
+            service = selectedCloudService,
+            currentKey = currentApiKey ?: "",
+            onDismiss = { showApiKeyDialog = false },
+            onSave = { key ->
+                showApiKeyDialog = false
+                viewModel.setApiKey(selectedCloudService, key)
             }
         )
     }
@@ -412,6 +461,27 @@ fun SettingsScreen(
             },
             onClick = { showAiProviderDialog = true }
         )
+
+        // Cloud AI service settings (shown when Cloud is selected)
+        if (selectedProvider == AiProviderType.CLOUD) {
+            SettingsItem(
+                icon = Icons.Default.Cloud,
+                title = stringResource(R.string.cloud_ai_service),
+                subtitle = selectedCloudService.displayName,
+                onClick = { showCloudServiceDialog = true }
+            )
+
+            SettingsItem(
+                icon = Icons.Default.VpnKey,
+                title = stringResource(R.string.api_key),
+                subtitle = if (!currentApiKey.isNullOrBlank()) {
+                    stringResource(R.string.api_key_configured)
+                } else {
+                    stringResource(R.string.api_key_not_set)
+                },
+                onClick = { showApiKeyDialog = true }
+            )
+        }
 
         // Active provider info
         Card(
@@ -1030,5 +1100,105 @@ fun ThemeDialog(
         },
         confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    )
+}
+
+@Composable
+fun CloudServiceDialog(
+    currentService: CloudAiService,
+    onDismiss: () -> Unit,
+    onSelectService: (CloudAiService) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.select_cloud_service)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                CloudAiService.entries.forEach { service ->
+                    val isSelected = currentService == service
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelectService(service) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    service.displayName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    when (service) {
+                                        CloudAiService.CLAUDE -> stringResource(R.string.claude_desc)
+                                        CloudAiService.CHATGPT -> stringResource(R.string.chatgpt_desc)
+                                        CloudAiService.DEEPSEEK -> stringResource(R.string.deepseek_desc)
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    )
+}
+
+@Composable
+fun ApiKeyDialog(
+    service: CloudAiService,
+    currentKey: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var apiKey by remember { mutableStateOf(currentKey) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.api_key_title, service.displayName)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    stringResource(R.string.api_key_hint, service.displayName),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = apiKey,
+                    onValueChange = { apiKey = it },
+                    label = { Text(stringResource(R.string.api_key)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(apiKey.trim()) }) {
+                Text(stringResource(R.string.save_changes))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        }
     )
 }

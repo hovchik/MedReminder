@@ -289,4 +289,16 @@
     <string name="permissions_can_change">Вы можете изменить разрешения позже в Настройках</string>
     <string name="permissions">Разрешения</string>
     <string name="permissions_settings_subtitle">Управление разрешениями приложения</string>
+
+    <!-- Cloud AI Service -->
+    <string name="cloud_ai_service">Облачный ИИ-сервис</string>
+    <string name="select_cloud_service">Выберите облачный ИИ-сервис</string>
+    <string name="api_key">API-ключ</string>
+    <string name="api_key_title">API-ключ %1$s</string>
+    <string name="api_key_hint">Введите API-ключ %1$s для облачного анализа</string>
+    <string name="api_key_configured">Настроено</string>
+    <string name="api_key_not_set">Не задано — нажмите для настройки</string>
+    <string name="claude_desc">Anthropic Claude — продвинутые рассуждения</string>
+    <string name="chatgpt_desc">OpenAI ChatGPT — универсальный ИИ-ассистент</string>
+    <string name="deepseek_desc">DeepSeek — эффективный и экономичный</string>
 </resources>

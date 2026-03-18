@@ -290,4 +290,16 @@
     <string name="permissions_can_change">می‌توانید مجوزها را بعداً در تنظیمات تغییر دهید</string>
     <string name="permissions">مجوزها</string>
     <string name="permissions_settings_subtitle">مدیریت مجوزهای برنامه</string>
+
+    <!-- Cloud AI Service -->
+    <string name="cloud_ai_service">سرویس هوش مصنوعی ابری</string>
+    <string name="select_cloud_service">انتخاب سرویس هوش مصنوعی ابری</string>
+    <string name="api_key">کلید API</string>
+    <string name="api_key_title">کلید API %1$s</string>
+    <string name="api_key_hint">کلید API %1$s را وارد کنید</string>
+    <string name="api_key_configured">پیکربندی شده</string>
+    <string name="api_key_not_set">تنظیم نشده — برای تنظیم لمس کنید</string>
+    <string name="claude_desc">Anthropic Claude — استدلال پیشرفته</string>
+    <string name="chatgpt_desc">OpenAI ChatGPT — دستیار همه‌کاره</string>
+    <string name="deepseek_desc">DeepSeek — کارآمد و مقرون‌به‌صرفه</string>
 </resources>

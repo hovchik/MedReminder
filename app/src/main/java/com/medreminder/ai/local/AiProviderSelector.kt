@@ -20,13 +20,17 @@ private val Context.aiPrefsDataStore: DataStore<Preferences> by preferencesDataS
 @Singleton
 class AiProviderSelector @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val cloudProvider: CloudClaudeAiProvider,
+    private val cloudProvider: CloudAiProvider,
     private val systemAiProvider: SystemAiProvider,
     private val customLocalProvider: CustomLocalModelProvider
 ) {
     companion object {
         private val KEY_SELECTED_PROVIDER = stringPreferencesKey("selected_ai_provider")
         private val KEY_ACTIVE_MODEL_ID = stringPreferencesKey("active_local_model_id")
+        private val KEY_CLOUD_SERVICE = stringPreferencesKey("cloud_ai_service")
+        private val KEY_API_KEY_CLAUDE = stringPreferencesKey("api_key_claude")
+        private val KEY_API_KEY_CHATGPT = stringPreferencesKey("api_key_chatgpt")
+        private val KEY_API_KEY_DEEPSEEK = stringPreferencesKey("api_key_deepseek")
     }
 
     fun getSelectedProviderType(): Flow<AiProviderType> =
@@ -67,6 +71,71 @@ class AiProviderSelector @Inject constructor(
         }
     }
 
+    // --- Cloud AI service selection ---
+
+    fun getSelectedCloudService(): Flow<CloudAiService> =
+        context.aiPrefsDataStore.data.map { prefs ->
+            val value = prefs[KEY_CLOUD_SERVICE] ?: CloudAiService.CLAUDE.name
+            try {
+                CloudAiService.valueOf(value)
+            } catch (_: Exception) {
+                CloudAiService.CLAUDE
+            }
+        }
+
+    suspend fun setSelectedCloudService(service: CloudAiService) {
+        context.aiPrefsDataStore.edit { prefs ->
+            prefs[KEY_CLOUD_SERVICE] = service.name
+        }
+        cloudProvider.setService(service)
+        // Load the API key for this service
+        val key = getApiKeyForService(service).first()
+        if (!key.isNullOrBlank()) {
+            cloudProvider.setApiKey(key)
+        }
+    }
+
+    fun getApiKeyForService(service: CloudAiService): Flow<String?> =
+        context.aiPrefsDataStore.data.map { prefs ->
+            when (service) {
+                CloudAiService.CLAUDE -> prefs[KEY_API_KEY_CLAUDE]
+                CloudAiService.CHATGPT -> prefs[KEY_API_KEY_CHATGPT]
+                CloudAiService.DEEPSEEK -> prefs[KEY_API_KEY_DEEPSEEK]
+            }
+        }
+
+    suspend fun setApiKeyForService(service: CloudAiService, apiKey: String) {
+        context.aiPrefsDataStore.edit { prefs ->
+            val key = when (service) {
+                CloudAiService.CLAUDE -> KEY_API_KEY_CLAUDE
+                CloudAiService.CHATGPT -> KEY_API_KEY_CHATGPT
+                CloudAiService.DEEPSEEK -> KEY_API_KEY_DEEPSEEK
+            }
+            if (apiKey.isBlank()) {
+                prefs.remove(key)
+            } else {
+                prefs[key] = apiKey
+            }
+        }
+        // If this is the active service, update the provider
+        if (cloudProvider.activeService == service) {
+            cloudProvider.setApiKey(apiKey)
+        }
+    }
+
+    /**
+     * Ensure the cloud provider is configured with the persisted service and API key.
+     * Call this on app startup.
+     */
+    suspend fun ensureCloudProviderConfigured() {
+        val service = getSelectedCloudService().first()
+        cloudProvider.setService(service)
+        val key = getApiKeyForService(service).first()
+        if (!key.isNullOrBlank()) {
+            cloudProvider.setApiKey(key)
+        }
+    }
+
     /**
      * Ensure the persisted active model is loaded into the runtime.
      * Call this on app startup or when the provider is first needed.
@@ -82,6 +151,9 @@ class AiProviderSelector @Inject constructor(
         val userChoice = getSelectedProviderType().first()
         if (userChoice == AiProviderType.CUSTOM_LOCAL || userChoice == AiProviderType.AUTO) {
             ensureActiveModelLoaded()
+        }
+        if (userChoice == AiProviderType.CLOUD || userChoice == AiProviderType.AUTO) {
+            ensureCloudProviderConfigured()
         }
         return resolveProvider(userChoice)
     }
@@ -156,7 +228,7 @@ class AiProviderSelector @Inject constructor(
             ProviderInfo(
                 type = AiProviderType.CLOUD,
                 displayName = cloudProvider.displayName,
-                isAvailable = cloudProvider.isAvailable(),
+                isAvailable = true,
                 isLocal = false,
                 privacyNote = "Analysis data is sent to cloud servers for processing."
             )

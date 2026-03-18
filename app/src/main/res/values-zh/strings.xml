@@ -289,4 +289,16 @@
     <string name="permissions_can_change">您可以稍后在设置中更改权限</string>
     <string name="permissions">权限</string>
     <string name="permissions_settings_subtitle">管理应用权限</string>
+
+    <!-- Cloud AI Service -->
+    <string name="cloud_ai_service">云端 AI 服务</string>
+    <string name="select_cloud_service">选择云端 AI 服务</string>
+    <string name="api_key">API 密钥</string>
+    <string name="api_key_title">%1$s API 密钥</string>
+    <string name="api_key_hint">输入您的 %1$s API 密钥以启用云端分析</string>
+    <string name="api_key_configured">已配置</string>
+    <string name="api_key_not_set">未设置 — 点击配置</string>
+    <string name="claude_desc">Anthropic Claude — 高级推理</string>
+    <string name="chatgpt_desc">OpenAI ChatGPT — 多功能 AI 助手</string>
+    <string name="deepseek_desc">DeepSeek — 高效且经济</string>
 </resources>

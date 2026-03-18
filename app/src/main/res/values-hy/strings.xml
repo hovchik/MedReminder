@@ -290,4 +290,16 @@
     <string name="permissions_can_change">Կարող եք թույլտվությունները փոխել Կարգերում</string>
     <string name="permissions">Թույլտվություններ</string>
     <string name="permissions_settings_subtitle">Կառավարել թույլտվությունները</string>
+
+    <!-- Cloud AI Service -->
+    <string name="cloud_ai_service">Համալրի ԱԸ ծառայություն</string>
+    <string name="select_cloud_service">Ընտրեք համալրի ԱԸ ծառայություն</string>
+    <string name="api_key">API բանալի</string>
+    <string name="api_key_title">%1$s API բանալի</string>
+    <string name="api_key_hint">Մուտքագրեք ձեր %1$s API բանալին</string>
+    <string name="api_key_configured">Կարգավորված է</string>
+    <string name="api_key_not_set">Սահմանված չէ — հպեք կարգավորելու</string>
+    <string name="claude_desc">Anthropic Claude — առաջադեմ տրամաբանություն</string>
+    <string name="chatgpt_desc">OpenAI ChatGPT — բազմակողմանի ԱԸ օգնական</string>
+    <string name="deepseek_desc">DeepSeek — արդյունավետ և տնտեսավետ</string>
 </resources>

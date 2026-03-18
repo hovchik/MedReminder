@@ -242,6 +242,18 @@
     <string name="no_models_installed">No models installed. Use the setup wizard to download one.</string>
     <string name="ai_performance_note">Performance may vary by device</string>
 
+    <!-- Cloud AI Service -->
+    <string name="cloud_ai_service">Cloud AI service</string>
+    <string name="select_cloud_service">Select cloud AI service</string>
+    <string name="api_key">API Key</string>
+    <string name="api_key_title">%1$s API Key</string>
+    <string name="api_key_hint">Enter your %1$s API key to enable cloud analysis</string>
+    <string name="api_key_configured">Configured</string>
+    <string name="api_key_not_set">Not set — tap to configure</string>
+    <string name="claude_desc">Anthropic Claude — advanced reasoning</string>
+    <string name="chatgpt_desc">OpenAI ChatGPT — versatile AI assistant</string>
+    <string name="deepseek_desc">DeepSeek — efficient and cost-effective</string>
+
     <!-- Alarm Screen -->
     <string name="time_to_take">Time to take</string>
     <string name="i_took_it">I took it</string>
