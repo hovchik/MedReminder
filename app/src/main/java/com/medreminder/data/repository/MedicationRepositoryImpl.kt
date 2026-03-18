@@ -51,7 +51,55 @@ class MedicationRepositoryImpl @Inject constructor(
     override suspend fun addMedication(medication: Medication, schedules: List<Schedule>): Long {
         val medId = medicationDao.insertMedication(medication.toEntity())
         val scheduleEntities = schedules.map { it.copy(medicationId = medId).toEntity() }
-        scheduleDao.insertSchedules(scheduleEntities)
+        val scheduleIds = scheduleDao.insertSchedules(scheduleEntities)
+
+        // Create today's dose logs so the home screen shows upcoming doses immediately
+        // and AlarmReceiver can find a matching log when the alarm fires today.
+        val startOfDay = DateUtils.getStartOfDay()
+        val endOfDay = DateUtils.getEndOfDay()
+        for (i in scheduleEntities.indices) {
+            val entity = scheduleEntities[i]
+            val scheduleId = scheduleIds[i]
+            if (entity.frequency == "as_needed") continue
+
+            if (entity.frequency == "every_x_hours" && entity.intervalHours > 0) {
+                val cal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, entity.timeHour)
+                    set(Calendar.MINUTE, entity.timeMinute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                while (cal.timeInMillis <= endOfDay) {
+                    if (cal.timeInMillis >= startOfDay) {
+                        doseLogDao.insertDoseLog(
+                            DoseLogEntity(
+                                medicationId = medId,
+                                scheduleId = scheduleId,
+                                scheduledTime = cal.timeInMillis,
+                                status = "pending"
+                            )
+                        )
+                    }
+                    cal.add(Calendar.HOUR_OF_DAY, entity.intervalHours)
+                }
+            } else {
+                val cal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, entity.timeHour)
+                    set(Calendar.MINUTE, entity.timeMinute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                doseLogDao.insertDoseLog(
+                    DoseLogEntity(
+                        medicationId = medId,
+                        scheduleId = scheduleId,
+                        scheduledTime = cal.timeInMillis,
+                        status = "pending"
+                    )
+                )
+            }
+        }
+
         return medId
     }
 

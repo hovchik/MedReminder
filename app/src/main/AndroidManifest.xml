@@ -80,6 +80,19 @@
             </intent-filter>
         </receiver>
 
+        <!-- Disable default WorkManager auto-init so MedReminderApp can provide
+             its own Configuration with HiltWorkerFactory for @HiltWorker support -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
