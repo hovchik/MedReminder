@@ -14,15 +14,26 @@ data class AnalysisInput(
     val analysisType: AnalysisType = AnalysisType.DAILY,
     // Enriched data
     val totalSnoozedCount: Int = 0,
-    val averageDelayMinutes: Float = 0f, // avg minutes between scheduledTime and actionTime
+    val averageDelayMinutes: Float = 0f,
     val timeOfDayBreakdown: TimeOfDayBreakdown? = null,
-    val worstMedication: String? = null, // medication with lowest adherence
-    val bestMedication: String? = null,  // medication with highest adherence
+    val worstMedication: String? = null,
+    val bestMedication: String? = null,
     val userName: String = "",
     val userAge: Int = 0,
     val hasCaregivers: Boolean = false,
     val caregiverCount: Int = 0,
-    val familyMemberCount: Int = 0
+    val familyMemberCount: Int = 0,
+    // Recent dose event timeline for AI context
+    val recentDoseEvents: List<DoseEvent> = emptyList()
+)
+
+/** A single dose event from the log — gives the AI a timeline view of what happened. */
+data class DoseEvent(
+    val medicationName: String,
+    val scheduledTime: String, // formatted "8:00 AM"
+    val status: String,        // taken, missed, skipped, snoozed
+    val delayMinutes: Int = 0, // positive = late, 0 = on time
+    val snoozeCount: Int = 0
 )
 
 data class MedicationSummary(

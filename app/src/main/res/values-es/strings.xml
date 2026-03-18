@@ -301,4 +301,10 @@
     <string name="claude_desc">Anthropic Claude — razonamiento avanzado</string>
     <string name="chatgpt_desc">OpenAI ChatGPT — asistente de IA versátil</string>
     <string name="deepseek_desc">DeepSeek — eficiente y económico</string>
+
+    <!-- AI Analysis Extra -->
+    <string name="insights_header">Observaciones</string>
+    <string name="recommendations_header">Recomendaciones</string>
+    <string name="analysis_time">Análisis tomó %1$d ms</string>
+    <string name="refresh_analysis">Actualizar</string>
 </resources>

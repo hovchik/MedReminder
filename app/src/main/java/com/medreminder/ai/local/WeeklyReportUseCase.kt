@@ -2,11 +2,14 @@ package com.medreminder.ai.local
 
 import com.medreminder.ai.*
 import com.medreminder.data.local.DoseLogDao
+import com.medreminder.data.local.MedicationDao
 import com.medreminder.data.local.ScheduleDao
 import com.medreminder.data.preferences.UserPreferencesManager
 import com.medreminder.domain.repository.MedicationRepository
 import com.medreminder.util.DateUtils
 import kotlinx.coroutines.flow.first
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,6 +18,7 @@ class WeeklyReportUseCase @Inject constructor(
     private val repository: MedicationRepository,
     private val providerSelector: AiProviderSelector,
     private val doseLogDao: DoseLogDao,
+    private val medicationDao: MedicationDao,
     private val scheduleDao: ScheduleDao,
     private val userPreferencesManager: UserPreferencesManager
 ) {
@@ -24,7 +28,6 @@ class WeeklyReportUseCase @Inject constructor(
         val now = System.currentTimeMillis()
         val startOfWeek = DateUtils.daysAgo(7)
 
-        // Gather medication data
         val medications = repository.getActiveMedications().first()
         val adherenceStats = repository.getAdherenceStats(startOfWeek, now)
         val streak = repository.getCurrentStreak()
@@ -60,15 +63,9 @@ class WeeklyReportUseCase @Inject constructor(
         }
 
         val weeklyBreakdown = adherenceStats.weeklyData.map { day ->
-            DayBreakdown(
-                dayName = day.dayName,
-                taken = day.taken,
-                total = day.total,
-                rate = day.rate
-            )
+            DayBreakdown(dayName = day.dayName, taken = day.taken, total = day.total, rate = day.rate)
         }
 
-        // Global enriched data
         val totalSnoozed = doseLogDao.getTotalSnoozedCount(startOfWeek, now) ?: 0
         val avgDelayMs = doseLogDao.getAverageDelayMs(startOfWeek, now)
         val timeOfDay = buildTimeOfDayBreakdown(startOfWeek, now)
@@ -80,6 +77,9 @@ class WeeklyReportUseCase @Inject constructor(
         val sortedByAdherence = medicationSummaries.filter {
             it.takenCount + it.missedCount + it.skippedCount > 0
         }.sortedBy { it.adherenceRate }
+
+        // Build last 7 days of dose events (most recent 50)
+        val recentEvents = buildDoseEvents(startOfWeek, now)
 
         val input = AnalysisInput(
             medications = medicationSummaries,
@@ -102,10 +102,28 @@ class WeeklyReportUseCase @Inject constructor(
             userAge = userAge,
             hasCaregivers = caregivers.isNotEmpty(),
             caregiverCount = caregivers.size,
-            familyMemberCount = familyMembers.size
+            familyMemberCount = familyMembers.size,
+            recentDoseEvents = recentEvents
         )
 
         return provider.generateAnalysis(input)
+    }
+
+    private suspend fun buildDoseEvents(start: Long, end: Long): List<DoseEvent> {
+        val logs = doseLogDao.getLogsForDateRangeSync(start, end)
+        val timeFormat = SimpleDateFormat("EEE h:mm a", Locale.getDefault())
+        return logs.filter { it.status != "pending" }.takeLast(50).map { log ->
+            val med = medicationDao.getMedicationById(log.medicationId)
+            val delayMs = if (log.actionTime != null && log.actionTime > log.scheduledTime)
+                log.actionTime - log.scheduledTime else 0L
+            DoseEvent(
+                medicationName = med?.name ?: "Unknown",
+                scheduledTime = timeFormat.format(Date(log.scheduledTime)),
+                status = log.status,
+                delayMinutes = (delayMs / 60000).toInt(),
+                snoozeCount = log.snoozeCount
+            )
+        }
     }
 
     private suspend fun buildTimeOfDayBreakdown(start: Long, end: Long): TimeOfDayBreakdown {

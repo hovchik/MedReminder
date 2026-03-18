@@ -222,6 +222,10 @@
     <string name="ai_weekly_insight">AI Weekly Insight</string>
     <string name="analyzing">Analyzing your data…</string>
     <string name="get_ai_insight">Get AI Insight</string>
+    <string name="insights_header">Insights</string>
+    <string name="recommendations_header">Recommendations</string>
+    <string name="analysis_time">Analysis took %1$d ms</string>
+    <string name="refresh_analysis">Refresh</string>
 
     <!-- AI Engine Settings -->
     <string name="ai_engine">AI Engine</string>

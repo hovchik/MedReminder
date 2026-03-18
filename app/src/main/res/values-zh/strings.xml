@@ -301,4 +301,10 @@
     <string name="claude_desc">Anthropic Claude — 高级推理</string>
     <string name="chatgpt_desc">OpenAI ChatGPT — 多功能 AI 助手</string>
     <string name="deepseek_desc">DeepSeek — 高效且经济</string>
+
+    <!-- AI Analysis Extra -->
+    <string name="insights_header">洞察</string>
+    <string name="recommendations_header">建议</string>
+    <string name="analysis_time">分析耗时 %1$d 毫秒</string>
+    <string name="refresh_analysis">刷新</string>
 </resources>

@@ -302,4 +302,10 @@
     <string name="claude_desc">Anthropic Claude — առաջադեմ տրամաբանություն</string>
     <string name="chatgpt_desc">OpenAI ChatGPT — բազմակողմանի ԱԸ օգնական</string>
     <string name="deepseek_desc">DeepSeek — արդյունավետ և տնտեսավետ</string>
+
+    <!-- AI Analysis Extra -->
+    <string name="insights_header">Պատկերացումներ</string>
+    <string name="recommendations_header">Հանդեսարակություններ</string>
+    <string name="analysis_time">Վերլուծությունը տևեց %1$d մս</string>
+    <string name="refresh_analysis">Թարմացնել</string>
 </resources>

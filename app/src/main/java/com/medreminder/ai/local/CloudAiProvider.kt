@@ -249,7 +249,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
         } ?: ""
 
         val weeklySection = if (input.weeklyBreakdown.isNotEmpty()) {
-            "\n\nDaily Breakdown:\n" + input.weeklyBreakdown.joinToString("\n") { day ->
+            "\n\nDaily Breakdown (last 7 days):\n" + input.weeklyBreakdown.joinToString("\n") { day ->
                 "  ${day.dayName}: ${day.taken}/${day.total} (${String.format("%.0f", day.rate)}%)"
             }
         } else ""
@@ -258,44 +258,75 @@ class CloudAiProvider @Inject constructor() : AiProvider {
             val parts = mutableListOf<String>()
             if (input.userName.isNotBlank()) parts.add("Name: ${input.userName}")
             if (input.userAge > 0) parts.add("Age: ${input.userAge}")
-            "\n\nPatient: ${parts.joinToString(", ")}"
+            "\nPatient: ${parts.joinToString(", ")}"
         } else ""
 
         val contextSection = buildList {
-            if (input.totalSnoozedCount > 0) add("Total snoozes: ${input.totalSnoozedCount}")
+            if (input.totalSnoozedCount > 0) add("Total snoozes in period: ${input.totalSnoozedCount}")
             if (input.averageDelayMinutes > 0) add("Avg dose delay: ${String.format("%.0f", input.averageDelayMinutes)} min")
             if (input.longestStreak > 0) add("Longest streak ever: ${input.longestStreak} days")
             if (input.hasCaregivers) add("Has ${input.caregiverCount} caregiver(s) monitoring")
-            if (input.familyMemberCount > 0) add("Managing meds for ${input.familyMemberCount} family member(s)")
+            if (input.familyMemberCount > 0) add("Managing meds for ${input.familyMemberCount + 1} people (self + ${input.familyMemberCount} family)")
             if (input.worstMedication != null && input.medications.size > 1)
-                add("Lowest adherence: ${input.worstMedication}")
+                add("Lowest adherence medication: ${input.worstMedication}")
             if (input.bestMedication != null && input.medications.size > 1)
-                add("Highest adherence: ${input.bestMedication}")
+                add("Highest adherence medication: ${input.bestMedication}")
         }.let {
             if (it.isNotEmpty()) "\n\nAdditional Context:\n" + it.joinToString("\n") { s -> "  $s" }
             else ""
         }
 
+        val doseEventsSection = if (input.recentDoseEvents.isNotEmpty()) {
+            "\n\nRecent Dose Event Log:\n" + input.recentDoseEvents.joinToString("\n") { ev ->
+                val delay = if (ev.delayMinutes > 0) " (${ev.delayMinutes}min late)" else ""
+                val snooze = if (ev.snoozeCount > 0) " [snoozed ${ev.snoozeCount}x]" else ""
+                "  ${ev.scheduledTime} | ${ev.medicationName} | ${ev.status.uppercase()}$delay$snooze"
+            }
+        } else ""
+
+        val isDaily = input.analysisType == AnalysisType.DAILY
+        val periodLabel = if (isDaily) "Today" else "Last ${input.periodDays} days"
+
+        val roleAndFocus = if (isDaily) {
+            """You are an expert medication adherence coach inside a health app. Analyze TODAY's medication data for this patient. Focus on:
+            |- What happened today: which doses were taken, missed, or are still pending
+            |- Immediate action items: any doses still due today, late doses, medications that need attention RIGHT NOW
+            |- Encouragement for what went well today
+            |- Specific timing observations (were morning meds taken? evening meds missed?)
+            |- Medication stock warnings if any are running low
+            |Be warm, specific, and motivational. Reference actual medication names and times.""".trimMargin()
+        } else {
+            """You are an expert medication adherence analyst inside a health app. Analyze the WEEKLY medication data for this patient. Focus on:
+            |- Week-over-week trends: which days were best/worst, any patterns (e.g., weekends worse)
+            |- Per-medication analysis: which meds have lowest adherence and why (timing, frequency)
+            |- Behavioral patterns: snoozing habits, consistent late-taking, skipping patterns
+            |- Time-of-day weaknesses: morning vs evening adherence differences
+            |- Stock management: any medications running low
+            |- Streak and motivation: current streak vs best, progress trajectory
+            |Be analytical, specific, and data-driven. Reference actual medication names, days, and percentages.""".trimMargin()
+        }
+
         return """
-            |You are a medication adherence analyst for a health app. Analyze the following data and provide personalized, actionable health insights. Be specific and reference the actual medication names, patterns, and numbers.
+            |$roleAndFocus
             |$userSection
             |
-            |Medications:
+            |== MEDICATIONS ==
             |$medsSection
             |
+            |== ADHERENCE SUMMARY ($periodLabel) ==
             |Overall Adherence: ${String.format("%.1f", input.adherenceRate)}%
-            |Period: ${if (input.periodDays == 1) "Today" else "Last ${input.periodDays} days"}
             |Total Doses: ${input.totalDoses} | Taken: ${input.takenDoses} | Missed: ${input.missedDoses} | Skipped: ${input.skippedDoses}
-            |Current Streak: ${input.currentStreak} days
-            |$timeOfDaySection$weeklySection$contextSection
+            |Current Streak: ${input.currentStreak} days | Best Streak: ${input.longestStreak} days
+            |$timeOfDaySection$weeklySection$contextSection$doseEventsSection
             |
-            |Provide a thorough analysis with:
-            |1. A personalized summary (2-3 sentences, reference specific medications by name)
-            |2. 3-5 specific insights based on the data patterns (timing, specific meds, trends)
-            |3. 3-5 actionable recommendations tailored to the observed patterns
-            |4. Risk level: LOW (≥90%), MODERATE (70-89%), HIGH (<70%)
+            |== INSTRUCTIONS ==
+            |Provide a thorough, personalized analysis:
+            |1. "summary": A ${if (isDaily) "warm, encouraging" else "detailed, analytical"} 2-4 sentence overview referencing specific medications by name
+            |2. "insights": 3-5 specific, data-backed observations (mention medication names, times, percentages, patterns)
+            |3. "recommendations": 3-5 actionable, personalized suggestions (not generic — based on THIS patient's actual data)
+            |4. "riskLevel": "LOW" (≥90%), "MODERATE" (70-89%), or "HIGH" (<70%)
             |
-            |Respond ONLY with valid JSON:
+            |Respond ONLY with valid JSON (no markdown, no extra text):
             |{"summary": "...", "insights": ["...", "..."], "recommendations": ["...", "..."], "riskLevel": "LOW|MODERATE|HIGH"}
         """.trimMargin()
     }

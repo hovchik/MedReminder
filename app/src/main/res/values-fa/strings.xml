@@ -302,4 +302,10 @@
     <string name="claude_desc">Anthropic Claude — استدلال پیشرفته</string>
     <string name="chatgpt_desc">OpenAI ChatGPT — دستیار همه‌کاره</string>
     <string name="deepseek_desc">DeepSeek — کارآمد و مقرون‌به‌صرفه</string>
+
+    <!-- AI Analysis Extra -->
+    <string name="insights_header">بینش‌ها</string>
+    <string name="recommendations_header">توصیه‌ها</string>
+    <string name="analysis_time">تحلیل %1$d میلی‌ثانیه طول کشید</string>
+    <string name="refresh_analysis">به‌روزرسانی</string>
 </resources>
