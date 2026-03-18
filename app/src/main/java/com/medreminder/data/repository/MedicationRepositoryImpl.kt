@@ -62,15 +62,36 @@ class MedicationRepositoryImpl @Inject constructor(
             medicationDao.updateMedication(
                 medication.toEntity().copy(updatedAt = System.currentTimeMillis())
             )
-            // Remove today's PENDING dose logs so they are regenerated with the new
-            // schedule IDs and updated times, preventing duplicate entries on the
-            // Today screen after a schedule edit.
-            doseLogDao.deletePendingLogsForMedication(medication.id, todayStart, todayEnd)
-            scheduleDao.deleteSchedulesForMedication(medication.id)
-            val scheduleEntities = schedules.map {
-                it.copy(id = 0, medicationId = medication.id).toEntity()
+
+            // Smart schedule upsert: preserve IDs for existing schedules so that
+            // dose log history (TAKEN / MISSED / SKIPPED) remains linked to the correct
+            // schedule, while still allowing schedules to be added or removed.
+
+            val existingIds = scheduleDao.getAllSchedulesForMedication(medication.id)
+                .map { it.id }.toSet()
+            val incomingIds = schedules.filter { it.id != 0L }.map { it.id }.toSet()
+
+            // Delete schedules the user removed
+            val removedIds = existingIds - incomingIds
+            if (removedIds.isNotEmpty()) {
+                scheduleDao.deleteSchedulesByIds(removedIds.toList())
             }
-            scheduleDao.insertSchedules(scheduleEntities)
+
+            // Update existing schedules / insert new ones
+            for (schedule in schedules) {
+                val entity = schedule.copy(medicationId = medication.id).toEntity()
+                if (schedule.id != 0L) {
+                    scheduleDao.updateSchedule(entity)
+                } else {
+                    scheduleDao.insertSchedule(entity)
+                }
+            }
+
+            // Delete today's PENDING dose logs so they are regenerated with the
+            // updated schedule times (scheduledTime inside the log reflects the
+            // schedule's hour/minute, not the schedule ID, so a time change needs
+            // the old pending log removed and a fresh one created).
+            doseLogDao.deletePendingLogsForMedication(medication.id, todayStart, todayEnd)
         }
     }
 
