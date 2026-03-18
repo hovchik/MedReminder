@@ -25,6 +25,7 @@ import androidx.lifecycle.viewModelScope
 import com.medreminder.R
 import com.medreminder.ai.AiProviderType
 import com.medreminder.ai.AnalysisResult
+import com.medreminder.ai.RiskLevel
 import com.medreminder.ai.local.DailyAnalysisUseCase
 import com.medreminder.ai.local.WeeklyReportUseCase
 import com.medreminder.domain.model.AdherenceStats
@@ -61,7 +62,12 @@ class AdherenceViewModel @Inject constructor(
     private val _isWeeklyAnalyzing = MutableStateFlow(false)
     val isWeeklyAnalyzing: StateFlow<Boolean> = _isWeeklyAnalyzing.asStateFlow()
 
-    init { loadStats() }
+    init {
+        loadStats()
+        // Auto-trigger AI analyses on screen load
+        runDailyAnalysis()
+        runWeeklyAnalysis()
+    }
 
     fun setPeriod(p: String) {
         _period.value = p
@@ -208,68 +214,20 @@ fun AdherenceScreen(viewModel: AdherenceViewModel = hiltViewModel()) {
         }
 
         // AI Daily Insight
-        AiDailyInsightCard(
+        AiInsightCard(
+            title = stringResource(R.string.ai_daily_insight),
             analysis = dailyReport,
             isAnalyzing = isDailyAnalyzing,
             onRunAnalysis = { viewModel.runDailyAnalysis() }
         )
 
         // AI Weekly Report
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Psychology,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        stringResource(R.string.ai_weekly_insight),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                if (isWeeklyAnalyzing) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.analyzing), style = MaterialTheme.typography.bodySmall)
-                    }
-                } else if (weeklyReport != null) {
-                    Text(weeklyReport!!.summary, style = MaterialTheme.typography.bodyMedium)
-                    weeklyReport!!.insights.take(2).forEach { insight ->
-                        Row(verticalAlignment = Alignment.Top) {
-                            Icon(Icons.Default.Insights, null, modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.tertiary)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(insight, style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { viewModel.runWeeklyAnalysis() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.get_ai_insight))
-                    }
-                }
-            }
-        }
+        AiInsightCard(
+            title = stringResource(R.string.ai_weekly_insight),
+            analysis = weeklyReport,
+            isAnalyzing = isWeeklyAnalyzing,
+            onRunAnalysis = { viewModel.runWeeklyAnalysis() }
+        )
 
         // Weekly bar chart
         if (stats.weeklyData.isNotEmpty()) {
@@ -315,7 +273,8 @@ fun StatCard(label: String, value: String, icon: androidx.compose.ui.graphics.ve
 }
 
 @Composable
-fun AiDailyInsightCard(
+fun AiInsightCard(
+    title: String,
     analysis: AnalysisResult?,
     isAnalyzing: Boolean,
     onRunAnalysis: () -> Unit
@@ -331,6 +290,7 @@ fun AiDailyInsightCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -343,7 +303,7 @@ fun AiDailyInsightCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    stringResource(R.string.ai_daily_insight),
+                    title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
@@ -374,24 +334,85 @@ fun AiDailyInsightCard(
                     )
                 }
             } else if (analysis != null) {
+                // Risk level badge
+                val riskColor = when (analysis.riskLevel) {
+                    RiskLevel.LOW -> Color(0xFF2ECC71)
+                    RiskLevel.MODERATE -> Color(0xFFF39C12)
+                    RiskLevel.HIGH -> MaterialTheme.colorScheme.error
+                }
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = riskColor.copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        "Risk: ${analysis.riskLevel.name}",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = riskColor
+                    )
+                }
+
+                // Summary
                 Text(analysis.summary, style = MaterialTheme.typography.bodyMedium)
 
-                if (analysis.recommendations.isNotEmpty()) {
-                    val topRec = analysis.recommendations.first()
-                    Row(verticalAlignment = Alignment.Top) {
-                        Icon(
-                            Icons.Default.Lightbulb,
-                            null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            topRec,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                // All insights
+                if (analysis.insights.isNotEmpty()) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    Text(
+                        stringResource(R.string.insights_header),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                    analysis.insights.forEach { insight ->
+                        Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(top = 2.dp)) {
+                            Icon(Icons.Default.Insights, null, modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.tertiary)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(insight, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
+                }
+
+                // All recommendations
+                if (analysis.recommendations.isNotEmpty()) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    Text(
+                        stringResource(R.string.recommendations_header),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFFF39C12)
+                    )
+                    analysis.recommendations.forEach { rec ->
+                        Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(top = 2.dp)) {
+                            Icon(Icons.Default.Lightbulb, null, modifier = Modifier.size(14.dp),
+                                tint = Color(0xFFF39C12))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(rec, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                // Latency info
+                if (analysis.latencyMs > 0) {
+                    Text(
+                        stringResource(R.string.analysis_time, analysis.latencyMs),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+
+                // Refresh button
+                TextButton(
+                    onClick = onRunAnalysis,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Icon(Icons.Default.Refresh, null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(stringResource(R.string.refresh_analysis), style = MaterialTheme.typography.labelSmall)
                 }
             } else {
                 OutlinedButton(

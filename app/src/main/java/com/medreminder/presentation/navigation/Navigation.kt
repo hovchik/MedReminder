@@ -31,6 +31,7 @@ import com.medreminder.presentation.screens.home.HomeScreen
 import com.medreminder.presentation.screens.ocr.OcrScannerScreen
 import com.medreminder.presentation.screens.onboarding.OnboardingScreen
 import com.medreminder.ai.setupwizard.LocalAiSetupWizard
+import com.medreminder.presentation.screens.medanalysis.MedicationAnalysisScreen
 import com.medreminder.presentation.screens.settings.SettingsScreen
 
 sealed class Screen(val route: String) {
@@ -53,6 +54,9 @@ sealed class Screen(val route: String) {
     data object Caregiver : Screen("caregiver")
     data object Settings : Screen("settings")
     data object LocalAiSetup : Screen("local_ai_setup")
+    data object MedicationAnalysis : Screen("medication_analysis/{medicationId}") {
+        fun createRoute(medicationId: Long) = "medication_analysis/$medicationId"
+    }
 }
 
 data class BottomNavItem(
@@ -162,7 +166,10 @@ fun MedReminderNavigation() {
                 AddEditMedicationScreen(
                     medicationId = medicationId,
                     onNavigateBack = { navController.popBackStack() },
-                    onScanMedication = { navController.navigate(Screen.OcrScanner.route) }
+                    onScanMedication = { navController.navigate(Screen.OcrScanner.route) },
+                    onViewAnalysis = { id ->
+                        navController.navigate(Screen.MedicationAnalysis.createRoute(id))
+                    }
                 )
             }
             composable(
@@ -202,6 +209,16 @@ fun MedReminderNavigation() {
             composable(Screen.LocalAiSetup.route) {
                 LocalAiSetupWizard(
                     onDismiss = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route = Screen.MedicationAnalysis.route,
+                arguments = listOf(navArgument("medicationId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val medicationId = backStackEntry.arguments?.getLong("medicationId") ?: 0L
+                MedicationAnalysisScreen(
+                    medicationId = medicationId,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

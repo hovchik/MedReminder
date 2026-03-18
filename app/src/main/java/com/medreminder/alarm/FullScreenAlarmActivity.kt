@@ -13,8 +13,10 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -37,10 +39,26 @@ import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+data class AlarmMedication(
+    val doseLogId: Long,
+    val scheduleId: Long,
+    val medicationId: Long,
+    val name: String,
+    val dosage: String,
+    val color: String
+)
+
 class FullScreenAlarmActivity : ComponentActivity() {
 
     companion object {
         private var currentInstance: FullScreenAlarmActivity? = null
+
+        const val EXTRA_DOSE_LOG_IDS = "dose_log_ids"
+        const val EXTRA_SCHEDULE_IDS = "schedule_ids"
+        const val EXTRA_MEDICATION_IDS = "medication_ids"
+        const val EXTRA_MEDICATION_NAMES = "medication_names"
+        const val EXTRA_MEDICATION_DOSAGES = "medication_dosages"
+        const val EXTRA_MEDICATION_COLORS = "medication_colors"
 
         /** Called from TakenReceiver / SnoozeReceiver to dismiss the alarm screen. */
         fun finishIfShowing() {
@@ -53,12 +71,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
 
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
-    private var doseLogId: Long = -1
-    private var scheduleId: Long = -1
-    private var medicationId: Long = -1
-    private var medicationName: String = ""
-    private var medicationDosage: String = ""
-    private var medicationColor: String = "#4A90D9"
+    private var medications: List<AlarmMedication> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,12 +88,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
             WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
         )
 
-        doseLogId = intent.getLongExtra(AlarmScheduler.EXTRA_DOSE_LOG_ID, -1)
-        scheduleId = intent.getLongExtra(AlarmScheduler.EXTRA_SCHEDULE_ID, -1)
-        medicationId = intent.getLongExtra(AlarmScheduler.EXTRA_MEDICATION_ID, -1)
-        medicationName = intent.getStringExtra(AlarmScheduler.EXTRA_MEDICATION_NAME) ?: "Medication"
-        medicationDosage = intent.getStringExtra(AlarmScheduler.EXTRA_MEDICATION_DOSAGE) ?: ""
-        medicationColor = intent.getStringExtra(AlarmScheduler.EXTRA_MEDICATION_COLOR) ?: "#4A90D9"
+        medications = parseMedications(intent)
 
         // Prevent dismissal with back button - user must choose an action
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -91,12 +99,54 @@ class FullScreenAlarmActivity : ComponentActivity() {
         startVibration()
 
         setContent {
-            AlarmScreen(
-                medicationName = medicationName,
-                medicationDosage = medicationDosage,
-                onTaken = { handleTaken() },
-                onSnooze = { handleSnooze() },
-                onSkip = { handleSkip() }
+            if (medications.size == 1) {
+                AlarmScreen(
+                    medicationName = medications.first().name,
+                    medicationDosage = medications.first().dosage,
+                    onTaken = { handleTakenAll() },
+                    onSnooze = { handleSnoozeAll() },
+                    onSkip = { handleSkipAll() }
+                )
+            } else {
+                CombinedAlarmScreen(
+                    medications = medications,
+                    onTakenAll = { handleTakenAll() },
+                    onSnoozeAll = { handleSnoozeAll() },
+                    onSkipAll = { handleSkipAll() }
+                )
+            }
+        }
+    }
+
+    private fun parseMedications(intent: android.content.Intent): List<AlarmMedication> {
+        val doseLogIds = intent.getLongArrayExtra(EXTRA_DOSE_LOG_IDS)
+        val scheduleIds = intent.getLongArrayExtra(EXTRA_SCHEDULE_IDS)
+        val medicationIds = intent.getLongArrayExtra(EXTRA_MEDICATION_IDS)
+        val names = intent.getStringArrayExtra(EXTRA_MEDICATION_NAMES)
+        val dosages = intent.getStringArrayExtra(EXTRA_MEDICATION_DOSAGES)
+        val colors = intent.getStringArrayExtra(EXTRA_MEDICATION_COLORS)
+
+        if (doseLogIds == null || scheduleIds == null || medicationIds == null ||
+            names == null || dosages == null || colors == null
+        ) {
+            // Fallback: try legacy single-medication extras
+            val doseLogId = intent.getLongExtra(AlarmScheduler.EXTRA_DOSE_LOG_ID, -1)
+            val scheduleId = intent.getLongExtra(AlarmScheduler.EXTRA_SCHEDULE_ID, -1)
+            val medicationId = intent.getLongExtra(AlarmScheduler.EXTRA_MEDICATION_ID, -1)
+            val name = intent.getStringExtra(AlarmScheduler.EXTRA_MEDICATION_NAME) ?: "Medication"
+            val dosage = intent.getStringExtra(AlarmScheduler.EXTRA_MEDICATION_DOSAGE) ?: ""
+            val color = intent.getStringExtra(AlarmScheduler.EXTRA_MEDICATION_COLOR) ?: "#4A90D9"
+            return listOf(AlarmMedication(doseLogId, scheduleId, medicationId, name, dosage, color))
+        }
+
+        return doseLogIds.indices.map { i ->
+            AlarmMedication(
+                doseLogId = doseLogIds[i],
+                scheduleId = scheduleIds[i],
+                medicationId = medicationIds[i],
+                name = names[i],
+                dosage = dosages[i],
+                color = colors[i]
             )
         }
     }
@@ -144,48 +194,59 @@ class FullScreenAlarmActivity : ComponentActivity() {
         vibrator = null
 
         val nm = getSystemService(NotificationManager::class.java)
-        nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogId.toInt())
+        // Cancel combined notification
+        nm.cancel(AlarmReceiver.COMBINED_NOTIFICATION_ID)
+        // Cancel individual notifications
+        for (med in medications) {
+            nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + med.doseLogId.toInt())
+        }
     }
 
-    private fun handleTaken() {
+    private fun handleTakenAll() {
         stopAlarm()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
-                db.doseLogDao().updateDoseStatus(doseLogId, "taken")
-                db.medicationDao().decrementStock(medicationId)
-                CaregiverNotificationHelper.notifyCaregiversOnTaken(
-                    applicationContext, db, medicationId, medicationName
-                )
+                for (med in medications) {
+                    db.doseLogDao().updateDoseStatus(med.doseLogId, "taken")
+                    db.medicationDao().decrementStock(med.medicationId)
+                    CaregiverNotificationHelper.notifyCaregiversOnTaken(
+                        applicationContext, db, med.medicationId, med.name
+                    )
+                }
             } catch (e: Exception) { e.printStackTrace() }
             withContext(Dispatchers.Main) { finish() }
         }
     }
 
-    private fun handleSnooze() {
+    private fun handleSnoozeAll() {
         stopAlarm()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
                 val snoozeUntil = System.currentTimeMillis() + 10 * 60 * 1000
-                db.doseLogDao().snoozeDose(doseLogId, snoozeUntil)
-
                 val scheduler = AlarmScheduler(applicationContext, db.scheduleDao())
-                scheduler.scheduleSnoozeAlarm(
-                    doseLogId, scheduleId, medicationId,
-                    medicationName, medicationDosage, medicationColor, 10
-                )
+
+                for (med in medications) {
+                    db.doseLogDao().snoozeDose(med.doseLogId, snoozeUntil)
+                    scheduler.scheduleSnoozeAlarm(
+                        med.doseLogId, med.scheduleId, med.medicationId,
+                        med.name, med.dosage, med.color, 10
+                    )
+                }
             } catch (e: Exception) { e.printStackTrace() }
             withContext(Dispatchers.Main) { finish() }
         }
     }
 
-    private fun handleSkip() {
+    private fun handleSkipAll() {
         stopAlarm()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
-                db.doseLogDao().updateDoseStatus(doseLogId, "skipped")
+                for (med in medications) {
+                    db.doseLogDao().updateDoseStatus(med.doseLogId, "skipped")
+                }
             } catch (e: Exception) { e.printStackTrace() }
             withContext(Dispatchers.Main) { finish() }
         }
@@ -343,6 +404,204 @@ fun AlarmScreen(
                     Icon(Icons.Default.Close, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.skip), fontSize = 16.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CombinedAlarmScreen(
+    medications: List<AlarmMedication>,
+    onTakenAll: () -> Unit,
+    onSnoozeAll: () -> Unit,
+    onSkipAll: () -> Unit
+) {
+    val pulseAnim = rememberInfiniteTransition(label = "pulse")
+    val scale by pulseAnim.animateFloat(
+        initialValue = 1f, targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = EaseInOut),
+            repeatMode = RepeatMode.Reverse
+        ), label = "scale"
+    )
+
+    val currentTime = remember {
+        SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF1A1A2E),
+                        Color(0xFF16213E),
+                        Color(0xFF0F3460)
+                    )
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .padding(32.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            // Time
+            Text(
+                text = currentTime,
+                fontSize = 20.sp,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Pulsing pill icon
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .scale(scale)
+                    .background(
+                        Color(0xFF4A90D9).copy(alpha = 0.2f),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .background(Color(0xFF4A90D9).copy(alpha = 0.4f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("\uD83D\uDC8A", fontSize = 32.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Header
+            Text(
+                text = stringResource(R.string.time_to_take),
+                fontSize = 18.sp,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+            Text(
+                text = stringResource(R.string.medications_count, medications.size),
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Medication cards
+            for (med in medications) {
+                MedicationCard(name = med.name, dosage = med.dosage, color = med.color)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // TAKEN ALL button
+            Button(
+                onClick = onTakenAll,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2ECC71)
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(28.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(stringResource(R.string.i_took_all), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            }
+
+            // Snooze and Skip row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onSnoozeAll,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFF39C12)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.Snooze, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.snooze_10m), fontSize = 16.sp)
+                }
+
+                OutlinedButton(
+                    onClick = onSkipAll,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFE74C3C)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.skip_all), fontSize = 16.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MedicationCard(name: String, dosage: String, color: String) {
+    val medColor = try {
+        Color(android.graphics.Color.parseColor(color))
+    } catch (e: Exception) {
+        Color(0xFF4A90D9)
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = Color.White.copy(alpha = 0.1f)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Color indicator
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(medColor.copy(alpha = 0.3f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("\uD83D\uDC8A", fontSize = 20.sp)
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = name,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                if (dosage.isNotBlank()) {
+                    Text(
+                        text = dosage,
+                        fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
                 }
             }
         }

@@ -113,10 +113,93 @@ interface DoseLogDao {
 
     @Query("""
         SELECT * FROM dose_logs
+        WHERE status IN ('pending', 'snoozed')
+        AND scheduledTime BETWEEN :windowStart AND :windowEnd
+        ORDER BY scheduledTime ASC
+    """)
+    suspend fun getPendingDoseLogsInWindow(windowStart: Long, windowEnd: Long): List<DoseLogEntity>
+
+    @Query("""
+        SELECT * FROM dose_logs
         WHERE scheduleId = :scheduleId
         AND scheduledTime BETWEEN :windowStart AND :windowEnd
         AND status IN ('pending', 'snoozed')
         LIMIT 1
     """)
     suspend fun findActiveDoseLogForSchedule(scheduleId: Long, windowStart: Long, windowEnd: Long): DoseLogEntity?
+
+    // Per-medication adherence stats
+    @Query("""
+        SELECT COUNT(*) FROM dose_logs
+        WHERE medicationId = :medicationId AND status = 'taken'
+        AND scheduledTime BETWEEN :startTime AND :endTime
+    """)
+    suspend fun getTakenCountForMedication(medicationId: Long, startTime: Long, endTime: Long): Int
+
+    @Query("""
+        SELECT COUNT(*) FROM dose_logs
+        WHERE medicationId = :medicationId AND status = 'missed'
+        AND scheduledTime BETWEEN :startTime AND :endTime
+    """)
+    suspend fun getMissedCountForMedication(medicationId: Long, startTime: Long, endTime: Long): Int
+
+    @Query("""
+        SELECT COUNT(*) FROM dose_logs
+        WHERE medicationId = :medicationId AND status = 'skipped'
+        AND scheduledTime BETWEEN :startTime AND :endTime
+    """)
+    suspend fun getSkippedCountForMedication(medicationId: Long, startTime: Long, endTime: Long): Int
+
+    @Query("""
+        SELECT COUNT(*) FROM dose_logs
+        WHERE medicationId = :medicationId AND status IN ('taken', 'skipped', 'missed')
+        AND scheduledTime BETWEEN :startTime AND :endTime
+    """)
+    suspend fun getTotalCountForMedication(medicationId: Long, startTime: Long, endTime: Long): Int
+
+    @Query("""
+        SELECT SUM(snoozeCount) FROM dose_logs
+        WHERE medicationId = :medicationId
+        AND scheduledTime BETWEEN :startTime AND :endTime
+    """)
+    suspend fun getSnoozedCountForMedication(medicationId: Long, startTime: Long, endTime: Long): Int?
+
+    // Global snooze total
+    @Query("""
+        SELECT SUM(snoozeCount) FROM dose_logs
+        WHERE scheduledTime BETWEEN :startTime AND :endTime
+    """)
+    suspend fun getTotalSnoozedCount(startTime: Long, endTime: Long): Int?
+
+    // Average delay: actionTime - scheduledTime for taken doses (in milliseconds)
+    @Query("""
+        SELECT AVG(actionTime - scheduledTime) FROM dose_logs
+        WHERE status = 'taken' AND actionTime IS NOT NULL
+        AND scheduledTime BETWEEN :startTime AND :endTime
+    """)
+    suspend fun getAverageDelayMs(startTime: Long, endTime: Long): Long?
+
+    @Query("""
+        SELECT AVG(actionTime - scheduledTime) FROM dose_logs
+        WHERE medicationId = :medicationId AND status = 'taken' AND actionTime IS NOT NULL
+        AND scheduledTime BETWEEN :startTime AND :endTime
+    """)
+    suspend fun getAverageDelayMsForMedication(medicationId: Long, startTime: Long, endTime: Long): Long?
+
+    // Time-of-day adherence: taken count by hour ranges
+    @Query("""
+        SELECT COUNT(*) FROM dose_logs
+        WHERE status = 'taken'
+        AND scheduledTime BETWEEN :startTime AND :endTime
+        AND CAST((scheduledTime / 1000 % 86400) / 3600 AS INTEGER) BETWEEN :hourStart AND :hourEnd
+    """)
+    suspend fun getTakenCountByHourRange(startTime: Long, endTime: Long, hourStart: Int, hourEnd: Int): Int
+
+    @Query("""
+        SELECT COUNT(*) FROM dose_logs
+        WHERE status IN ('taken', 'skipped', 'missed')
+        AND scheduledTime BETWEEN :startTime AND :endTime
+        AND CAST((scheduledTime / 1000 % 86400) / 3600 AS INTEGER) BETWEEN :hourStart AND :hourEnd
+    """)
+    suspend fun getTotalCountByHourRange(startTime: Long, endTime: Long, hourStart: Int, hourEnd: Int): Int
 }

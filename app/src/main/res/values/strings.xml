@@ -222,6 +222,28 @@
     <string name="ai_weekly_insight">AI Weekly Insight</string>
     <string name="analyzing">Analyzing your data…</string>
     <string name="get_ai_insight">Get AI Insight</string>
+    <string name="insights_header">Insights</string>
+    <string name="recommendations_header">Recommendations</string>
+    <string name="analysis_time">Analysis took %1$d ms</string>
+    <string name="refresh_analysis">Refresh</string>
+
+    <!-- Medication AI Analysis -->
+    <string name="view_ai_analysis">AI Medication Analysis</string>
+    <string name="med_analysis_title">Medication Analysis</string>
+    <string name="analyzing_medication">Analyzing medication data…</string>
+    <string name="med_body_targets">Body Targets</string>
+    <string name="med_info_title">Medication Information</string>
+    <string name="med_common_uses">Common Uses</string>
+    <string name="med_side_effects">Side Effects</string>
+    <string name="med_warnings">Important Warnings</string>
+    <string name="med_interactions">Drug Interactions</string>
+    <string name="med_dosing_predictions">Dosing Predictions</string>
+    <string name="med_adherence_forecast">Adherence Forecast</string>
+    <string name="med_stock_forecast">Stock Forecast</string>
+    <string name="med_risk_assessment">Risk Assessment</string>
+    <string name="med_optimization_tips">Optimization Tips</string>
+    <string name="med_stock_remaining">%1$d remaining in stock</string>
+    <string name="med_analysis_provider_info">Analyzed by %1$s in %2$d ms</string>
 
     <!-- AI Engine Settings -->
     <string name="ai_engine">AI Engine</string>
@@ -242,6 +264,18 @@
     <string name="no_models_installed">No models installed. Use the setup wizard to download one.</string>
     <string name="ai_performance_note">Performance may vary by device</string>
 
+    <!-- Cloud AI Service -->
+    <string name="cloud_ai_service">Cloud AI service</string>
+    <string name="select_cloud_service">Select cloud AI service</string>
+    <string name="api_key">API Key</string>
+    <string name="api_key_title">%1$s API Key</string>
+    <string name="api_key_hint">Enter your %1$s API key to enable cloud analysis</string>
+    <string name="api_key_configured">Configured</string>
+    <string name="api_key_not_set">Not set — tap to configure</string>
+    <string name="claude_desc">Anthropic Claude — advanced reasoning</string>
+    <string name="chatgpt_desc">OpenAI ChatGPT — versatile AI assistant</string>
+    <string name="deepseek_desc">DeepSeek — efficient and cost-effective</string>
+
     <!-- Alarm Screen -->
     <string name="time_to_take">Time to take</string>
     <string name="i_took_it">I took it</string>
@@ -249,6 +283,11 @@
     <string name="time_to_take_med">Time to take %1$s</string>
     <string name="snoozed_10m">Snoozed for 10 minutes</string>
     <string name="marked_as_taken">%1$s marked as taken</string>
+    <string name="all_marked_as_taken">All medications marked as taken</string>
+    <string name="medications_count">%1$d Medications</string>
+    <string name="i_took_all">I took all</string>
+    <string name="skip_all">Skip all</string>
+    <string name="time_to_take_meds_count">Time to take %1$d medications</string>
 
     <!-- OCR Scanner -->
     <string name="scan_medication">Scan medication</string>

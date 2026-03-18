@@ -131,6 +131,11 @@
     <string name="time_to_take_med">Hora de tomar %1$s</string>
     <string name="snoozed_10m">Pospuesto 10 minutos</string>
     <string name="marked_as_taken">%1$s marcado como tomado</string>
+    <string name="all_marked_as_taken">Todos los medicamentos marcados como tomados</string>
+    <string name="medications_count">%1$d Medicamentos</string>
+    <string name="i_took_all">Tomé todos</string>
+    <string name="skip_all">Omitir todos</string>
+    <string name="time_to_take_meds_count">Hora de tomar %1$d medicamentos</string>
     <string name="scan_medication">Escanear medicamento</string>
     <string name="scan_instruction">Apunta la cámara a la etiqueta del medicamento o receta</string>
     <string name="scanning">Escaneando…</string>
@@ -284,4 +289,40 @@
     <string name="permissions_can_change">Puedes cambiar los permisos más tarde en Ajustes</string>
     <string name="permissions">Permisos</string>
     <string name="permissions_settings_subtitle">Gestionar permisos de la app</string>
+
+    <!-- Cloud AI Service -->
+    <string name="cloud_ai_service">Servicio de IA en la nube</string>
+    <string name="select_cloud_service">Seleccionar servicio de IA en la nube</string>
+    <string name="api_key">Clave API</string>
+    <string name="api_key_title">Clave API de %1$s</string>
+    <string name="api_key_hint">Ingresa tu clave API de %1$s para habilitar el análisis en la nube</string>
+    <string name="api_key_configured">Configurada</string>
+    <string name="api_key_not_set">No configurada — toca para configurar</string>
+    <string name="claude_desc">Anthropic Claude — razonamiento avanzado</string>
+    <string name="chatgpt_desc">OpenAI ChatGPT — asistente de IA versátil</string>
+    <string name="deepseek_desc">DeepSeek — eficiente y económico</string>
+
+    <!-- AI Analysis Extra -->
+    <string name="insights_header">Observaciones</string>
+    <string name="recommendations_header">Recomendaciones</string>
+    <string name="analysis_time">Análisis tomó %1$d ms</string>
+    <string name="refresh_analysis">Actualizar</string>
+
+    <!-- Medication AI Analysis -->
+    <string name="view_ai_analysis">Análisis AI del medicamento</string>
+    <string name="med_analysis_title">Análisis del medicamento</string>
+    <string name="analyzing_medication">Analizando datos del medicamento…</string>
+    <string name="med_body_targets">Áreas del cuerpo</string>
+    <string name="med_info_title">Información del medicamento</string>
+    <string name="med_common_uses">Usos comunes</string>
+    <string name="med_side_effects">Efectos secundarios</string>
+    <string name="med_warnings">Advertencias importantes</string>
+    <string name="med_interactions">Interacciones medicamentosas</string>
+    <string name="med_dosing_predictions">Predicciones de dosificación</string>
+    <string name="med_adherence_forecast">Pronóstico de adherencia</string>
+    <string name="med_stock_forecast">Pronóstico de inventario</string>
+    <string name="med_risk_assessment">Evaluación de riesgo</string>
+    <string name="med_optimization_tips">Consejos de optimización</string>
+    <string name="med_stock_remaining">%1$d restantes en inventario</string>
+    <string name="med_analysis_provider_info">Analizado por %1$s en %2$d ms</string>
 </resources>

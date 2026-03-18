@@ -9,9 +9,31 @@ class PromptAdapter @Inject constructor() {
 
     fun adaptPrompt(input: AnalysisInput, supportsStructuredJson: Boolean): String {
         val medsSection = input.medications.joinToString("\n") { med ->
-            "- ${med.name} ${med.dosage} (${med.form}, ${med.frequency})" +
-                    if (med.instructions.isNotBlank()) " [${med.instructions}]" else ""
+            val base = "- ${med.name} ${med.dosage} (${med.form}, ${med.frequency})"
+            val extra = buildList {
+                if (med.instructions.isNotBlank()) add("[${med.instructions}]")
+                if (med.takenCount + med.missedCount > 0) {
+                    add("adherence ${String.format("%.0f", med.adherenceRate)}%")
+                }
+                if (med.isEmergency) add("CRITICAL")
+                if (med.needsRefill) add("LOW STOCK: ${med.currentStock}")
+            }
+            if (extra.isNotEmpty()) "$base — ${extra.joinToString(", ")}" else base
         }
+
+        val timeOfDayInfo = input.timeOfDayBreakdown?.let { tod ->
+            "\nTime-of-day: Morning ${String.format("%.0f", tod.morningRate)}%, " +
+            "Afternoon ${String.format("%.0f", tod.afternoonRate)}%, " +
+            "Evening ${String.format("%.0f", tod.eveningRate)}%, " +
+            "Night ${String.format("%.0f", tod.nightRate)}%"
+        } ?: ""
+
+        val doseEventsInfo = if (input.recentDoseEvents.isNotEmpty()) {
+            "\nRecent events:\n" + input.recentDoseEvents.take(15).joinToString("\n") { ev ->
+                val delay = if (ev.delayMinutes > 0) " (${ev.delayMinutes}min late)" else ""
+                "  ${ev.scheduledTime} ${ev.medicationName} ${ev.status}$delay"
+            }
+        } else ""
 
         val basePrompt = """
             |Analyze medication adherence data and provide health insights.
@@ -25,7 +47,10 @@ class PromptAdapter @Inject constructor() {
             |Taken: ${input.takenDoses}
             |Missed: ${input.missedDoses}
             |Skipped: ${input.skippedDoses}
+            |Snoozed: ${input.totalSnoozedCount}
             |Current Streak: ${input.currentStreak} days
+            |Longest Streak: ${input.longestStreak} days
+            |Avg Dose Delay: ${String.format("%.0f", input.averageDelayMinutes)} min$timeOfDayInfo$doseEventsInfo
             |Analysis Type: ${input.analysisType.name}
         """.trimMargin()
 

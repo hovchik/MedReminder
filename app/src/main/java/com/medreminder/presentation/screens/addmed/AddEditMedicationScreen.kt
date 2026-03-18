@@ -35,6 +35,7 @@ fun AddEditMedicationScreen(
     medicationId: Long?,
     onNavigateBack: () -> Unit,
     onScanMedication: () -> Unit = {},
+    onViewAnalysis: (Long) -> Unit = {},
     scannedName: String? = null,
     scannedDosage: String? = null,
     viewModel: AddEditMedicationViewModel = hiltViewModel()
@@ -353,6 +354,25 @@ fun AddEditMedicationScreen(
                         checkedTrackColor = MaterialTheme.colorScheme.errorContainer
                     )
                 )
+            }
+
+            // AI Analysis button (only shown when editing an existing medication)
+            if (uiState.isEditing && medicationId != null) {
+                OutlinedButton(
+                    onClick = { onViewAnalysis(medicationId) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.tertiary
+                    )
+                ) {
+                    Icon(Icons.Default.Psychology, null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.view_ai_analysis),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             }
 
             // Save button

@@ -131,6 +131,11 @@
     <string name="time_to_take_med">该服用 %1$s 了</string>
     <string name="snoozed_10m">已推迟 10 分钟</string>
     <string name="marked_as_taken">%1$s 已标记为已服用</string>
+    <string name="all_marked_as_taken">所有药物已标记为已服用</string>
+    <string name="medications_count">%1$d 种药物</string>
+    <string name="i_took_all">我已全部服用</string>
+    <string name="skip_all">全部跳过</string>
+    <string name="time_to_take_meds_count">该服用 %1$d 种药物了</string>
     <string name="scan_medication">扫描药物</string>
     <string name="scan_instruction">将相机对准药物标签或处方</string>
     <string name="scanning">扫描中…</string>
@@ -284,4 +289,40 @@
     <string name="permissions_can_change">您可以稍后在设置中更改权限</string>
     <string name="permissions">权限</string>
     <string name="permissions_settings_subtitle">管理应用权限</string>
+
+    <!-- Cloud AI Service -->
+    <string name="cloud_ai_service">云端 AI 服务</string>
+    <string name="select_cloud_service">选择云端 AI 服务</string>
+    <string name="api_key">API 密钥</string>
+    <string name="api_key_title">%1$s API 密钥</string>
+    <string name="api_key_hint">输入您的 %1$s API 密钥以启用云端分析</string>
+    <string name="api_key_configured">已配置</string>
+    <string name="api_key_not_set">未设置 — 点击配置</string>
+    <string name="claude_desc">Anthropic Claude — 高级推理</string>
+    <string name="chatgpt_desc">OpenAI ChatGPT — 多功能 AI 助手</string>
+    <string name="deepseek_desc">DeepSeek — 高效且经济</string>
+
+    <!-- AI Analysis Extra -->
+    <string name="insights_header">洞察</string>
+    <string name="recommendations_header">建议</string>
+    <string name="analysis_time">分析耗时 %1$d 毫秒</string>
+    <string name="refresh_analysis">刷新</string>
+
+    <!-- Medication AI Analysis -->
+    <string name="view_ai_analysis">AI 药物分析</string>
+    <string name="med_analysis_title">药物分析</string>
+    <string name="analyzing_medication">正在分析药物数据…</string>
+    <string name="med_body_targets">作用部位</string>
+    <string name="med_info_title">药物信息</string>
+    <string name="med_common_uses">常见用途</string>
+    <string name="med_side_effects">副作用</string>
+    <string name="med_warnings">重要警告</string>
+    <string name="med_interactions">药物相互作用</string>
+    <string name="med_dosing_predictions">用药预测</string>
+    <string name="med_adherence_forecast">依从性预测</string>
+    <string name="med_stock_forecast">库存预测</string>
+    <string name="med_risk_assessment">风险评估</string>
+    <string name="med_optimization_tips">优化建议</string>
+    <string name="med_stock_remaining">库存剩余 %1$d</string>
+    <string name="med_analysis_provider_info">由 %1$s 分析，耗时 %2$d 毫秒</string>
 </resources>

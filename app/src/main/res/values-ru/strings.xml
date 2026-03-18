@@ -131,6 +131,11 @@
     <string name="time_to_take_med">Время принять %1$s</string>
     <string name="snoozed_10m">Отложено на 10 минут</string>
     <string name="marked_as_taken">%1$s отмечено как принято</string>
+    <string name="all_marked_as_taken">Все лекарства отмечены как принятые</string>
+    <string name="medications_count">%1$d Препаратов</string>
+    <string name="i_took_all">Я принял все</string>
+    <string name="skip_all">Пропустить все</string>
+    <string name="time_to_take_meds_count">Время принять %1$d препаратов</string>
     <string name="scan_medication">Сканировать лекарство</string>
     <string name="scan_instruction">Наведите камеру на этикетку лекарства или рецепт</string>
     <string name="scanning">Сканирование…</string>
@@ -284,4 +289,40 @@
     <string name="permissions_can_change">Вы можете изменить разрешения позже в Настройках</string>
     <string name="permissions">Разрешения</string>
     <string name="permissions_settings_subtitle">Управление разрешениями приложения</string>
+
+    <!-- Cloud AI Service -->
+    <string name="cloud_ai_service">Облачный ИИ-сервис</string>
+    <string name="select_cloud_service">Выберите облачный ИИ-сервис</string>
+    <string name="api_key">API-ключ</string>
+    <string name="api_key_title">API-ключ %1$s</string>
+    <string name="api_key_hint">Введите API-ключ %1$s для облачного анализа</string>
+    <string name="api_key_configured">Настроено</string>
+    <string name="api_key_not_set">Не задано — нажмите для настройки</string>
+    <string name="claude_desc">Anthropic Claude — продвинутые рассуждения</string>
+    <string name="chatgpt_desc">OpenAI ChatGPT — универсальный ИИ-ассистент</string>
+    <string name="deepseek_desc">DeepSeek — эффективный и экономичный</string>
+
+    <!-- AI Analysis Extra -->
+    <string name="insights_header">Наблюдения</string>
+    <string name="recommendations_header">Рекомендации</string>
+    <string name="analysis_time">Анализ занял %1$d мс</string>
+    <string name="refresh_analysis">Обновить</string>
+
+    <!-- Medication AI Analysis -->
+    <string name="view_ai_analysis">AI анализ лекарства</string>
+    <string name="med_analysis_title">Анализ лекарства</string>
+    <string name="analyzing_medication">Анализ данных лекарства…</string>
+    <string name="med_body_targets">Области воздействия</string>
+    <string name="med_info_title">Информация о лекарстве</string>
+    <string name="med_common_uses">Обычное применение</string>
+    <string name="med_side_effects">Побочные эффекты</string>
+    <string name="med_warnings">Важные предупреждения</string>
+    <string name="med_interactions">Лекарственные взаимодействия</string>
+    <string name="med_dosing_predictions">Прогнозы приёма</string>
+    <string name="med_adherence_forecast">Прогноз соблюдения</string>
+    <string name="med_stock_forecast">Прогноз запасов</string>
+    <string name="med_risk_assessment">Оценка рисков</string>
+    <string name="med_optimization_tips">Советы по оптимизации</string>
+    <string name="med_stock_remaining">Осталось %1$d в запасе</string>
+    <string name="med_analysis_provider_info">Проанализировано %1$s за %2$d мс</string>
 </resources>

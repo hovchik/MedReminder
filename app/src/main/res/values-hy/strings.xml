@@ -131,6 +131,11 @@
     <string name="time_to_take_med">Պետք է ընդունել %1$s</string>
     <string name="snoozed_10m">Հետաձգված է 10 րոպե</string>
     <string name="marked_as_taken">%1$s նշված է ընդունված</string>
+    <string name="all_marked_as_taken">Բոլոր դեղերը նշված են ընդունված</string>
+    <string name="medications_count">%1$d Դեղեր</string>
+    <string name="i_took_all">Բոլորը ընդունեցի</string>
+    <string name="skip_all">Բոլորը բաց թողնել</string>
+    <string name="time_to_take_meds_count">Պետք է ընդունել %1$d դեղ</string>
     <string name="scan_medication">Սկանավորել դեղը</string>
     <string name="scan_instruction">Ուղղեք տեսախցիկը դեղի պիտակին</string>
     <string name="scanning">Սկանավորում…</string>
@@ -285,4 +290,40 @@
     <string name="permissions_can_change">Կարող եք թույլտվությունները փոխել Կարգերում</string>
     <string name="permissions">Թույլտվություններ</string>
     <string name="permissions_settings_subtitle">Կառավարել թույլտվությունները</string>
+
+    <!-- Cloud AI Service -->
+    <string name="cloud_ai_service">Համալրի ԱԸ ծառայություն</string>
+    <string name="select_cloud_service">Ընտրեք համալրի ԱԸ ծառայություն</string>
+    <string name="api_key">API բանալի</string>
+    <string name="api_key_title">%1$s API բանալի</string>
+    <string name="api_key_hint">Մուտքագրեք ձեր %1$s API բանալին</string>
+    <string name="api_key_configured">Կարգավորված է</string>
+    <string name="api_key_not_set">Սահմանված չէ — հպեք կարգավորելու</string>
+    <string name="claude_desc">Anthropic Claude — առաջադեմ տրամաբանություն</string>
+    <string name="chatgpt_desc">OpenAI ChatGPT — բազմակողմանի ԱԸ օգնական</string>
+    <string name="deepseek_desc">DeepSeek — արդյունավետ և տնտեսավետ</string>
+
+    <!-- AI Analysis Extra -->
+    <string name="insights_header">Պատկերացումներ</string>
+    <string name="recommendations_header">Հանդեսարակություններ</string>
+    <string name="analysis_time">Վերլուծությունը տևեց %1$d մս</string>
+    <string name="refresh_analysis">Թարմացնել</string>
+
+    <!-- Medication AI Analysis -->
+    <string name="view_ai_analysis">AI դեղի վերլուծություն</string>
+    <string name="med_analysis_title">Դեղի վերլուծություն</string>
+    <string name="analyzing_medication">Վերլուծում է դեղի տվյալները…</string>
+    <string name="med_body_targets">Մարմնի թիրախներ</string>
+    <string name="med_info_title">Դեղի տեղեկատվություն</string>
+    <string name="med_common_uses">Տարածված կիրառումներ</string>
+    <string name="med_side_effects">Կողմնակի ազդեցություններ</string>
+    <string name="med_warnings">Կարևոր նախազգուշացումներ</string>
+    <string name="med_interactions">Դեղերի փոխազդեցություններ</string>
+    <string name="med_dosing_predictions">Դեղաչափի կանխատեսումներ</string>
+    <string name="med_adherence_forecast">Հավատարմության կանխատեսում</string>
+    <string name="med_stock_forecast">Պաշարի կանխատեսում</string>
+    <string name="med_risk_assessment">Ռիսկի գնահատում</string>
+    <string name="med_optimization_tips">Օպտիմալացման խորհուրդներ</string>
+    <string name="med_stock_remaining">Պաշարում մնացել է %1$d</string>
+    <string name="med_analysis_provider_info">Վերլուծել է %1$s-ի կողմից %2$d մս-ում</string>
 </resources>
