@@ -34,7 +34,7 @@ import com.medreminder.domain.model.DoseStatus
 import com.medreminder.util.DateUtils
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import java.text.SimpleDateFormat
 import java.util.*
 
