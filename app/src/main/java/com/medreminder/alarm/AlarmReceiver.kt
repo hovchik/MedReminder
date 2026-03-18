@@ -46,6 +46,12 @@ class AlarmReceiver : BroadcastReceiver() {
 
                 // Reuse existing dose log if available (from generateTodayDoses or snooze)
                 val doseLogId = if (existingDoseLogId > 0) {
+                    // Verify the dose log is still pending or snoozed
+                    val existingLog = db.doseLogDao().getDoseLogById(existingDoseLogId)
+                    if (existingLog != null && existingLog.status != "pending" && existingLog.status != "snoozed") {
+                        Log.d(TAG, "Dose log $existingDoseLogId already handled (status=${existingLog.status}), skipping alarm")
+                        return@launch
+                    }
                     existingDoseLogId
                 } else {
                     // Check if a dose log already exists for this schedule today
@@ -90,8 +96,13 @@ class AlarmReceiver : BroadcastReceiver() {
                     }
                 }
 
-                // Fallback: if query returned nothing (edge case), use the current alarm data
+                // Fallback: if query returned nothing (edge case), verify dose is still pending
                 if (doseLogIds.isEmpty()) {
+                    val currentDoseLog = db.doseLogDao().getDoseLogById(doseLogId)
+                    if (currentDoseLog == null || (currentDoseLog.status != "pending" && currentDoseLog.status != "snoozed")) {
+                        Log.d(TAG, "No pending doses found for schedule=$scheduleId, skipping alarm")
+                        return@launch
+                    }
                     doseLogIds.add(doseLogId)
                     scheduleIds.add(scheduleId)
                     medicationIds.add(medicationId)
