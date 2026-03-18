@@ -32,6 +32,9 @@ import com.medreminder.R
 import com.medreminder.domain.model.DoseLog
 import com.medreminder.domain.model.DoseStatus
 import com.medreminder.util.DateUtils
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -67,7 +70,20 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val expandedGroups = remember { mutableStateMapOf<String, Boolean>() }
 
-    LaunchedEffect(Unit) { viewModel.generateTodayDoses() }
+    // Re-generate today's dose logs every time the screen resumes
+    // (after add / edit / delete or returning from background).
+    // LaunchedEffect(Unit) only fires once; the lifecycle observer
+    // fires on every ON_RESUME so the screen always reflects changes.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshTodayScreen()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
