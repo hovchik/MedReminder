@@ -128,6 +128,16 @@ interface DoseLogDao {
     """)
     suspend fun findActiveDoseLogForSchedule(scheduleId: Long, windowStart: Long, windowEnd: Long): DoseLogEntity?
 
+    @Query("""
+        SELECT EXISTS(
+            SELECT 1 FROM dose_logs
+            WHERE scheduleId = :scheduleId
+            AND scheduledTime BETWEEN :windowStart AND :windowEnd
+            AND status IN ('taken', 'skipped', 'missed')
+        )
+    """)
+    suspend fun hasCompletedDoseLogForWindow(scheduleId: Long, windowStart: Long, windowEnd: Long): Boolean
+
     // Per-medication adherence stats
     @Query("""
         SELECT COUNT(*) FROM dose_logs

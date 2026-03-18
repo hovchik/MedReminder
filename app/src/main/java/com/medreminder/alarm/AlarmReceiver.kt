@@ -57,6 +57,17 @@ class AlarmReceiver : BroadcastReceiver() {
                     // Check if a dose log already exists for this schedule today
                     val startOfDay = DateUtils.getStartOfDay()
                     val endOfDay = DateUtils.getEndOfDay()
+
+                    // First check if there's already a completed (taken/skipped/missed) dose log
+                    // for this schedule today — if so, don't show the alarm again
+                    val alreadyCompleted = db.doseLogDao().hasCompletedDoseLogForWindow(
+                        scheduleId, startOfDay, endOfDay
+                    )
+                    if (alreadyCompleted) {
+                        Log.d(TAG, "Dose already completed for schedule=$scheduleId today, skipping alarm")
+                        return@launch
+                    }
+
                     val existing = db.doseLogDao().findActiveDoseLogForSchedule(
                         scheduleId, startOfDay, endOfDay
                     )
@@ -231,6 +242,9 @@ class AlarmReceiver : BroadcastReceiver() {
 
         // Full-screen intent
         val fullScreenIntent = Intent(context, FullScreenAlarmActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_NO_USER_ACTION or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS, doseLogIds)
             putExtra(FullScreenAlarmActivity.EXTRA_SCHEDULE_IDS, scheduleIds)
             putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_IDS, medicationIds)

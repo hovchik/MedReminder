@@ -97,13 +97,28 @@ object CaregiverNotificationHelper {
 
         return try {
             val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
 
-            if (location != null) {
-                val mapsUrl = "https://maps.google.com/?q=${location.latitude},${location.longitude}"
-                mapsUrl
+            // Try all available providers and pick the most recent location
+            var bestLocation: android.location.Location? = null
+
+            val providers = locationManager.getProviders(true) // only enabled providers
+            for (provider in providers) {
+                try {
+                    val location = locationManager.getLastKnownLocation(provider)
+                    if (location != null) {
+                        if (bestLocation == null || location.time > bestLocation.time) {
+                            bestLocation = location
+                        }
+                    }
+                } catch (e: SecurityException) {
+                    Log.w(TAG, "No permission for provider $provider")
+                }
+            }
+
+            if (bestLocation != null) {
+                "https://maps.google.com/?q=${bestLocation.latitude},${bestLocation.longitude}"
             } else {
+                Log.w(TAG, "No location available from any provider (${providers.joinToString()})")
                 null
             }
         } catch (e: Exception) {
@@ -127,7 +142,19 @@ object CaregiverNotificationHelper {
             return
         }
         try {
-            val smsManager = SmsManager.getDefault()
+            val smsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                context.getSystemService(SmsManager::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                SmsManager.getDefault()
+            }
+
+            if (smsManager == null) {
+                Log.e(TAG, "SmsManager not available, falling back to call for $phone")
+                makeCallFallback(context, phone)
+                return
+            }
+
             val parts = smsManager.divideMessage(message)
 
             // Create sent PendingIntent per part to track delivery
