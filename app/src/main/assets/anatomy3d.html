@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:transparent;overflow:hidden;touch-action:none}
+canvas{display:block;width:100vw;height:100vh}
+#label{position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  color:#fff;font:600 13px/1.3 system-ui,sans-serif;background:rgba(0,0,0,0.55);
+  padding:5px 14px;border-radius:20px;pointer-events:none;opacity:0;transition:opacity .3s}
+#label.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="label"></div>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+//  Setup
+// ============================================================
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 0.2, 3.8);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.enableZoom = true;
+controls.minDistance = 2;
+controls.maxDistance = 7;
+controls.enablePan = false;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.2;
+controls.target.set(0, 0.2, 0);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+dirLight.position.set(3, 5, 4);
+scene.add(dirLight);
+const backLight = new THREE.DirectionalLight(0x8899bb, 0.4);
+backLight.position.set(-2, 3, -3);
+scene.add(backLight);
+const rimLight = new THREE.DirectionalLight(0xaaccff, 0.3);
+rimLight.position.set(0, -2, 2);
+scene.add(rimLight);
+
+// ============================================================
+//  Materials
+// ============================================================
+const skinMat = new THREE.MeshStandardMaterial({
+  color: 0xd4a88c, roughness: 0.65, metalness: 0.02,
+  transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false
+});
+const organBaseMat = (color) => new THREE.MeshStandardMaterial({
+  color, roughness: 0.5, metalness: 0.05, transparent: true, opacity: 0.7
+});
+const boneMat = new THREE.MeshStandardMaterial({
+  color: 0xf5f0e8, roughness: 0.6, metalness: 0.05, transparent: true, opacity: 0.6
+});
+const highlightMat = (color) => new THREE.MeshStandardMaterial({
+  color, roughness: 0.3, metalness: 0.1, transparent: true, opacity: 0.92,
+  emissive: new THREE.Color(color), emissiveIntensity: 0.35
+});
+
+// ============================================================
+//  Body model — built from parametric geometry
+// ============================================================
+const bodyGroup = new THREE.Group();
+scene.add(bodyGroup);
+
+// Registry: name -> { mesh, defaultMat, region }
+const organs = {};
+
+function addOrgan(name, geometry, material, position, rotation, scale, region) {
+  const mesh = new THREE.Mesh(geometry, material);
+  if (position) mesh.position.set(...position);
+  if (rotation) mesh.rotation.set(...rotation);
+  if (scale) {
+    if (typeof scale === 'number') mesh.scale.setScalar(scale);
+    else mesh.scale.set(...scale);
+  }
+  mesh.userData = { name, region, defaultMat: material };
+  bodyGroup.add(mesh);
+  if (!organs[region]) organs[region] = [];
+  organs[region].push(mesh);
+  return mesh;
+}
+
+// --- Head ---
+const headGeo = new THREE.SphereGeometry(0.22, 32, 24);
+headGeo.scale(1, 1.15, 0.95);
+addOrgan('head', headGeo, skinMat.clone(), [0, 1.62, 0], null, null, 'HEAD');
+
+// Face features (eyes, nose hints) using small spheres
+const eyeGeo = new THREE.SphereGeometry(0.028, 16, 12);
+const eyeMat = new THREE.MeshStandardMaterial({ color: 0x334455, roughness: 0.3 });
+addOrgan('left_eye', eyeGeo, eyeMat.clone(), [-0.072, 1.65, 0.18], null, [1, 0.7, 0.5], 'EYES');
+addOrgan('right_eye', eyeGeo, eyeMat.clone(), [0.072, 1.65, 0.18], null, [1, 0.7, 0.5], 'EYES');
+
+// Ears
+const earGeo = new THREE.SphereGeometry(0.04, 12, 8);
+addOrgan('left_ear', earGeo, skinMat.clone(), [-0.24, 1.62, 0], null, [0.4, 1.2, 0.8], 'EARS');
+addOrgan('right_ear', earGeo, skinMat.clone(), [0.24, 1.62, 0], null, [0.4, 1.2, 0.8], 'EARS');
+
+// --- Neck ---
+const neckGeo = new THREE.CylinderGeometry(0.07, 0.09, 0.14, 16);
+addOrgan('neck', neckGeo, skinMat.clone(), [0, 1.38, 0], null, null, 'THROAT');
+
+// --- Torso (made from merged shapes for organic look) ---
+// Upper torso (chest)
+const chestGeo = new THREE.SphereGeometry(0.32, 32, 24);
+chestGeo.scale(1, 0.75, 0.7);
+addOrgan('chest', chestGeo, skinMat.clone(), [0, 1.15, 0], null, null, 'FULL_BODY');
+
+// Lower torso (abdomen)
+const abdomenGeo = new THREE.SphereGeometry(0.28, 32, 24);
+abdomenGeo.scale(1, 0.85, 0.68);
+addOrgan('abdomen', abdomenGeo, skinMat.clone(), [0, 0.88, 0], null, null, 'FULL_BODY');
+
+// Hips / pelvis area
+const hipGeo = new THREE.SphereGeometry(0.3, 32, 24);
+hipGeo.scale(1, 0.5, 0.65);
+addOrgan('hips', hipGeo, skinMat.clone(), [0, 0.68, 0], null, null, 'FULL_BODY');
+
+// --- Shoulders ---
+const shoulderGeo = new THREE.SphereGeometry(0.09, 16, 12);
+addOrgan('left_shoulder', shoulderGeo, skinMat.clone(), [-0.38, 1.28, 0], null, [1.1, 0.85, 0.9], 'JOINTS');
+addOrgan('right_shoulder', shoulderGeo, skinMat.clone(), [0.38, 1.28, 0], null, [1.1, 0.85, 0.9], 'JOINTS');
+
+// --- Arms ---
+function createLimb(radiusTop, radiusBottom, length, segs) {
+  return new THREE.CylinderGeometry(radiusTop, radiusBottom, length, segs || 12);
+}
+// Upper arms
+addOrgan('left_upper_arm', createLimb(0.06, 0.055, 0.32), skinMat.clone(), [-0.42, 1.1, 0], [0, 0, 0.12], null, 'JOINTS');
+addOrgan('right_upper_arm', createLimb(0.06, 0.055, 0.32), skinMat.clone(), [0.42, 1.1, 0], [0, 0, -0.12], null, 'JOINTS');
+// Forearms
+addOrgan('left_forearm', createLimb(0.05, 0.04, 0.32), skinMat.clone(), [-0.46, 0.78, 0.02], [0.05, 0, 0.08], null, 'JOINTS');
+addOrgan('right_forearm', createLimb(0.05, 0.04, 0.32), skinMat.clone(), [0.46, 0.78, 0.02], [0.05, 0, -0.08], null, 'JOINTS');
+// Hands
+const handGeo = new THREE.BoxGeometry(0.06, 0.09, 0.03, 2, 2, 1);
+addOrgan('left_hand', handGeo, skinMat.clone(), [-0.48, 0.58, 0.03], null, null, 'JOINTS');
+addOrgan('right_hand', handGeo, skinMat.clone(), [0.48, 0.58, 0.03], null, null, 'JOINTS');
+// Fingers (simple cylinders)
+for (let i = 0; i < 4; i++) {
+  const fx = -0.015 + i * 0.015;
+  const fGeo = new THREE.CylinderGeometry(0.008, 0.007, 0.06, 6);
+  addOrgan(`left_finger_${i}`, fGeo, skinMat.clone(), [-0.465 + fx, 0.52, 0.03], null, null, 'JOINTS');
+  addOrgan(`right_finger_${i}`, fGeo, skinMat.clone(), [0.465 + fx, 0.52, 0.03], null, null, 'JOINTS');
+}
+// Thumbs
+const thumbGeo = new THREE.CylinderGeometry(0.01, 0.008, 0.05, 6);
+addOrgan('left_thumb', thumbGeo, skinMat.clone(), [-0.5, 0.56, 0.045], [0.3, 0, 0.5], null, 'JOINTS');
+addOrgan('right_thumb', thumbGeo, skinMat.clone(), [0.5, 0.56, 0.045], [0.3, 0, -0.5], null, 'JOINTS');
+
+// --- Legs ---
+// Upper legs (thighs)
+addOrgan('left_thigh', createLimb(0.09, 0.07, 0.44, 16), skinMat.clone(), [-0.14, 0.43, 0], null, null, 'JOINTS');
+addOrgan('right_thigh', createLimb(0.09, 0.07, 0.44, 16), skinMat.clone(), [0.14, 0.43, 0], null, null, 'JOINTS');
+// Knees
+const kneeGeo = new THREE.SphereGeometry(0.065, 12, 8);
+addOrgan('left_knee', kneeGeo, skinMat.clone(), [-0.14, 0.2, 0.02], null, [1, 0.8, 0.9], 'JOINTS');
+addOrgan('right_knee', kneeGeo, skinMat.clone(), [0.14, 0.2, 0.02], null, [1, 0.8, 0.9], 'JOINTS');
+// Lower legs (calves)
+addOrgan('left_calf', createLimb(0.065, 0.045, 0.42, 12), skinMat.clone(), [-0.14, -0.04, 0], null, null, 'JOINTS');
+addOrgan('right_calf', createLimb(0.065, 0.045, 0.42, 12), skinMat.clone(), [0.14, -0.04, 0], null, null, 'JOINTS');
+// Ankles
+const ankleGeo = new THREE.SphereGeometry(0.04, 10, 8);
+addOrgan('left_ankle', ankleGeo, skinMat.clone(), [-0.14, -0.26, 0], null, null, 'JOINTS');
+addOrgan('right_ankle', ankleGeo, skinMat.clone(), [0.14, -0.26, 0], null, null, 'JOINTS');
+// Feet
+const footGeo = new THREE.BoxGeometry(0.08, 0.04, 0.16, 2, 1, 2);
+addOrgan('left_foot', footGeo, skinMat.clone(), [-0.14, -0.3, 0.04], null, null, 'BONES');
+addOrgan('right_foot', footGeo, skinMat.clone(), [0.14, -0.3, 0.04], null, null, 'BONES');
+
+// ============================================================
+//  Internal Organs
+// ============================================================
+
+// Heart (displaced sphere + cone shape)
+const heartGeo = new THREE.SphereGeometry(0.055, 16, 12);
+heartGeo.scale(1, 1.15, 0.85);
+addOrgan('heart', heartGeo, organBaseMat(0xcc3344), [-0.04, 1.18, 0.08], [0, 0, 0.2], null, 'HEART');
+// Aorta hint
+const aortaGeo = new THREE.CylinderGeometry(0.012, 0.015, 0.1, 8);
+addOrgan('aorta', aortaGeo, organBaseMat(0xcc3344), [-0.02, 1.26, 0.06], [0.2, 0, 0.1], null, 'HEART');
+
+// Lungs
+const lungGeo = new THREE.SphereGeometry(0.1, 20, 16);
+lungGeo.scale(0.75, 1.2, 0.7);
+addOrgan('left_lung', lungGeo, organBaseMat(0xdd8899), [-0.15, 1.17, 0.02], null, null, 'LUNGS');
+addOrgan('right_lung', lungGeo, organBaseMat(0xdd8899), [0.13, 1.17, 0.02], null, [1.1, 1, 1], 'LUNGS');
+// Trachea
+const tracheaGeo = new THREE.CylinderGeometry(0.015, 0.018, 0.15, 8);
+addOrgan('trachea', tracheaGeo, organBaseMat(0xddaaaa), [0, 1.33, 0.04], null, null, 'THROAT');
+
+// Liver
+const liverGeo = new THREE.SphereGeometry(0.09, 16, 12);
+liverGeo.scale(1.4, 0.7, 0.8);
+addOrgan('liver', liverGeo, organBaseMat(0x884422), [0.08, 0.98, 0.06], [0, 0, -0.15], null, 'LIVER');
+
+// Stomach
+const stomachGeo = new THREE.SphereGeometry(0.07, 16, 12);
+stomachGeo.scale(1, 1.2, 0.8);
+addOrgan('stomach', stomachGeo, organBaseMat(0xccaa77), [-0.08, 0.94, 0.06], [0, 0, 0.2], null, 'STOMACH');
+
+// Kidneys
+const kidneyGeo = new THREE.SphereGeometry(0.035, 12, 8);
+kidneyGeo.scale(0.7, 1.2, 0.7);
+addOrgan('left_kidney', kidneyGeo, organBaseMat(0x995544), [-0.12, 0.9, -0.04], null, null, 'KIDNEYS');
+addOrgan('right_kidney', kidneyGeo, organBaseMat(0x995544), [0.12, 0.9, -0.04], null, null, 'KIDNEYS');
+
+// Intestines (coiled torus-like shape)
+const intestineGeo = new THREE.TorusGeometry(0.08, 0.025, 8, 20);
+addOrgan('intestines', intestineGeo, organBaseMat(0xddaa88), [0, 0.82, 0.04], [1.5, 0, 0], null, 'STOMACH');
+const smallIntGeo = new THREE.TorusGeometry(0.05, 0.02, 8, 16);
+addOrgan('small_intestine', smallIntGeo, organBaseMat(0xddbb99), [0, 0.78, 0.04], [1.4, 0.3, 0], null, 'STOMACH');
+
+// ============================================================
+//  Skeleton (visible through transparent skin)
+// ============================================================
+
+// Spine
+const spineGroup = new THREE.Group();
+for (let i = 0; i < 22; i++) {
+  const vGeo = new THREE.CylinderGeometry(0.015, 0.018, 0.03, 8);
+  const v = new THREE.Mesh(vGeo, boneMat.clone());
+  v.position.set(0, 1.35 - i * 0.035, -0.06);
+  v.userData = { name: `vertebra_${i}`, region: 'BONES', defaultMat: boneMat };
+  spineGroup.add(v);
+  if (!organs['BONES']) organs['BONES'] = [];
+  organs['BONES'].push(v);
+}
+bodyGroup.add(spineGroup);
+
+// Rib cage
+for (let i = 0; i < 12; i++) {
+  const ribRadius = 0.14 + (i < 7 ? i * 0.012 : (12 - i) * 0.01);
+  const ribGeo = new THREE.TorusGeometry(ribRadius, 0.006, 6, 24, Math.PI);
+  const yPos = 1.28 - i * 0.025;
+  // Left rib half
+  const leftRib = new THREE.Mesh(ribGeo, boneMat.clone());
+  leftRib.position.set(0, yPos, 0);
+  leftRib.rotation.set(Math.PI / 2, 0, 0);
+  leftRib.userData = { name: `rib_${i}`, region: 'BONES', defaultMat: boneMat };
+  bodyGroup.add(leftRib);
+  organs['BONES'].push(leftRib);
+}
+
+// Sternum
+const sternumGeo = new THREE.BoxGeometry(0.025, 0.2, 0.015);
+addOrgan('sternum', sternumGeo, boneMat.clone(), [0, 1.18, 0.12], null, null, 'BONES');
+
+// Pelvis (simplified)
+const pelvisGeo = new THREE.TorusGeometry(0.16, 0.02, 8, 16, Math.PI);
+addOrgan('pelvis', pelvisGeo, boneMat.clone(), [0, 0.68, 0], [1.8, 0, 0], null, 'BONES');
+
+// Skull outline
+const skullGeo = new THREE.SphereGeometry(0.2, 20, 16);
+skullGeo.scale(1, 1.1, 0.9);
+addOrgan('skull', skullGeo, boneMat.clone(), [0, 1.63, 0], null, null, 'BONES');
+organs['BONES'][organs['BONES'].length - 1].material.opacity = 0.15;
+
+// Clavicles
+const clavGeo = new THREE.CylinderGeometry(0.008, 0.01, 0.2, 6);
+addOrgan('left_clavicle', clavGeo, boneMat.clone(), [-0.18, 1.3, 0.06], [0, 0, 1.2], null, 'BONES');
+addOrgan('right_clavicle', clavGeo, boneMat.clone(), [0.18, 1.3, 0.06], [0, 0, -1.2], null, 'BONES');
+
+// Scapulae (shoulder blades)
+const scapGeo = new THREE.BoxGeometry(0.08, 0.12, 0.01);
+addOrgan('left_scapula', scapGeo, boneMat.clone(), [-0.2, 1.18, -0.12], [0.15, 0, -0.1], null, 'BONES');
+addOrgan('right_scapula', scapGeo, boneMat.clone(), [0.2, 1.18, -0.12], [0.15, 0, 0.1], null, 'BONES');
+
+// Femur bones
+const femurGeo = new THREE.CylinderGeometry(0.018, 0.02, 0.4, 8);
+addOrgan('left_femur', femurGeo, boneMat.clone(), [-0.14, 0.42, 0], null, null, 'BONES');
+addOrgan('right_femur', femurGeo, boneMat.clone(), [0.14, 0.42, 0], null, null, 'BONES');
+
+// Tibia bones
+const tibiaGeo = new THREE.CylinderGeometry(0.015, 0.012, 0.38, 8);
+addOrgan('left_tibia', tibiaGeo, boneMat.clone(), [-0.14, -0.02, 0.01], null, null, 'BONES');
+addOrgan('right_tibia', tibiaGeo, boneMat.clone(), [0.14, -0.02, 0.01], null, null, 'BONES');
+
+// Humerus bones
+const humerusGeo = new THREE.CylinderGeometry(0.012, 0.015, 0.3, 8);
+addOrgan('left_humerus', humerusGeo, boneMat.clone(), [-0.42, 1.1, 0], [0, 0, 0.1], null, 'BONES');
+addOrgan('right_humerus', humerusGeo, boneMat.clone(), [0.42, 1.1, 0], [0, 0, -0.1], null, 'BONES');
+
+// ============================================================
+//  Nervous system hints (brain + spinal cord)
+// ============================================================
+const brainGeo = new THREE.SphereGeometry(0.15, 20, 16);
+brainGeo.scale(1, 0.9, 0.85);
+addOrgan('brain', brainGeo, organBaseMat(0xffcccc), [0, 1.67, -0.01], null, null, 'NERVOUS_SYSTEM');
+organs['NERVOUS_SYSTEM'][0].material.opacity = 0.3;
+
+const spinalCordGeo = new THREE.CylinderGeometry(0.006, 0.005, 0.8, 6);
+addOrgan('spinal_cord', spinalCordGeo, organBaseMat(0xffddcc), [0, 1.0, -0.06], null, null, 'NERVOUS_SYSTEM');
+
+// ============================================================
+//  Blood / Circulatory hints
+// ============================================================
+const arteryGeo = new THREE.CylinderGeometry(0.005, 0.005, 0.5, 6);
+addOrgan('aorta_main', arteryGeo, organBaseMat(0xdd2222), [0.02, 1.05, 0.02], null, null, 'BLOOD');
+addOrgan('left_artery', arteryGeo, organBaseMat(0xdd2222), [-0.1, 0.85, 0.02], [0, 0, 0.3], [1, 0.6, 1], 'BLOOD');
+addOrgan('right_artery', arteryGeo, organBaseMat(0xdd2222), [0.1, 0.85, 0.02], [0, 0, -0.3], [1, 0.6, 1], 'BLOOD');
+
+// ============================================================
+//  Skin layer (full body transparent shell)
+// ============================================================
+const skinShellGeo = new THREE.SphereGeometry(0.34, 32, 24);
+skinShellGeo.scale(1, 2.6, 0.72);
+const skinShellMat = new THREE.MeshStandardMaterial({
+  color: 0xeeccbb, roughness: 0.7, metalness: 0,
+  transparent: true, opacity: 0.06, side: THREE.DoubleSide, depthWrite: false
+});
+const skinShell = new THREE.Mesh(skinShellGeo, skinShellMat);
+skinShell.position.set(0, 0.95, 0);
+skinShell.userData = { name: 'skin_shell', region: 'SKIN', defaultMat: skinShellMat };
+bodyGroup.add(skinShell);
+if (!organs['SKIN']) organs['SKIN'] = [];
+organs['SKIN'].push(skinShell);
+
+// ============================================================
+//  Hormonal / Endocrine hints
+// ============================================================
+const thyroidGeo = new THREE.TorusGeometry(0.025, 0.008, 6, 12, Math.PI);
+addOrgan('thyroid', thyroidGeo, organBaseMat(0xcc77aa), [0, 1.35, 0.06], [0, 0, Math.PI], null, 'HORMONES');
+const adrenalGeo = new THREE.SphereGeometry(0.015, 8, 6);
+addOrgan('left_adrenal', adrenalGeo, organBaseMat(0xddaa55), [-0.12, 0.95, -0.03], null, [1.5, 0.8, 0.8], 'HORMONES');
+addOrgan('right_adrenal', adrenalGeo, organBaseMat(0xddaa55), [0.12, 0.95, -0.03], null, [1.5, 0.8, 0.8], 'HORMONES');
+
+// Immune hints (spleen + lymph nodes)
+const spleenGeo = new THREE.SphereGeometry(0.04, 10, 8);
+addOrgan('spleen', spleenGeo, organBaseMat(0x884466), [-0.18, 0.96, 0], null, [1.3, 0.8, 0.7], 'IMMUNE');
+const lymphGeo = new THREE.SphereGeometry(0.012, 6, 6);
+addOrgan('lymph_neck_l', lymphGeo, organBaseMat(0x66aa66), [-0.08, 1.38, 0.04], null, null, 'IMMUNE');
+addOrgan('lymph_neck_r', lymphGeo, organBaseMat(0x66aa66), [0.08, 1.38, 0.04], null, null, 'IMMUNE');
+addOrgan('lymph_armpit_l', lymphGeo, organBaseMat(0x66aa66), [-0.32, 1.22, 0], null, null, 'IMMUNE');
+addOrgan('lymph_armpit_r', lymphGeo, organBaseMat(0x66aa66), [0.32, 1.22, 0], null, null, 'IMMUNE');
+
+// ============================================================
+//  Highlight API — called from Android via JS interface
+// ============================================================
+const highlightColors = {
+  HEAD: 0x66bbff, EYES: 0x44aaff, EARS: 0x55aacc,
+  THROAT: 0x77ccdd, HEART: 0xff4466, LUNGS: 0xff8899,
+  STOMACH: 0xffaa44, LIVER: 0xcc7733, KIDNEYS: 0xdd8855,
+  JOINTS: 0x44dd88, SKIN: 0xffcc88, BLOOD: 0xff3333,
+  IMMUNE: 0x44cc66, HORMONES: 0xddaa33, NERVOUS_SYSTEM: 0xcc88ff,
+  BONES: 0xeeeedd, FULL_BODY: 0x66aaff
+};
+
+const regionLabels = {
+  HEAD: 'Head / Brain', EYES: 'Eyes', EARS: 'Ears',
+  THROAT: 'Throat', HEART: 'Heart', LUNGS: 'Lungs',
+  STOMACH: 'Stomach / GI', LIVER: 'Liver', KIDNEYS: 'Kidneys',
+  JOINTS: 'Joints / Muscles', SKIN: 'Skin', BLOOD: 'Blood / Circulation',
+  IMMUNE: 'Immune System', HORMONES: 'Hormonal / Endocrine',
+  NERVOUS_SYSTEM: 'Nervous System', BONES: 'Bones', FULL_BODY: 'Full Body / Systemic'
+};
+
+let currentHighlights = [];
+
+function clearHighlights() {
+  for (const region in organs) {
+    organs[region].forEach(mesh => {
+      if (mesh.userData.defaultMat) {
+        mesh.material = mesh.userData.defaultMat;
+      }
+    });
+  }
+  currentHighlights = [];
+  document.getElementById('label').classList.remove('show');
+}
+
+function highlightRegions(regionListJson) {
+  clearHighlights();
+  let regionList;
+  try {
+    regionList = JSON.parse(regionListJson);
+  } catch (e) {
+    regionList = [regionListJson];
+  }
+
+  currentHighlights = regionList;
+  const labels = [];
+
+  regionList.forEach(region => {
+    const color = highlightColors[region] || 0x66bbff;
+    const mat = highlightMat(color);
+    if (organs[region]) {
+      organs[region].forEach(mesh => {
+        mesh.material = mat;
+      });
+    }
+    if (regionLabels[region]) labels.push(regionLabels[region]);
+  });
+
+  if (labels.length > 0) {
+    const labelEl = document.getElementById('label');
+    labelEl.textContent = labels.join(' • ');
+    labelEl.classList.add('show');
+  }
+}
+
+// Pulsing animation for highlighted organs
+let pulseTime = 0;
+
+// Expose to Android WebView
+window.highlightRegions = highlightRegions;
+window.clearHighlights = clearHighlights;
+
+// ============================================================
+//  Resize handler
+// ============================================================
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ============================================================
+//  Animation loop
+// ============================================================
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  pulseTime += 0.03;
+
+  // Pulse highlighted organs
+  currentHighlights.forEach(region => {
+    if (organs[region]) {
+      organs[region].forEach(mesh => {
+        if (mesh.material.emissive) {
+          mesh.material.emissiveIntensity = 0.25 + Math.sin(pulseTime * 2) * 0.15;
+        }
+      });
+    }
+  });
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// ============================================================
+//  Notify Android that model is ready
+// ============================================================
+if (window.AndroidBridge) {
+  window.AndroidBridge.onModelReady();
+}
+</script>
+</body>
+</html>

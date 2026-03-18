@@ -21,6 +21,25 @@ import androidx.compose.ui.unit.dp
 import com.medreminder.ai.BodyRegion
 
 /**
+ * Primary entry point — renders an interactive 3D human anatomy model.
+ * Falls back to the 2D canvas version if needed.
+ */
+@Composable
+fun AnatomyBodyView(
+    highlightedRegions: List<BodyRegion>,
+    modifier: Modifier = Modifier
+) {
+    Anatomy3DView(
+        highlightedRegions = highlightedRegions,
+        modifier = modifier
+    )
+}
+
+// =============================================================================
+//  2D Canvas Fallback (kept for offline / low-end device support)
+// =============================================================================
+
+/**
  * Holds all normalized anatomical reference points for the human body drawing.
  * All values are absolute pixel positions computed from the canvas size.
  * Based on SVG reference data from eMahtab/human-anatomy (public domain).
@@ -93,7 +112,7 @@ private fun computeBodyPoints(w: Float, h: Float): BodyPoints {
 }
 
 @Composable
-fun AnatomyBodyView(
+internal fun AnatomyBodyView2D(
     highlightedRegions: List<BodyRegion>,
     modifier: Modifier = Modifier
 ) {
