@@ -44,7 +44,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
 
     fun getApiKey(): String? = apiKey
 
-    override fun isAvailable(): Boolean = !apiKey.isNullOrBlank()
+    override fun isAvailable(): Boolean = true // Always available; falls back to local analysis if no API key
 
     override suspend fun generateAnalysis(input: AnalysisInput): AnalysisResult {
         val startTime = System.currentTimeMillis()
@@ -208,34 +208,95 @@ class CloudAiProvider @Inject constructor() : AiProvider {
 
     private fun buildPrompt(input: AnalysisInput): String {
         val medsSection = input.medications.joinToString("\n") { med ->
-            "- ${med.name} ${med.dosage} (${med.form}, ${med.frequency})" +
-                    if (med.instructions.isNotBlank()) " [${med.instructions}]" else ""
+            val parts = mutableListOf<String>()
+            parts.add("- ${med.name} ${med.dosage} (${med.form}, ${med.frequency})")
+            if (med.scheduledTimes.isNotEmpty()) {
+                parts.add("  Schedule: ${med.scheduledTimes.joinToString(", ")}")
+            }
+            if (med.instructions.isNotBlank()) {
+                parts.add("  Instructions: ${med.instructions}")
+            }
+            parts.add("  Adherence: ${String.format("%.0f", med.adherenceRate)}% (taken ${med.takenCount}, missed ${med.missedCount}, skipped ${med.skippedCount})")
+            if (med.snoozedCount > 0) {
+                parts.add("  Snoozed ${med.snoozedCount} times")
+            }
+            if (med.averageDelayMinutes > 0) {
+                parts.add("  Avg delay: ${String.format("%.0f", med.averageDelayMinutes)} min after scheduled time")
+            }
+            if (med.isEmergency) {
+                parts.add("  *** EMERGENCY/CRITICAL medication ***")
+            }
+            if (med.needsRefill) {
+                parts.add("  LOW STOCK: ${med.currentStock} remaining (refill at ${med.refillThreshold})")
+            } else if (med.currentStock > 0) {
+                parts.add("  Stock: ${med.currentStock} remaining")
+            }
+            if (med.assignedTo.isNotBlank()) {
+                parts.add("  Assigned to: ${med.assignedTo}")
+            }
+            parts.joinToString("\n")
+        }
+
+        val timeOfDaySection = input.timeOfDayBreakdown?.let { tod ->
+            """
+            |
+            |Time-of-Day Adherence:
+            |  Morning (5am-12pm): ${String.format("%.0f", tod.morningRate)}%
+            |  Afternoon (12pm-5pm): ${String.format("%.0f", tod.afternoonRate)}%
+            |  Evening (5pm-9pm): ${String.format("%.0f", tod.eveningRate)}%
+            |  Night (9pm-5am): ${String.format("%.0f", tod.nightRate)}%
+            """.trimMargin()
+        } ?: ""
+
+        val weeklySection = if (input.weeklyBreakdown.isNotEmpty()) {
+            "\n\nDaily Breakdown:\n" + input.weeklyBreakdown.joinToString("\n") { day ->
+                "  ${day.dayName}: ${day.taken}/${day.total} (${String.format("%.0f", day.rate)}%)"
+            }
+        } else ""
+
+        val userSection = if (input.userName.isNotBlank() || input.userAge > 0) {
+            val parts = mutableListOf<String>()
+            if (input.userName.isNotBlank()) parts.add("Name: ${input.userName}")
+            if (input.userAge > 0) parts.add("Age: ${input.userAge}")
+            "\n\nPatient: ${parts.joinToString(", ")}"
+        } else ""
+
+        val contextSection = buildList {
+            if (input.totalSnoozedCount > 0) add("Total snoozes: ${input.totalSnoozedCount}")
+            if (input.averageDelayMinutes > 0) add("Avg dose delay: ${String.format("%.0f", input.averageDelayMinutes)} min")
+            if (input.longestStreak > 0) add("Longest streak ever: ${input.longestStreak} days")
+            if (input.hasCaregivers) add("Has ${input.caregiverCount} caregiver(s) monitoring")
+            if (input.familyMemberCount > 0) add("Managing meds for ${input.familyMemberCount} family member(s)")
+            if (input.worstMedication != null && input.medications.size > 1)
+                add("Lowest adherence: ${input.worstMedication}")
+            if (input.bestMedication != null && input.medications.size > 1)
+                add("Highest adherence: ${input.bestMedication}")
+        }.let {
+            if (it.isNotEmpty()) "\n\nAdditional Context:\n" + it.joinToString("\n") { s -> "  $s" }
+            else ""
         }
 
         return """
-            |Analyze this medication adherence data and provide health insights.
+            |You are a medication adherence analyst for a health app. Analyze the following data and provide personalized, actionable health insights. Be specific and reference the actual medication names, patterns, and numbers.
+            |$userSection
             |
             |Medications:
             |$medsSection
             |
-            |Adherence Rate: ${String.format("%.1f", input.adherenceRate)}%
-            |Period: ${input.periodDays} days
-            |Total Doses: ${input.totalDoses}
-            |Taken: ${input.takenDoses}
-            |Missed: ${input.missedDoses}
-            |Skipped: ${input.skippedDoses}
+            |Overall Adherence: ${String.format("%.1f", input.adherenceRate)}%
+            |Period: ${if (input.periodDays == 1) "Today" else "Last ${input.periodDays} days"}
+            |Total Doses: ${input.totalDoses} | Taken: ${input.takenDoses} | Missed: ${input.missedDoses} | Skipped: ${input.skippedDoses}
             |Current Streak: ${input.currentStreak} days
+            |$timeOfDaySection$weeklySection$contextSection
             |
-            |Analysis Type: ${input.analysisType.name}
+            |Provide a thorough analysis with:
+            |1. A personalized summary (2-3 sentences, reference specific medications by name)
+            |2. 3-5 specific insights based on the data patterns (timing, specific meds, trends)
+            |3. 3-5 actionable recommendations tailored to the observed patterns
+            |4. Risk level: LOW (≥90%), MODERATE (70-89%), HIGH (<70%)
             |
-            |Provide:
-            |1. A brief summary of adherence
-            |2. Key insights
-            |3. Actionable recommendations
-            |4. Risk level assessment (LOW, MODERATE, HIGH)
-            |
-            |Respond in JSON format:
-            |{"summary": "...", "insights": ["..."], "recommendations": ["..."], "riskLevel": "LOW|MODERATE|HIGH"}
+            |Respond ONLY with valid JSON:
+            |{"summary": "...", "insights": ["...", "..."], "recommendations": ["...", "..."], "riskLevel": "LOW|MODERATE|HIGH"}
         """.trimMargin()
     }
 
@@ -284,20 +345,50 @@ class CloudAiProvider @Inject constructor() : AiProvider {
         if (input.currentStreak > 0) {
             insights.add("You're on a ${input.currentStreak}-day streak of taking all your medications.")
         }
+        if (input.longestStreak > input.currentStreak && input.longestStreak > 0) {
+            insights.add("Your best streak was ${input.longestStreak} days — you can beat it!")
+        }
         if (input.missedDoses > 0) {
-            insights.add("You've missed ${input.missedDoses} doses in the last ${input.periodDays} days.")
+            insights.add("You've missed ${input.missedDoses} doses in the last ${input.periodDays} day(s).")
         }
         if (input.skippedDoses > 0) {
             insights.add("You've intentionally skipped ${input.skippedDoses} doses.")
         }
+        if (input.totalSnoozedCount > 0) {
+            insights.add("You snoozed ${input.totalSnoozedCount} time(s) — consider adjusting reminder times.")
+        }
+        if (input.averageDelayMinutes > 15) {
+            insights.add("On average, you take doses ${String.format("%.0f", input.averageDelayMinutes)} minutes late.")
+        }
         if (input.adherenceRate >= 95f) {
-            insights.add("Your adherence is in the top tier - keep it up!")
+            insights.add("Your adherence is in the top tier — keep it up!")
+        }
+        // Time-of-day insights
+        input.timeOfDayBreakdown?.let { tod ->
+            val worst = listOf("Morning" to tod.morningRate, "Afternoon" to tod.afternoonRate,
+                "Evening" to tod.eveningRate, "Night" to tod.nightRate)
+                .filter { it.second > 0f }
+                .minByOrNull { it.second }
+            if (worst != null && worst.second < 80f) {
+                insights.add("${worst.first} doses have the lowest adherence (${String.format("%.0f", worst.second)}%).")
+            }
+        }
+        // Per-medication insights
+        val worstMed = input.medications.filter { it.takenCount + it.missedCount > 0 }
+            .minByOrNull { it.adherenceRate }
+        if (worstMed != null && worstMed.adherenceRate < 80f && input.medications.size > 1) {
+            insights.add("${worstMed.name} has the lowest adherence at ${String.format("%.0f", worstMed.adherenceRate)}%.")
+        }
+        // Stock warning
+        val lowStock = input.medications.filter { it.needsRefill }
+        if (lowStock.isNotEmpty()) {
+            insights.add("${lowStock.joinToString(", ") { it.name }} need(s) a refill soon.")
         }
         if (input.medications.size > 3) {
             insights.add("Managing ${input.medications.size} medications requires careful scheduling.")
         }
 
-        return insights.ifEmpty { listOf("Keep tracking your medications for more detailed insights.") }
+        return insights.take(5).ifEmpty { listOf("Keep tracking your medications for more detailed insights.") }
     }
 
     private fun buildRecommendations(input: AnalysisInput, riskLevel: RiskLevel): List<String> {
@@ -306,7 +397,9 @@ class CloudAiProvider @Inject constructor() : AiProvider {
         when (riskLevel) {
             RiskLevel.HIGH -> {
                 recommendations.add("Set up additional reminders for frequently missed doses.")
-                recommendations.add("Consider adding a caregiver to help track your medications.")
+                if (!input.hasCaregivers) {
+                    recommendations.add("Consider adding a caregiver to help track your medications.")
+                }
                 recommendations.add("Talk to your healthcare provider about simplifying your medication schedule.")
             }
             RiskLevel.MODERATE -> {
@@ -321,7 +414,28 @@ class CloudAiProvider @Inject constructor() : AiProvider {
             }
         }
 
-        return recommendations
+        // Enriched recommendations
+        if (input.totalSnoozedCount > 3) {
+            recommendations.add("You snooze often — consider rescheduling medications to a more convenient time.")
+        }
+        input.timeOfDayBreakdown?.let { tod ->
+            if (tod.eveningRate < 70f && tod.morningRate > 85f) {
+                recommendations.add("Evening doses are often missed. Try setting a dinner-time reminder.")
+            }
+            if (tod.morningRate < 70f && tod.eveningRate > 85f) {
+                recommendations.add("Morning doses need attention. Try linking them to your morning routine.")
+            }
+        }
+        val emergencyMissed = input.medications.filter { it.isEmergency && it.missedCount > 0 }
+        if (emergencyMissed.isNotEmpty()) {
+            recommendations.add("Critical medication ${emergencyMissed.first().name} was missed — please prioritize this.")
+        }
+        val refillNeeded = input.medications.filter { it.needsRefill }
+        if (refillNeeded.isNotEmpty()) {
+            recommendations.add("Refill ${refillNeeded.joinToString(", ") { it.name }} before running out.")
+        }
+
+        return recommendations.take(5)
     }
 
     companion object {
