@@ -310,6 +310,9 @@ fun SettingsScreen(
     val installedModels by viewModel.installedModels.collectAsStateWithLifecycle()
     val activeModelId by viewModel.activeModelId.collectAsStateWithLifecycle()
     val isLoadingModel by viewModel.isLoadingModel.collectAsStateWithLifecycle()
+    val selectedCloudService by viewModel.selectedCloudService.collectAsStateWithLifecycle()
+    val currentApiKey by viewModel.getApiKeyForService(selectedCloudService)
+        .collectAsStateWithLifecycle(initialValue = null)
     val activeProviderInfo = remember(selectedProvider, currentApiKey, installedModels) {
         viewModel.getActiveProviderInfo(selectedProvider)
     }
@@ -318,9 +321,6 @@ fun SettingsScreen(
     var showModelPickerDialog by remember { mutableStateOf(false) }
     var showCloudServiceDialog by remember { mutableStateOf(false) }
     var showApiKeyDialog by remember { mutableStateOf(false) }
-    val selectedCloudService by viewModel.selectedCloudService.collectAsStateWithLifecycle()
-    val currentApiKey by viewModel.getApiKeyForService(selectedCloudService)
-        .collectAsStateWithLifecycle(initialValue = null)
 
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val userAge by viewModel.userAge.collectAsStateWithLifecycle()
