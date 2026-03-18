@@ -24,6 +24,14 @@
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <!-- Allow resolving email intents on Android 11+ -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+    </queries>
+
     <application
         android:name=".MedReminderApp"
         android:allowBackup="true"
@@ -69,6 +77,10 @@
 
         <receiver
             android:name=".alarm.SmsSentReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".alarm.MissedDoseCheckReceiver"
             android:exported="false" />
 
         <receiver

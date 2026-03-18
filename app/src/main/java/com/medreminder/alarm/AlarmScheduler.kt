@@ -180,6 +180,62 @@ class AlarmScheduler @Inject constructor(
         }
     }
 
+    /**
+     * Schedule a missed-dose check alarm that fires [MissedDoseCheckReceiver.MISSED_CHECK_DELAY_MINUTES]
+     * minutes after the original alarm. If the dose is still pending at that point, caregivers are notified.
+     */
+    fun scheduleMissedDoseCheck(
+        doseLogIds: LongArray,
+        medicationIds: LongArray,
+        medicationNames: Array<String>
+    ) {
+        val delayMs = MissedDoseCheckReceiver.MISSED_CHECK_DELAY_MINUTES * 60 * 1000L
+        val triggerTime = System.currentTimeMillis() + delayMs
+
+        val intent = Intent(context, MissedDoseCheckReceiver::class.java).apply {
+            action = MissedDoseCheckReceiver.ACTION
+            putExtra(MissedDoseCheckReceiver.EXTRA_DOSE_LOG_IDS, doseLogIds)
+            putExtra(MissedDoseCheckReceiver.EXTRA_MEDICATION_IDS, medicationIds)
+            putExtra(MissedDoseCheckReceiver.EXTRA_MEDICATION_NAMES, medicationNames)
+        }
+
+        val requestCode = missedCheckRequestCode(doseLogIds)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context, requestCode, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        try {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
+            )
+            Log.d(TAG, "Missed dose check scheduled in ${MissedDoseCheckReceiver.MISSED_CHECK_DELAY_MINUTES} min for ${doseLogIds.joinToString()}")
+        } catch (e: SecurityException) {
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+        }
+    }
+
+    /**
+     * Cancel a previously scheduled missed-dose check (e.g. when user takes/snoozes/skips).
+     */
+    fun cancelMissedDoseCheck(doseLogIds: LongArray) {
+        val intent = Intent(context, MissedDoseCheckReceiver::class.java).apply {
+            action = MissedDoseCheckReceiver.ACTION
+        }
+        val requestCode = missedCheckRequestCode(doseLogIds)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context, requestCode, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
+        Log.d(TAG, "Missed dose check cancelled for ${doseLogIds.joinToString()}")
+    }
+
+    private fun missedCheckRequestCode(doseLogIds: LongArray): Int {
+        // Stable request code based on the dose log IDs
+        return (doseLogIds.sum() * 31 + 7777).toInt() and 0x7FFFFFFF
+    }
+
     private fun calculateNextAlarmTime(schedule: com.medreminder.domain.model.Schedule): Long? {
         // Use a buffer so we don't re-schedule an alarm that just fired
         // (e.g., alarm fires at 4:55:59 for a 4:56 schedule — without buffer,

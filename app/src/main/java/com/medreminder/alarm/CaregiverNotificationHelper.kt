@@ -207,20 +207,17 @@ object CaregiverNotificationHelper {
     private fun sendEmail(context: Context, email: String, subject: String, body: String) {
         try {
             val intent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:")
-                putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
+                data = Uri.parse("mailto:$email")
                 putExtra(Intent.EXTRA_SUBJECT, subject)
                 putExtra(Intent.EXTRA_TEXT, body)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            if (intent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(intent)
-                Log.d(TAG, "Email intent launched for $email")
-            } else {
-                Log.w(TAG, "No email app available for $email")
-            }
+            // On Android 11+ resolveActivity() returns null due to package visibility
+            // restrictions, so just try to start the activity directly.
+            context.startActivity(intent)
+            Log.d(TAG, "Email intent launched for $email")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send email to $email", e)
+            Log.e(TAG, "Failed to send email to $email (no email app?)", e)
         }
     }
 }

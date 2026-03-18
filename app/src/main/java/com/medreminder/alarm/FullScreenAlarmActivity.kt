@@ -211,11 +211,19 @@ class FullScreenAlarmActivity : ComponentActivity() {
         }
     }
 
+    private fun getDoseLogIds(): LongArray =
+        medicationsState.value.map { it.doseLogId }.toLongArray()
+
     private fun handleTakenAll() {
         stopAlarm()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
+                val scheduler = AlarmScheduler(applicationContext, db.scheduleDao())
+
+                // Cancel the 15-min missed-dose check since user took the dose
+                scheduler.cancelMissedDoseCheck(getDoseLogIds())
+
                 for (med in medicationsState.value) {
                     db.doseLogDao().updateDoseStatus(med.doseLogId, "taken")
                     db.medicationDao().decrementStock(med.medicationId)
@@ -236,6 +244,9 @@ class FullScreenAlarmActivity : ComponentActivity() {
                 val snoozeUntil = System.currentTimeMillis() + 10 * 60 * 1000
                 val scheduler = AlarmScheduler(applicationContext, db.scheduleDao())
 
+                // Cancel the 15-min missed-dose check since user snoozed
+                scheduler.cancelMissedDoseCheck(getDoseLogIds())
+
                 for (med in medicationsState.value) {
                     db.doseLogDao().snoozeDose(med.doseLogId, snoozeUntil)
                     scheduler.scheduleSnoozeAlarm(
@@ -253,6 +264,11 @@ class FullScreenAlarmActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
+                val scheduler = AlarmScheduler(applicationContext, db.scheduleDao())
+
+                // Cancel the 15-min missed-dose check since user skipped
+                scheduler.cancelMissedDoseCheck(getDoseLogIds())
+
                 for (med in medicationsState.value) {
                     db.doseLogDao().updateDoseStatus(med.doseLogId, "skipped")
                 }

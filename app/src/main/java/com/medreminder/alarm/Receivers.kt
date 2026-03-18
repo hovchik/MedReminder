@@ -33,6 +33,9 @@ class SnoozeReceiver : BroadcastReceiver() {
                 if (doseLogIds != null && scheduleIds != null && medicationIds != null &&
                     names != null && dosages != null && colors != null
                 ) {
+                    // Cancel pending missed-dose check since user snoozed
+                    scheduler.cancelMissedDoseCheck(doseLogIds)
+
                     for (i in doseLogIds.indices) {
                         db.doseLogDao().snoozeDose(doseLogIds[i], snoozeUntil)
                         scheduler.scheduleSnoozeAlarm(
@@ -85,6 +88,10 @@ class TakenReceiver : BroadcastReceiver() {
                 val nm = context.getSystemService(NotificationManager::class.java)
 
                 if (doseLogIds != null && medicationIds != null && names != null) {
+                    // Cancel pending missed-dose check since user took the dose
+                    val scheduler = AlarmScheduler(context.applicationContext, db.scheduleDao())
+                    scheduler.cancelMissedDoseCheck(doseLogIds)
+
                     for (i in doseLogIds.indices) {
                         db.doseLogDao().updateDoseStatus(doseLogIds[i], "taken")
                         db.medicationDao().decrementStock(medicationIds[i])

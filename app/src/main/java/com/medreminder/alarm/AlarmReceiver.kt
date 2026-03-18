@@ -139,8 +139,15 @@ class AlarmReceiver : BroadcastReceiver() {
                     )
                 }
 
-                // Reschedule for next occurrence
+                // Schedule a missed-dose check 15 minutes from now
                 val scheduler = AlarmScheduler(context, db.scheduleDao())
+                scheduler.scheduleMissedDoseCheck(
+                    doseLogIds.toLongArray(),
+                    medicationIds.toLongArray(),
+                    medicationNames.toTypedArray()
+                )
+
+                // Reschedule for next occurrence
                 scheduler.scheduleAllAlarms()
 
             } catch (e: Exception) {
