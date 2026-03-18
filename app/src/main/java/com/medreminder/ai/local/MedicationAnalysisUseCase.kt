@@ -99,10 +99,16 @@ class MedicationAnalysisUseCase @Inject constructor(
         // Use the cloud provider's raw generation if cloud is selected
         if (provider is CloudAiProvider) {
             val rawJson = provider.generateRawCompletion(prompt)
-            return parseMedicationResult(rawJson, provider.type, latencyMs)
+            if (rawJson != null) {
+                try {
+                    return parseMedicationResult(rawJson, provider.type, latencyMs)
+                } catch (e: Exception) {
+                    android.util.Log.e("MedicationAnalysis", "Failed to parse cloud response", e)
+                }
+            }
         }
 
-        // Non-cloud providers: generate a reasonable result locally
+        // Fallback for non-cloud providers or when cloud call fails
         return generateFallbackResult(input, provider.type, latencyMs)
     }
 
