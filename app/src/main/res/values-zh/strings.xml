@@ -23,6 +23,19 @@
     <string name="no_medications_scheduled">没有计划的药物</string>
     <string name="add_first_medication">添加您的第一个药物开始使用</string>
     <string name="add_medication">添加药物</string>
+
+    <!-- Today Screen - Time sections -->
+    <string name="time_section_morning">早晨</string>
+    <string name="time_section_afternoon">下午</string>
+    <string name="time_section_evening">傍晚</string>
+    <string name="time_section_night">夜晚</string>
+    <string name="next_dose_in">下次用药 %1$s 后</string>
+    <string name="snoozed_until">推迟到 %1$s</string>
+    <string name="all_done_title">今天全部完成！</string>
+    <string name="all_done_subtitle">做得很好，继续保持</string>
+    <string name="upcoming">即将到来</string>
+    <string name="overdue">已逾期</string>
+
     <string name="status_taken">已服用</string>
     <string name="status_skipped">已跳过</string>
     <string name="status_missed">已错过</string>
@@ -101,6 +114,45 @@
     <string name="notify_caregivers_description">通过短信或电子邮件通知看护人关于此药物</string>
     <string name="emergency_medication">紧急药物</string>
     <string name="emergency_medication_description">错过用药时，看护人将收到包含您位置的短信</string>
+
+    <!-- Family Members -->
+    <string name="family">家人</string>
+    <string name="caregivers">看护人</string>
+    <string name="add_family_member">添加家庭成员</string>
+    <string name="no_family_members_yet">尚未添加家庭成员</string>
+    <string name="add_family_members_hint">添加父母、子女或其他家庭成员来为他们安排用药</string>
+    <string name="family_info">添加家庭成员以安排和跟踪他们的用药。</string>
+    <string name="member_name">姓名</string>
+    <string name="member_age">年龄</string>
+    <string name="relation">关系</string>
+    <string name="relation_parent">父母</string>
+    <string name="relation_child">子女</string>
+    <string name="relation_spouse">配偶</string>
+    <string name="relation_sibling">兄弟姐妹</string>
+    <string name="relation_other">其他</string>
+    <string name="age_years">%1$d岁</string>
+
+    <!-- Medication Assignment -->
+    <string name="medication_for">药物用于</string>
+    <string name="myself">自己</string>
+    <string name="select_person">选择此药物的使用者</string>
+
+    <!-- Schedule Duration -->
+    <string name="duration">持续时间</string>
+    <string name="ongoing_lifetime">持续 / 终身</string>
+    <string name="for_x_days">X天</string>
+    <string name="for_x_months">X个月</string>
+    <string name="number_of_days">天数</string>
+    <string name="number_of_months">月数</string>
+
+    <!-- Recurrent Schedule -->
+    <string name="every_x_hours">每X小时</string>
+    <string name="hours">小时</string>
+    <string name="starting_from">开始时间</string>
+    <string name="tolerance">容差</string>
+    <string name="tolerance_minutes">%1$d分钟容差</string>
+    <string name="minutes">分钟</string>
+
     <string name="settings">设置</string>
     <string name="active_medications">%1$d 种活跃药物</string>
     <string name="version">版本 1.0.0</string>
@@ -290,6 +342,31 @@
     <string name="permissions">权限</string>
     <string name="permissions_settings_subtitle">管理应用权限</string>
 
+    <!-- AI Analysis -->
+    <string name="ai_daily_insight">AI 每日分析</string>
+    <string name="ai_weekly_insight">AI 每周分析</string>
+    <string name="analyzing">正在分析您的数据…</string>
+    <string name="get_ai_insight">获取 AI 分析</string>
+
+    <!-- AI Engine Settings -->
+    <string name="ai_engine">AI 引擎</string>
+    <string name="ai_provider">AI 供应商</string>
+    <string name="select_ai_provider">选择 AI 供应商</string>
+    <string name="ai_auto_desc">自动（推荐）— 最佳可用 AI</string>
+    <string name="ai_system_desc">系统 AI — 使用设备内置 AI</string>
+    <string name="ai_local_desc">本地模型 — 运行已下载的 AI 模型</string>
+    <string name="ai_cloud_desc">云端 AI（Claude）— 高级云端分析</string>
+    <string name="active_provider">已激活: %1$s</string>
+    <string name="installed_models_count">已安装 %1$d 个模型</string>
+    <string name="setup_local_ai">设置本地 AI</string>
+    <string name="setup_local_ai_subtitle">配置设备上的 AI 以进行私密分析</string>
+    <string name="active_local_model">活动本地模型</string>
+    <string name="loading_model">正在加载模型\u2026</string>
+    <string name="no_model_selected">点击选择模型</string>
+    <string name="select_active_model">选择活动模型</string>
+    <string name="no_models_installed">未安装模型。使用设置向导下载。</string>
+    <string name="ai_performance_note">性能因设备而异</string>
+
     <!-- Cloud AI Service -->
     <string name="cloud_ai_service">云端 AI 服务</string>
     <string name="select_cloud_service">选择云端 AI 服务</string>
@@ -325,4 +402,94 @@
     <string name="med_optimization_tips">优化建议</string>
     <string name="med_stock_remaining">库存剩余 %1$d</string>
     <string name="med_analysis_provider_info">由 %1$s 分析，耗时 %2$d 毫秒</string>
+
+    <!-- AI Provider Labels -->
+    <string name="provider_cloud">云端</string>
+    <string name="provider_on_device">设备端</string>
+    <string name="provider_local">本地</string>
+    <string name="provider_auto">自动</string>
+    <string name="risk_low">低</string>
+    <string name="risk_moderate">中等</string>
+    <string name="risk_high">高</string>
+
+    <!-- AI Setup Wizard -->
+    <string name="local_ai_setup">本地 AI 设置</string>
+    <string name="local_ai_setup_desc">MedReminder 可以使用 AI 分析您的用药依从性。您可以选择在设备上运行 AI 分析以确保完全隐私，或使用云端 AI 获取更深入的分析。</string>
+    <string name="device_check_hint">我们将检查您的设备性能，并为您推荐最佳 AI 模式。</string>
+    <string name="check_device_compatibility">检查设备兼容性</string>
+    <string name="device_compatibility">设备兼容性</string>
+    <string name="android_version">Android 版本</string>
+    <string name="aicore_gemini">AICore (Gemini Nano)</string>
+    <string name="ml_kit_genai">ML Kit GenAI</string>
+    <string name="available">可用</string>
+    <string name="not_available">不可用</string>
+    <string name="ram">内存</string>
+    <string name="available_storage">可用存储空间</string>
+    <string name="gpu_label">GPU</string>
+    <string name="cpu_cores">CPU 核心数</string>
+    <string name="performance_class">性能等级</string>
+    <string name="supported_runtimes">支持的运行时</string>
+    <string name="choose_ai_mode">选择 AI 模式</string>
+    <string name="select_ai_mode_desc">选择 AI 分析的运行方式：</string>
+    <string name="system_ai_title">系统 AI</string>
+    <string name="system_ai_desc">使用设备内置的 AI 引擎（Gemini Nano / AICore）</string>
+    <string name="local_model_title">本地模型</string>
+    <string name="local_model_desc">下载或导入兼容的 AI 模型在设备上运行</string>
+    <string name="cloud_ai_title">云端 AI（Claude）</string>
+    <string name="cloud_ai_desc">通过云端使用 Claude AI 进行高级分析</string>
+    <string name="privacy_local">所有分析均在您的设备上本地执行。不会将数据发送到外部服务器。</string>
+    <string name="privacy_cloud">分析数据将发送到云端服务器进行处理。</string>
+    <string name="recommended">推荐</string>
+    <string name="install_local_model">安装本地模型</string>
+    <string name="no_wifi_warning_model">未连接 WiFi。下载大型模型可能会使用移动数据。</string>
+    <string name="no_compatible_models">未找到与此设备兼容的模型</string>
+    <string name="download_name">下载 %1$s</string>
+    <string name="import_model_device">从设备导入模型</string>
+    <string name="wifi_download_confirm">您未连接 WiFi。下载 %1$s（%2$d MB）将使用移动数据。是否继续？</string>
+    <string name="downloading_name">正在下载 %1$s</string>
+    <string name="download_cancelled">下载已取消</string>
+    <string name="resume_download">恢复下载</string>
+    <string name="verifying_download_ellipsis">正在验证下载\u2026</string>
+    <string name="model_name_ready">%1$s 已就绪</string>
+    <string name="import_model_title">导入模型</string>
+    <string name="select_model_file">选择模型文件</string>
+    <string name="try_another_file">尝试其他文件</string>
+    <string name="ai_setup_complete">AI 设置完成</string>
+    <string name="test_prompt">测试提示</string>
+    <string name="running_test">正在运行测试\u2026</string>
+    <string name="run_test_prompt">运行测试提示</string>
+    <string name="benchmark">基准测试</string>
+    <string name="running_benchmark">正在运行基准测试\u2026</string>
+    <string name="inference_latency">推理延迟：%1$d 毫秒</string>
+    <string name="token_speed">令牌速度：%1$s 令牌/秒</string>
+    <string name="memory_usage">内存使用：%1$d MB</string>
+    <string name="benchmark_failed">基准测试失败：%1$s</string>
+    <string name="run_benchmark">运行基准测试</string>
+    <string name="finish_setup">完成设置</string>
+    <string name="size_mb">大小：%1$d MB</string>
+    <string name="params_label">参数：%1$s</string>
+    <string name="quant_label">量化：%1$s</string>
+    <string name="format_label">格式：%1$s</string>
+    <string name="score_label">评分：</string>
+    <string name="unknown">未知</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">头部 / 大脑</string>
+    <string name="body_eyes">眼睛</string>
+    <string name="body_ears">耳朵</string>
+    <string name="body_throat">喉嘴</string>
+    <string name="body_heart">心脏</string>
+    <string name="body_lungs">肺部</string>
+    <string name="body_stomach">胃 / 消化道</string>
+    <string name="body_liver">肝脏</string>
+    <string name="body_kidneys">肾脏</string>
+    <string name="body_joints">关节 / 肌肉</string>
+    <string name="body_skin">皮肤</string>
+    <string name="body_blood">血液 / 循环</string>
+    <string name="body_immune">免疫系统</string>
+    <string name="body_hormones">激素 / 内分泌</string>
+    <string name="body_nervous_system">神经系统</string>
+    <string name="body_bones">骨骼</string>
+    <string name="body_full_body">全身</string>
+    <string name="ai_ready_desc">您的AI引擎已就绪。您可以在下方测试或完成设置。</string>
 </resources>

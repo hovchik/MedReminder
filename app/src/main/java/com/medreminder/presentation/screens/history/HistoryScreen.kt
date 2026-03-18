@@ -22,6 +22,7 @@ import com.medreminder.R
 import com.medreminder.domain.model.DoseLog
 import com.medreminder.domain.model.DoseStatus
 import com.medreminder.domain.repository.MedicationRepository
+import com.medreminder.presentation.util.translatedName
 import com.medreminder.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -181,7 +182,7 @@ fun HistoryItem(log: DoseLog, onMarkAsTaken: () -> Unit) {
                         DoseStatus.TAKEN -> stringResource(R.string.status_taken)
                         DoseStatus.SKIPPED -> stringResource(R.string.status_skipped)
                         DoseStatus.SNOOZED -> stringResource(R.string.status_snoozed)
-                        else -> log.status.displayName
+                        else -> log.status.translatedName()
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = iconColor

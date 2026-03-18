@@ -23,6 +23,19 @@
     <string name="no_medications_scheduled">No hay medicamentos programados</string>
     <string name="add_first_medication">Agrega tu primer medicamento para comenzar</string>
     <string name="add_medication">Agregar medicamento</string>
+
+    <!-- Today Screen - Time sections -->
+    <string name="time_section_morning">Mañana</string>
+    <string name="time_section_afternoon">Tarde</string>
+    <string name="time_section_evening">Noche</string>
+    <string name="time_section_night">Madrugada</string>
+    <string name="next_dose_in">Siguiente en %1$s</string>
+    <string name="snoozed_until">Pospuesto hasta %1$s</string>
+    <string name="all_done_title">¡Todo listo por hoy!</string>
+    <string name="all_done_subtitle">Excelente trabajo manteniéndote al día</string>
+    <string name="upcoming">Próximos</string>
+    <string name="overdue">Atrasado</string>
+
     <string name="status_taken">Tomado</string>
     <string name="status_skipped">Omitido</string>
     <string name="status_missed">Perdido</string>
@@ -101,6 +114,45 @@
     <string name="notify_caregivers_description">Informar a los cuidadores sobre este medicamento por SMS o correo electrónico</string>
     <string name="emergency_medication">Medicamento de emergencia</string>
     <string name="emergency_medication_description">Al perder una dosis, los cuidadores reciben un SMS con tu ubicación</string>
+
+    <!-- Family Members -->
+    <string name="family">Familia</string>
+    <string name="caregivers">Cuidadores</string>
+    <string name="add_family_member">Agregar familiar</string>
+    <string name="no_family_members_yet">No se han agregado familiares</string>
+    <string name="add_family_members_hint">Agrega padres, hijos u otros familiares para programar medicamentos para ellos</string>
+    <string name="family_info">Agrega familiares para programar y rastrear sus medicamentos.</string>
+    <string name="member_name">Nombre</string>
+    <string name="member_age">Edad</string>
+    <string name="relation">Relación</string>
+    <string name="relation_parent">Padre/Madre</string>
+    <string name="relation_child">Hijo/a</string>
+    <string name="relation_spouse">Cónyuge</string>
+    <string name="relation_sibling">Hermano/a</string>
+    <string name="relation_other">Otro</string>
+    <string name="age_years">%1$d años</string>
+
+    <!-- Medication Assignment -->
+    <string name="medication_for">Medicamento para</string>
+    <string name="myself">Yo mismo</string>
+    <string name="select_person">Selecciona para quién es este medicamento</string>
+
+    <!-- Schedule Duration -->
+    <string name="duration">Duración</string>
+    <string name="ongoing_lifetime">Continuo / De por vida</string>
+    <string name="for_x_days">Por X días</string>
+    <string name="for_x_months">Por X meses</string>
+    <string name="number_of_days">Número de días</string>
+    <string name="number_of_months">Número de meses</string>
+
+    <!-- Recurrent Schedule -->
+    <string name="every_x_hours">Cada X horas</string>
+    <string name="hours">horas</string>
+    <string name="starting_from">A partir de</string>
+    <string name="tolerance">Tolerancia</string>
+    <string name="tolerance_minutes">%1$d min de tolerancia</string>
+    <string name="minutes">minutos</string>
+
     <string name="settings">Ajustes</string>
     <string name="active_medications">%1$d medicamentos activos</string>
     <string name="version">Versión 1.0.0</string>
@@ -290,6 +342,31 @@
     <string name="permissions">Permisos</string>
     <string name="permissions_settings_subtitle">Gestionar permisos de la app</string>
 
+    <!-- AI Analysis -->
+    <string name="ai_daily_insight">Análisis diario de IA</string>
+    <string name="ai_weekly_insight">Análisis semanal de IA</string>
+    <string name="analyzing">Analizando tus datos…</string>
+    <string name="get_ai_insight">Obtener análisis de IA</string>
+
+    <!-- AI Engine Settings -->
+    <string name="ai_engine">Motor de IA</string>
+    <string name="ai_provider">Proveedor de IA</string>
+    <string name="select_ai_provider">Seleccionar proveedor de IA</string>
+    <string name="ai_auto_desc">Auto (recomendado) — mejor IA disponible</string>
+    <string name="ai_system_desc">IA del sistema — IA integrada del dispositivo</string>
+    <string name="ai_local_desc">Modelo local — ejecutar modelo de IA descargado</string>
+    <string name="ai_cloud_desc">IA en la nube (Claude) — análisis avanzado en la nube</string>
+    <string name="active_provider">Activo: %1$s</string>
+    <string name="installed_models_count">%1$d modelo(s) instalado(s)</string>
+    <string name="setup_local_ai">Configurar IA local</string>
+    <string name="setup_local_ai_subtitle">Configurar IA en el dispositivo para análisis privado</string>
+    <string name="active_local_model">Modelo local activo</string>
+    <string name="loading_model">Cargando modelo\u2026</string>
+    <string name="no_model_selected">Toca para seleccionar un modelo</string>
+    <string name="select_active_model">Seleccionar modelo activo</string>
+    <string name="no_models_installed">No hay modelos instalados. Usa el asistente de configuración para descargar uno.</string>
+    <string name="ai_performance_note">El rendimiento puede variar según el dispositivo</string>
+
     <!-- Cloud AI Service -->
     <string name="cloud_ai_service">Servicio de IA en la nube</string>
     <string name="select_cloud_service">Seleccionar servicio de IA en la nube</string>
@@ -325,4 +402,94 @@
     <string name="med_optimization_tips">Consejos de optimización</string>
     <string name="med_stock_remaining">%1$d restantes en inventario</string>
     <string name="med_analysis_provider_info">Analizado por %1$s en %2$d ms</string>
+
+    <!-- AI Provider Labels -->
+    <string name="provider_cloud">Nube</string>
+    <string name="provider_on_device">En dispositivo</string>
+    <string name="provider_local">Local</string>
+    <string name="provider_auto">Auto</string>
+    <string name="risk_low">Bajo</string>
+    <string name="risk_moderate">Moderado</string>
+    <string name="risk_high">Alto</string>
+
+    <!-- AI Setup Wizard -->
+    <string name="local_ai_setup">Configuración de IA local</string>
+    <string name="local_ai_setup_desc">MedReminder puede analizar tu adherencia a la medicación usando IA. Puedes ejecutar el análisis de IA en tu dispositivo para total privacidad, o usar IA en la nube para información más avanzada.</string>
+    <string name="device_check_hint">Comprobaremos las capacidades de tu dispositivo y te recomendaremos el mejor modo de IA.</string>
+    <string name="check_device_compatibility">Comprobar compatibilidad del dispositivo</string>
+    <string name="device_compatibility">Compatibilidad del dispositivo</string>
+    <string name="android_version">Versión de Android</string>
+    <string name="aicore_gemini">AICore (Gemini Nano)</string>
+    <string name="ml_kit_genai">ML Kit GenAI</string>
+    <string name="available">Disponible</string>
+    <string name="not_available">No disponible</string>
+    <string name="ram">RAM</string>
+    <string name="available_storage">Almacenamiento disponible</string>
+    <string name="gpu_label">GPU</string>
+    <string name="cpu_cores">Núcleos de CPU</string>
+    <string name="performance_class">Clase de rendimiento</string>
+    <string name="supported_runtimes">Entornos de ejecución compatibles</string>
+    <string name="choose_ai_mode">Elegir modo de IA</string>
+    <string name="select_ai_mode_desc">Selecciona cómo quieres que funcione el análisis de IA:</string>
+    <string name="system_ai_title">IA del sistema</string>
+    <string name="system_ai_desc">Usar el motor de IA integrado de tu dispositivo (Gemini Nano / AICore)</string>
+    <string name="local_model_title">Modelo local</string>
+    <string name="local_model_desc">Descarga o importa un modelo de IA compatible para ejecutar en tu dispositivo</string>
+    <string name="cloud_ai_title">IA en la nube (Claude)</string>
+    <string name="cloud_ai_desc">Usar Claude AI a través de la nube para análisis avanzados</string>
+    <string name="privacy_local">Todo el análisis se realiza localmente en tu dispositivo. No se envían datos a servidores externos.</string>
+    <string name="privacy_cloud">Los datos de análisis se envían a servidores en la nube para su procesamiento.</string>
+    <string name="recommended">Recomendado</string>
+    <string name="install_local_model">Instalar modelo local</string>
+    <string name="no_wifi_warning_model">Sin conexión WiFi. Las descargas de modelos grandes pueden usar datos móviles.</string>
+    <string name="no_compatible_models">No se encontraron modelos compatibles para este dispositivo</string>
+    <string name="download_name">Descargar %1$s</string>
+    <string name="import_model_device">Importar modelo desde el dispositivo</string>
+    <string name="wifi_download_confirm">No estás conectado a WiFi. Descargar %1$s (%2$d MB) usará datos móviles. ¿Continuar?</string>
+    <string name="downloading_name">Descargando %1$s</string>
+    <string name="download_cancelled">Descarga cancelada</string>
+    <string name="resume_download">Reanudar descarga</string>
+    <string name="verifying_download_ellipsis">Verificando descarga\u2026</string>
+    <string name="model_name_ready">%1$s listo</string>
+    <string name="import_model_title">Importar modelo</string>
+    <string name="select_model_file">Seleccionar archivo de modelo</string>
+    <string name="try_another_file">Probar otro archivo</string>
+    <string name="ai_setup_complete">Configuración de IA completada</string>
+    <string name="test_prompt">Prueba de consulta</string>
+    <string name="running_test">Ejecutando prueba\u2026</string>
+    <string name="run_test_prompt">Ejecutar prueba de consulta</string>
+    <string name="benchmark">Benchmark</string>
+    <string name="running_benchmark">Ejecutando benchmark\u2026</string>
+    <string name="inference_latency">Latencia de inferencia: %1$d ms</string>
+    <string name="token_speed">Velocidad de tokens: %1$s tokens/s</string>
+    <string name="memory_usage">Uso de memoria: %1$d MB</string>
+    <string name="benchmark_failed">Benchmark fallido: %1$s</string>
+    <string name="run_benchmark">Ejecutar benchmark</string>
+    <string name="finish_setup">Finalizar configuración</string>
+    <string name="size_mb">Tamaño: %1$d MB</string>
+    <string name="params_label">Parámetros: %1$s</string>
+    <string name="quant_label">Cuantización: %1$s</string>
+    <string name="format_label">Formato: %1$s</string>
+    <string name="score_label">Puntuación: </string>
+    <string name="unknown">Desconocido</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">Cabeza / Cerebro</string>
+    <string name="body_eyes">Ojos</string>
+    <string name="body_ears">Oídos</string>
+    <string name="body_throat">Garganta</string>
+    <string name="body_heart">Corazón</string>
+    <string name="body_lungs">Pulmones</string>
+    <string name="body_stomach">Estómago / GI</string>
+    <string name="body_liver">Hígado</string>
+    <string name="body_kidneys">Riñones</string>
+    <string name="body_joints">Articulaciones / Músculos</string>
+    <string name="body_skin">Piel</string>
+    <string name="body_blood">Sangre / Circulación</string>
+    <string name="body_immune">Sistema inmunitario</string>
+    <string name="body_hormones">Hormonal / Endocrino</string>
+    <string name="body_nervous_system">Sistema nervioso</string>
+    <string name="body_bones">Huesos</string>
+    <string name="body_full_body">Todo el cuerpo</string>
+    <string name="ai_ready_desc">Su motor de IA está listo. Puede probarlo abajo o finalizar la configuración.</string>
 </resources>

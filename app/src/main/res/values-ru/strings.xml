@@ -23,6 +23,19 @@
     <string name="no_medications_scheduled">Нет запланированных лекарств</string>
     <string name="add_first_medication">Добавьте первое лекарство, чтобы начать</string>
     <string name="add_medication">Добавить лекарство</string>
+
+    <!-- Today Screen - Time sections -->
+    <string name="time_section_morning">Утро</string>
+    <string name="time_section_afternoon">День</string>
+    <string name="time_section_evening">Вечер</string>
+    <string name="time_section_night">Ночь</string>
+    <string name="next_dose_in">Следующая через %1$s</string>
+    <string name="snoozed_until">Отложено до %1$s</string>
+    <string name="all_done_title">Всё сделано на сегодня!</string>
+    <string name="all_done_subtitle">Отличная работа</string>
+    <string name="upcoming">Предстоящие</string>
+    <string name="overdue">Просрочено</string>
+
     <string name="status_taken">Принято</string>
     <string name="status_skipped">Пропущено</string>
     <string name="status_missed">Не принято</string>
@@ -101,6 +114,45 @@
     <string name="notify_caregivers_description">Информировать опекунов об этом лекарстве через SMS или электронную почту</string>
     <string name="emergency_medication">Экстренное лекарство</string>
     <string name="emergency_medication_description">При пропуске опекуны получат SMS с вашим местоположением</string>
+
+    <!-- Family Members -->
+    <string name="family">Семья</string>
+    <string name="caregivers">Опекуны</string>
+    <string name="add_family_member">Добавить члена семьи</string>
+    <string name="no_family_members_yet">Члены семьи ещё не добавлены</string>
+    <string name="add_family_members_hint">Добавьте родителей, детей или других членов семьи для управления их лекарствами</string>
+    <string name="family_info">Добавьте членов семьи для планирования и отслеживания их лекарств.</string>
+    <string name="member_name">Имя</string>
+    <string name="member_age">Возраст</string>
+    <string name="relation">Родство</string>
+    <string name="relation_parent">Родитель</string>
+    <string name="relation_child">Ребёнок</string>
+    <string name="relation_spouse">Супруг(а)</string>
+    <string name="relation_sibling">Брат/сестра</string>
+    <string name="relation_other">Другое</string>
+    <string name="age_years">%1$d лет</string>
+
+    <!-- Medication Assignment -->
+    <string name="medication_for">Лекарство для</string>
+    <string name="myself">Себя</string>
+    <string name="select_person">Выберите, для кого это лекарство</string>
+
+    <!-- Schedule Duration -->
+    <string name="duration">Длительность</string>
+    <string name="ongoing_lifetime">Постоянно / Пожизненно</string>
+    <string name="for_x_days">На X дней</string>
+    <string name="for_x_months">На X месяцев</string>
+    <string name="number_of_days">Количество дней</string>
+    <string name="number_of_months">Количество месяцев</string>
+
+    <!-- Recurrent Schedule -->
+    <string name="every_x_hours">Каждые X часов</string>
+    <string name="hours">часов</string>
+    <string name="starting_from">Начиная с</string>
+    <string name="tolerance">Допуск</string>
+    <string name="tolerance_minutes">%1$d мин допуска</string>
+    <string name="minutes">минут</string>
+
     <string name="settings">Настройки</string>
     <string name="active_medications">%1$d активных лекарств</string>
     <string name="version">Версия 1.0.0</string>
@@ -290,6 +342,31 @@
     <string name="permissions">Разрешения</string>
     <string name="permissions_settings_subtitle">Управление разрешениями приложения</string>
 
+    <!-- AI Analysis -->
+    <string name="ai_daily_insight">ИИ ежедневный анализ</string>
+    <string name="ai_weekly_insight">ИИ еженедельный анализ</string>
+    <string name="analyzing">Анализ ваших данных…</string>
+    <string name="get_ai_insight">Получить анализ ИИ</string>
+
+    <!-- AI Engine Settings -->
+    <string name="ai_engine">Движок ИИ</string>
+    <string name="ai_provider">Поставщик ИИ</string>
+    <string name="select_ai_provider">Выберите поставщика ИИ</string>
+    <string name="ai_auto_desc">Авто (рекомендуется) — лучший доступный ИИ</string>
+    <string name="ai_system_desc">Системный ИИ — встроенный ИИ устройства</string>
+    <string name="ai_local_desc">Локальная модель — загруженная модель ИИ</string>
+    <string name="ai_cloud_desc">Облачный ИИ (Claude) — продвинутый облачный анализ</string>
+    <string name="active_provider">Активно: %1$s</string>
+    <string name="installed_models_count">%1$d модель(ей) установлено</string>
+    <string name="setup_local_ai">Настроить локальный ИИ</string>
+    <string name="setup_local_ai_subtitle">Настроить ИИ на устройстве для приватного анализа</string>
+    <string name="active_local_model">Активная локальная модель</string>
+    <string name="loading_model">Загрузка модели\u2026</string>
+    <string name="no_model_selected">Нажмите для выбора модели</string>
+    <string name="select_active_model">Выберите активную модель</string>
+    <string name="no_models_installed">Модели не установлены. Используйте мастер настройки для загрузки.</string>
+    <string name="ai_performance_note">Производительность зависит от устройства</string>
+
     <!-- Cloud AI Service -->
     <string name="cloud_ai_service">Облачный ИИ-сервис</string>
     <string name="select_cloud_service">Выберите облачный ИИ-сервис</string>
@@ -325,4 +402,94 @@
     <string name="med_optimization_tips">Советы по оптимизации</string>
     <string name="med_stock_remaining">Осталось %1$d в запасе</string>
     <string name="med_analysis_provider_info">Проанализировано %1$s за %2$d мс</string>
+
+    <!-- AI Provider Labels -->
+    <string name="provider_cloud">Облако</string>
+    <string name="provider_on_device">На устройстве</string>
+    <string name="provider_local">Локальный</string>
+    <string name="provider_auto">Авто</string>
+    <string name="risk_low">Низкий</string>
+    <string name="risk_moderate">Средний</string>
+    <string name="risk_high">Высокий</string>
+
+    <!-- AI Setup Wizard -->
+    <string name="local_ai_setup">Настройка локального ИИ</string>
+    <string name="local_ai_setup_desc">MedReminder может анализировать вашу приверженность лечению с помощью ИИ. Вы можете выполнять анализ на устройстве для полной конфиденциальности или использовать облачный ИИ для более глубокой аналитики.</string>
+    <string name="device_check_hint">Мы проверим возможности вашего устройства и порекомендуем лучший режим ИИ.</string>
+    <string name="check_device_compatibility">Проверить совместимость устройства</string>
+    <string name="device_compatibility">Совместимость устройства</string>
+    <string name="android_version">Версия Android</string>
+    <string name="aicore_gemini">AICore (Gemini Nano)</string>
+    <string name="ml_kit_genai">ML Kit GenAI</string>
+    <string name="available">Доступно</string>
+    <string name="not_available">Недоступно</string>
+    <string name="ram">ОЗУ</string>
+    <string name="available_storage">Доступное хранилище</string>
+    <string name="gpu_label">GPU</string>
+    <string name="cpu_cores">Ядра процессора</string>
+    <string name="performance_class">Класс производительности</string>
+    <string name="supported_runtimes">Поддерживаемые среды выполнения</string>
+    <string name="choose_ai_mode">Выберите режим ИИ</string>
+    <string name="select_ai_mode_desc">Выберите, как будет работать анализ ИИ:</string>
+    <string name="system_ai_title">Системный ИИ</string>
+    <string name="system_ai_desc">Использовать встроенный ИИ-движок вашего устройства (Gemini Nano / AICore)</string>
+    <string name="local_model_title">Локальная модель</string>
+    <string name="local_model_desc">Скачайте или импортируйте совместимую модель ИИ для работы на устройстве</string>
+    <string name="cloud_ai_title">Облачный ИИ (Claude)</string>
+    <string name="cloud_ai_desc">Используйте Claude AI через облако для расширенного анализа</string>
+    <string name="privacy_local">Весь анализ выполняется локально на вашем устройстве. Данные не отправляются на внешние серверы.</string>
+    <string name="privacy_cloud">Данные анализа отправляются на облачные серверы для обработки.</string>
+    <string name="recommended">Рекомендовано</string>
+    <string name="install_local_model">Установить локальную модель</string>
+    <string name="no_wifi_warning_model">Нет WiFi-соединения. Загрузка больших моделей может использовать мобильный трафик.</string>
+    <string name="no_compatible_models">Совместимые модели для этого устройства не найдены</string>
+    <string name="download_name">Скачать %1$s</string>
+    <string name="import_model_device">Импортировать модель с устройства</string>
+    <string name="wifi_download_confirm">Вы не подключены к WiFi. Загрузка %1$s (%2$d МБ) будет использовать мобильный трафик. Продолжить?</string>
+    <string name="downloading_name">Загрузка %1$s</string>
+    <string name="download_cancelled">Загрузка отменена</string>
+    <string name="resume_download">Возобновить загрузку</string>
+    <string name="verifying_download_ellipsis">Проверка загрузки\u2026</string>
+    <string name="model_name_ready">%1$s готова</string>
+    <string name="import_model_title">Импортировать модель</string>
+    <string name="select_model_file">Выберите файл модели</string>
+    <string name="try_another_file">Попробовать другой файл</string>
+    <string name="ai_setup_complete">Настройка ИИ завершена</string>
+    <string name="test_prompt">Тестовый запрос</string>
+    <string name="running_test">Выполняется тест\u2026</string>
+    <string name="run_test_prompt">Запустить тестовый запрос</string>
+    <string name="benchmark">Бенчмарк</string>
+    <string name="running_benchmark">Выполняется бенчмарк\u2026</string>
+    <string name="inference_latency">Задержка вывода: %1$d мс</string>
+    <string name="token_speed">Скорость токенов: %1$s токенов/с</string>
+    <string name="memory_usage">Использование памяти: %1$d МБ</string>
+    <string name="benchmark_failed">Бенчмарк не удался: %1$s</string>
+    <string name="run_benchmark">Запустить бенчмарк</string>
+    <string name="finish_setup">Завершить настройку</string>
+    <string name="size_mb">Размер: %1$d МБ</string>
+    <string name="params_label">Параметры: %1$s</string>
+    <string name="quant_label">Квантизация: %1$s</string>
+    <string name="format_label">Формат: %1$s</string>
+    <string name="score_label">Оценка: </string>
+    <string name="unknown">Неизвестно</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">Голова / Мозг</string>
+    <string name="body_eyes">Глаза</string>
+    <string name="body_ears">Уши</string>
+    <string name="body_throat">Горло</string>
+    <string name="body_heart">Сердце</string>
+    <string name="body_lungs">Лёгкие</string>
+    <string name="body_stomach">Желудок / ЖКТ</string>
+    <string name="body_liver">Печень</string>
+    <string name="body_kidneys">Почки</string>
+    <string name="body_joints">Суставы / Мышцы</string>
+    <string name="body_skin">Кожа</string>
+    <string name="body_blood">Кровь / Кровообращение</string>
+    <string name="body_immune">Иммунная система</string>
+    <string name="body_hormones">Гормональная / Эндокринная</string>
+    <string name="body_nervous_system">Нервная система</string>
+    <string name="body_bones">Кости</string>
+    <string name="body_full_body">Всё тело</string>
+    <string name="ai_ready_desc">Ваш ИИ-движок готов. Вы можете протестировать его ниже или завершить настройку.</string>
 </resources>

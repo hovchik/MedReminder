@@ -23,6 +23,19 @@
     <string name="no_medications_scheduled">دارویی برنامه‌ریزی نشده</string>
     <string name="add_first_medication">اولین داروی خود را اضافه کنید</string>
     <string name="add_medication">افزودن دارو</string>
+
+    <!-- Today Screen - Time sections -->
+    <string name="time_section_morning">صبح</string>
+    <string name="time_section_afternoon">بعدازظهر</string>
+    <string name="time_section_evening">عصر</string>
+    <string name="time_section_night">شب</string>
+    <string name="next_dose_in">نوبت بعدی %1$s دیگر</string>
+    <string name="snoozed_until">تعویق تا %1$s</string>
+    <string name="all_done_title">امروز تمام شد!</string>
+    <string name="all_done_subtitle">آفرین، عالی پیش می‌روید</string>
+    <string name="upcoming">آینده</string>
+    <string name="overdue">عقب افتاده</string>
+
     <string name="status_taken">مصرف شده</string>
     <string name="status_skipped">رد شده</string>
     <string name="status_missed">فراموش شده</string>
@@ -101,6 +114,45 @@
     <string name="notify_caregivers_description">اطلاع‌رسانی به مراقبان درباره این دارو از طریق پیامک یا ایمیل</string>
     <string name="emergency_medication">داروی اضطراری</string>
     <string name="emergency_medication_description">در صورت فراموشی، مراقبان پیامکی با موقعیت مکانی شما دریافت می‌کنند</string>
+
+    <!-- Family Members -->
+    <string name="family">خانواده</string>
+    <string name="caregivers">مراقبان</string>
+    <string name="add_family_member">افزودن عضو خانواده</string>
+    <string name="no_family_members_yet">هنوز عضو خانواده‌ای اضافه نشده</string>
+    <string name="add_family_members_hint">والدین، فرزندان یا سایر اعضای خانواده را برای مدیریت داروهایشان اضافه کنید</string>
+    <string name="family_info">اعضای خانواده را اضافه کنید تا داروهایشان را برنامه‌ریزی و پیگیری کنید.</string>
+    <string name="member_name">نام</string>
+    <string name="member_age">سن</string>
+    <string name="relation">نسبت</string>
+    <string name="relation_parent">والد</string>
+    <string name="relation_child">فرزند</string>
+    <string name="relation_spouse">همسر</string>
+    <string name="relation_sibling">خواهر/برادر</string>
+    <string name="relation_other">دیگر</string>
+    <string name="age_years">%1$d ساله</string>
+
+    <!-- Medication Assignment -->
+    <string name="medication_for">دارو برای</string>
+    <string name="myself">خودم</string>
+    <string name="select_person">انتخاب کنید این دارو برای چه کسی است</string>
+
+    <!-- Schedule Duration -->
+    <string name="duration">مدت</string>
+    <string name="ongoing_lifetime">مداوم / مادام العمر</string>
+    <string name="for_x_days">به مدت X روز</string>
+    <string name="for_x_months">به مدت X ماه</string>
+    <string name="number_of_days">تعداد روزها</string>
+    <string name="number_of_months">تعداد ماه‌ها</string>
+
+    <!-- Recurrent Schedule -->
+    <string name="every_x_hours">هر X ساعت</string>
+    <string name="hours">ساعت</string>
+    <string name="starting_from">شروع از</string>
+    <string name="tolerance">تحمل</string>
+    <string name="tolerance_minutes">%1$d دقیقه تحمل</string>
+    <string name="minutes">دقیقه</string>
+
     <string name="settings">تنظیمات</string>
     <string name="active_medications">%1$d داروی فعال</string>
     <string name="version">نسخه 1.0.0</string>
@@ -291,6 +343,31 @@
     <string name="permissions">مجوزها</string>
     <string name="permissions_settings_subtitle">مدیریت مجوزهای برنامه</string>
 
+    <!-- AI Analysis -->
+    <string name="ai_daily_insight">تحلیل روزانه هوش مصنوعی</string>
+    <string name="ai_weekly_insight">تحلیل هفتگی هوش مصنوعی</string>
+    <string name="analyzing">در حال تحلیل داده‌های شما…</string>
+    <string name="get_ai_insight">دریافت تحلیل هوش مصنوعی</string>
+
+    <!-- AI Engine Settings -->
+    <string name="ai_engine">موتور هوش مصنوعی</string>
+    <string name="ai_provider">ارائه‌دهنده هوش مصنوعی</string>
+    <string name="select_ai_provider">انتخاب ارائه‌دهنده هوش مصنوعی</string>
+    <string name="ai_auto_desc">خودکار (پیشنهادی) — بهترین هوش مصنوعی موجود</string>
+    <string name="ai_system_desc">هوش مصنوعی سیستم — هوش مصنوعی داخلی دستگاه</string>
+    <string name="ai_local_desc">مدل محلی — اجرای مدل دانلود شده</string>
+    <string name="ai_cloud_desc">هوش مصنوعی ابری (Claude) — تحلیل پیشرفته ابری</string>
+    <string name="active_provider">فعال: %1$s</string>
+    <string name="installed_models_count">%1$d مدل نصب شده</string>
+    <string name="setup_local_ai">تنظیم هوش مصنوعی محلی</string>
+    <string name="setup_local_ai_subtitle">پیکربندی هوش مصنوعی روی دستگاه برای تحلیل خصوصی</string>
+    <string name="active_local_model">مدل محلی فعال</string>
+    <string name="loading_model">در حال بارگذاری مدل\u2026</string>
+    <string name="no_model_selected">برای انتخاب مدل لمس کنید</string>
+    <string name="select_active_model">انتخاب مدل فعال</string>
+    <string name="no_models_installed">مدلی نصب نشده. از دستیار تنظیم برای دانلود استفاده کنید.</string>
+    <string name="ai_performance_note">عملکرد ممکن است بسته به دستگاه متفاوت باشد</string>
+
     <!-- Cloud AI Service -->
     <string name="cloud_ai_service">سرویس هوش مصنوعی ابری</string>
     <string name="select_cloud_service">انتخاب سرویس هوش مصنوعی ابری</string>
@@ -326,4 +403,94 @@
     <string name="med_optimization_tips">نکات بهینه‌سازی</string>
     <string name="med_stock_remaining">%1$d باقی‌مانده در انبار</string>
     <string name="med_analysis_provider_info">تحلیل توسط %1$s در %2$d میلی‌ثانیه</string>
+
+    <!-- AI Provider Labels -->
+    <string name="provider_cloud">ابری</string>
+    <string name="provider_on_device">روی دستگاه</string>
+    <string name="provider_local">محلی</string>
+    <string name="provider_auto">خودکار</string>
+    <string name="risk_low">کم</string>
+    <string name="risk_moderate">متوسط</string>
+    <string name="risk_high">بالا</string>
+
+    <!-- AI Setup Wizard -->
+    <string name="local_ai_setup">تنظیم هوش مصنوعی محلی</string>
+    <string name="local_ai_setup_desc">MedReminder می‌تواند پایبندی شما به مصرف دارو را با هوش مصنوعی تحلیل کند. می‌توانید تحلیل را روی دستگاه خود اجرا کنید تا حریم خصوصی کامل حفظ شود، یا از هوش مصنوعی ابری برای تحلیل پیشرفته‌تر استفاده کنید.</string>
+    <string name="device_check_hint">قابلیت‌های دستگاه شما را بررسی می‌کنیم و بهترین حالت هوش مصنوعی را پیشنهاد می‌دهیم.</string>
+    <string name="check_device_compatibility">بررسی سازگاری دستگاه</string>
+    <string name="device_compatibility">سازگاری دستگاه</string>
+    <string name="android_version">نسخه اندروید</string>
+    <string name="aicore_gemini">AICore (Gemini Nano)</string>
+    <string name="ml_kit_genai">ML Kit GenAI</string>
+    <string name="available">موجود</string>
+    <string name="not_available">موجود نیست</string>
+    <string name="ram">حافظه RAM</string>
+    <string name="available_storage">فضای ذخیره‌سازی موجود</string>
+    <string name="gpu_label">GPU</string>
+    <string name="cpu_cores">هسته‌های CPU</string>
+    <string name="performance_class">کلاس عملکرد</string>
+    <string name="supported_runtimes">محیط‌های اجرایی پشتیبانی شده</string>
+    <string name="choose_ai_mode">انتخاب حالت هوش مصنوعی</string>
+    <string name="select_ai_mode_desc">نحوه اجرای تحلیل هوش مصنوعی را انتخاب کنید:</string>
+    <string name="system_ai_title">هوش مصنوعی سیستم</string>
+    <string name="system_ai_desc">استفاده از موتور هوش مصنوعی داخلی دستگاه (Gemini Nano / AICore)</string>
+    <string name="local_model_title">مدل محلی</string>
+    <string name="local_model_desc">یک مدل هوش مصنوعی سازگار را دانلود یا وارد کنید تا روی دستگاه اجرا شود</string>
+    <string name="cloud_ai_title">هوش مصنوعی ابری (Claude)</string>
+    <string name="cloud_ai_desc">استفاده از Claude AI از طریق ابر برای تحلیل پیشرفته</string>
+    <string name="privacy_local">تمام تحلیل‌ها به صورت محلی روی دستگاه شما انجام می‌شود. هیچ داده‌ای به سرورهای خارجی ارسال نمی‌شود.</string>
+    <string name="privacy_cloud">داده‌های تحلیل برای پردازش به سرورهای ابری ارسال می‌شود.</string>
+    <string name="recommended">پیشنهادی</string>
+    <string name="install_local_model">نصب مدل محلی</string>
+    <string name="no_wifi_warning_model">اتصال WiFi وجود ندارد. دانلود مدل‌های بزرگ ممکن است از داده موبایل استفاده کند.</string>
+    <string name="no_compatible_models">مدل سازگاری برای این دستگاه یافت نشد</string>
+    <string name="download_name">دانلود %1$s</string>
+    <string name="import_model_device">وارد کردن مدل از دستگاه</string>
+    <string name="wifi_download_confirm">شما به WiFi متصل نیستید. دانلود %1$s (%2$d مگابایت) از داده موبایل استفاده خواهد کرد. ادامه دهید؟</string>
+    <string name="downloading_name">در حال دانلود %1$s</string>
+    <string name="download_cancelled">دانلود لغو شد</string>
+    <string name="resume_download">ادامه دانلود</string>
+    <string name="verifying_download_ellipsis">در حال تأیید دانلود\u2026</string>
+    <string name="model_name_ready">%1$s آماده است</string>
+    <string name="import_model_title">وارد کردن مدل</string>
+    <string name="select_model_file">انتخاب فایل مدل</string>
+    <string name="try_another_file">امتحان فایل دیگر</string>
+    <string name="ai_setup_complete">تنظیم هوش مصنوعی تکمیل شد</string>
+    <string name="test_prompt">درخواست آزمایشی</string>
+    <string name="running_test">در حال اجرای آزمایش\u2026</string>
+    <string name="run_test_prompt">اجرای درخواست آزمایشی</string>
+    <string name="benchmark">معیار سنجش</string>
+    <string name="running_benchmark">در حال اجرای معیار سنجش\u2026</string>
+    <string name="inference_latency">تأخیر استنتاج: %1$d میلی‌ثانیه</string>
+    <string name="token_speed">سرعت توکن: %1$s توکن/ثانیه</string>
+    <string name="memory_usage">مصرف حافظه: %1$d مگابایت</string>
+    <string name="benchmark_failed">معیار سنجش ناموفق بود: %1$s</string>
+    <string name="run_benchmark">اجرای معیار سنجش</string>
+    <string name="finish_setup">اتمام تنظیمات</string>
+    <string name="size_mb">حجم: %1$d مگابایت</string>
+    <string name="params_label">پارامترها: %1$s</string>
+    <string name="quant_label">کوانتیزاسیون: %1$s</string>
+    <string name="format_label">فرمت: %1$s</string>
+    <string name="score_label">امتیاز: </string>
+    <string name="unknown">ناشناخته</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">سر / مغز</string>
+    <string name="body_eyes">چشم‌ها</string>
+    <string name="body_ears">گوش‌ها</string>
+    <string name="body_throat">گلو</string>
+    <string name="body_heart">قلب</string>
+    <string name="body_lungs">ریه‌ها</string>
+    <string name="body_stomach">معده / گوارش</string>
+    <string name="body_liver">کبد</string>
+    <string name="body_kidneys">کلیه‌ها</string>
+    <string name="body_joints">مفاصل / ماهیچه‌ها</string>
+    <string name="body_skin">پوست</string>
+    <string name="body_blood">خون / گردش خون</string>
+    <string name="body_immune">سیستم ایمنی</string>
+    <string name="body_hormones">هورمونی / غدد درون‌ریز</string>
+    <string name="body_nervous_system">سیستم عصبی</string>
+    <string name="body_bones">استخوان‌ها</string>
+    <string name="body_full_body">تمام بدن</string>
+    <string name="ai_ready_desc">موتور هوش مصنوعی شما آماده است. می‌توانید آن را در زیر آزمایش کنید یا تنظیمات را تمام کنید.</string>
 </resources>

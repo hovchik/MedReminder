@@ -326,4 +326,173 @@
     <string name="med_optimization_tips">Օպտիմալացման խորհուրդներ</string>
     <string name="med_stock_remaining">Պաշարում մնացել է %1$d</string>
     <string name="med_analysis_provider_info">Վերլուծել է %1$s-ի կողմից %2$d մս-ում</string>
+
+    <!-- Today Screen - Time sections -->
+    <string name="time_section_morning">Առավոտ</string>
+    <string name="time_section_afternoon">Կեսօր</string>
+    <string name="time_section_evening">Երեկո</string>
+    <string name="time_section_night">Գիշեր</string>
+    <string name="next_dose_in">Հաջորդը %1$s հետո</string>
+    <string name="snoozed_until">Հետաձգված մինչեվ %1$s</string>
+    <string name="all_done_title">Այսօր ամեն ինչ արվել է։</string>
+    <string name="all_done_subtitle">Հանիալի աշխատանք</string>
+    <string name="upcoming">Առաջիկա</string>
+    <string name="overdue">Ուշացած</string>
+
+    <!-- Family Members -->
+    <string name="family">Ընտանիք</string>
+    <string name="caregivers">Խնամակալներ</string>
+    <string name="add_family_member">Ավելացնել ընտանիքի անդամ</string>
+    <string name="no_family_members_yet">Ընտանիքի անդամներ դեռ չեն ավելացվել</string>
+    <string name="add_family_members_hint">Ավելացրեք ծնողներինՍ երեխաներին կամ այլ ընտանիքի անդամներին</string>
+    <string name="family_info">Ավելացրեք ընտանիքի անդամներին նրանց դեղերի պլանավորման և հետևի համար։</string>
+    <string name="member_name">Անուն</string>
+    <string name="member_age">Տարիք</string>
+    <string name="relation">Կապ</string>
+    <string name="relation_parent">Ծնող</string>
+    <string name="relation_child">Երեխա</string>
+    <string name="relation_spouse">Ամուսին</string>
+    <string name="relation_sibling">Եղբայր/քույր</string>
+    <string name="relation_other">Այլ</string>
+    <string name="age_years">%1$d տարեկան</string>
+
+    <!-- Medication Assignment -->
+    <string name="medication_for">Դեղը նախատեսված է</string>
+    <string name="myself">Ինձս</string>
+    <string name="select_person">Ընտրեք ում այս դեղը նախատեսված է</string>
+
+    <!-- Schedule Duration -->
+    <string name="duration">Տևողություն</string>
+    <string name="ongoing_lifetime">Շարունակական / Ցիահեում</string>
+    <string name="for_x_days">X օրվա</string>
+    <string name="for_x_months">X ամսվա</string>
+    <string name="number_of_days">Օրերի քանակ</string>
+    <string name="number_of_months">Ամիսների քանակ</string>
+
+    <!-- Recurrent Schedule -->
+    <string name="every_x_hours">Ամեն X ժամը</string>
+    <string name="hours">ժամ</string>
+    <string name="starting_from">Սկսած</string>
+    <string name="tolerance">Թույլատրելիություն</string>
+    <string name="tolerance_minutes">%1$d րոպե թույլատրելիություն</string>
+    <string name="minutes">րոպե</string>
+
+    <!-- AI Analysis -->
+    <string name="ai_daily_insight">ԱԲ օրական վերլուծություն</string>
+    <string name="ai_weekly_insight">ԱԲ շաբաթական վերլուծություն</string>
+    <string name="analyzing">Տվյալների վերլուծություն…</string>
+    <string name="get_ai_insight">Ստանալ ԱԲ վերլուծություն</string>
+
+    <!-- AI Engine Settings -->
+    <string name="ai_engine">ԱԲ շարժիչ</string>
+    <string name="ai_provider">ԱԲ մատակարար</string>
+    <string name="select_ai_provider">Ընտրեք ԱԲ մատակարար</string>
+    <string name="ai_auto_desc">Ավտոմատ (առաջարկվում է) — լավագույն հասանելի ԱԲ</string>
+    <string name="ai_system_desc">Համակարգի ԱԲ — սարքի ներկառուցված ԱԲ</string>
+    <string name="ai_local_desc">Տեղական մոդել — ներբեռնված ԱԲ մոդելի գործարկում</string>
+    <string name="ai_cloud_desc">Ամպային ԱԲ (Claude) — առաջադեմ ամպային վերլուծություն</string>
+    <string name="active_provider">Ակտիվ՝ %1$s</string>
+    <string name="installed_models_count">%1$d մոդել(ներ) տեղադրված</string>
+    <string name="setup_local_ai">Կարգավորել տեղական ԱԲ</string>
+    <string name="setup_local_ai_subtitle">Կարգավորել սարքի վրա ԱԲ գաղտնի վերլուծության համար</string>
+    <string name="active_local_model">Ակտիվ տեղական մոդել</string>
+    <string name="loading_model">Մոդելի բեռնում…</string>
+    <string name="no_model_selected">Սեղմեք մոդել ընտրելու համար</string>
+    <string name="select_active_model">Ընտրեք ակտիվ մոդել</string>
+    <string name="no_models_installed">Մոդելներ տեղադրված չեն։ Օգտագործեք կարգավորման օգնականը ներբեռնելու համար։</string>
+    <string name="ai_performance_note">Արդյունավետությունը կախված է սարքից</string>
+
+
+    <!-- AI Provider Labels -->
+    <string name="provider_cloud">Ամպային</string>
+    <string name="provider_on_device">Սարքի վրա</string>
+    <string name="provider_local">Տեղական</string>
+    <string name="provider_auto">Ավտոմատ</string>
+    <string name="risk_low">Ցածր</string>
+    <string name="risk_moderate">Միջին</string>
+    <string name="risk_high">Բարձր</string>
+
+    <!-- AI Setup Wizard -->
+    <string name="local_ai_setup">Տեղական ԱԲ կարգավորում</string>
+    <string name="local_ai_setup_desc">MedReminder-ը կարող է վերլուծել ձեր դեղերի ընդունման հավատարմությունը արհեստական բանականությամբ։ Կարող եք վերլուծությունը գործարկել սարքի վրա լիովին գաղտնիության համար, կամ օգտագործել ամպային ԱԲ-ն ավելի հանգամանց վերլուծության համար։</string>
+    <string name="device_check_hint">Մենք կստուգենք ձեր սարքի հնարավորությունները և կառաջարկենք լավագույն ԱԲ ռեժիմը։</string>
+    <string name="check_device_compatibility">Ստուգել սարքի համատեղելիությունը</string>
+    <string name="device_compatibility">Սարքի համատեղելիություն</string>
+    <string name="android_version">Android տարբերակ</string>
+    <string name="aicore_gemini">AICore (Gemini Nano)</string>
+    <string name="ml_kit_genai">ML Kit GenAI</string>
+    <string name="available">Հասանելի</string>
+    <string name="not_available">Հասանելի չէ</string>
+    <string name="ram">RAM</string>
+    <string name="available_storage">Հասանելի հիշողություն</string>
+    <string name="gpu_label">GPU</string>
+    <string name="cpu_cores">CPU միջուկներ</string>
+    <string name="performance_class">Արդյունավետության դաս</string>
+    <string name="supported_runtimes">Աջակցվող գործարկման միջավայրեր</string>
+    <string name="choose_ai_mode">Ընտրեք ԱԲ ռեժիմը</string>
+    <string name="select_ai_mode_desc">Ընտրեք թե ինչպես կատարել ԱԲ վերլուծությունը՝</string>
+    <string name="system_ai_title">Համակարգի ԱԲ</string>
+    <string name="system_ai_desc">Օգտագործել սարքի ներկառուցված ԱԲ շարժիչը (Gemini Nano / AICore)</string>
+    <string name="local_model_title">Տեղական մոդել</string>
+    <string name="local_model_desc">Ներբեռնել կամ ներմուծել համատեղելի ԱԲ մոդել սարքի վրա գործարկելու համար</string>
+    <string name="cloud_ai_title">Ամպային ԱԲ (Claude)</string>
+    <string name="cloud_ai_desc">Օգտագործել Claude AI-ն ամպի միջոցով առաջադեմ վերլուծության համար</string>
+    <string name="privacy_local">Բոլոր վերլուծությունները կատարվում են տեղայնորեն ձեր սարքի վրա։ Տվյալներ չեն ուղարկվում արտաքին սերվերներ։</string>
+    <string name="privacy_cloud">Վերլուծության տվյալները ուղարկվում են ամպային սերվերներ մշակման համար։</string>
+    <string name="recommended">Առաջարկվում է</string>
+    <string name="install_local_model">Տեղադրել տեղական մոդել</string>
+    <string name="no_wifi_warning_model">WiFi կապ չկա։ Մեծ մոդելների ներբեռնումը կարող է օգտագործել բջջային տվյալներ։</string>
+    <string name="no_compatible_models">Այս սարքի համար համատեղելի մոդելներ չեն գտնվել</string>
+    <string name="download_name">Ներբեռնել %1$s</string>
+    <string name="import_model_device">Ներմուծել մոդել սարքից</string>
+    <string name="wifi_download_confirm">Դուք WiFi-ին միացված չեք։ %1$s-ի (%2$d ՄԲ) ներբեռնումը կօգտագործի բջջային տվյալներ։ Շարունակե՞լ</string>
+    <string name="downloading_name">Ներբեռնում է %1$s</string>
+    <string name="download_cancelled">Ներբեռնումը չեղարկվեց</string>
+    <string name="resume_download">Շարունակել ներբեռնումը</string>
+    <string name="verifying_download_ellipsis">Ներբեռնումի ստուգում…</string>
+    <string name="model_name_ready">%1$s պատրաստ է</string>
+    <string name="import_model_title">Ներմուծել մոդել</string>
+    <string name="select_model_file">Ընտրեք մոդելի ֆայլը</string>
+    <string name="try_another_file">Փորձեք այլ ֆայլ</string>
+    <string name="ai_setup_complete">ԱԲ կարգավորումը ավարտվեց</string>
+    <string name="test_prompt">Փորձնական հարցում</string>
+    <string name="running_test">Փորձարկումը ընթացքում է…</string>
+    <string name="run_test_prompt">Գործարկել փորձնական հարցումը</string>
+    <string name="benchmark">Բենչմարկ</string>
+    <string name="running_benchmark">Բենչմարկը ընթացքում է…</string>
+    <string name="inference_latency">Եզրակացման ուշացում՝ %1$d մս</string>
+    <string name="token_speed">Տոկենի արագություն՝ %1$s տոկեն/վրկ</string>
+    <string name="memory_usage">Հիշողության օգտագործում՝ %1$d ՄԲ</string>
+    <string name="benchmark_failed">Բենչմարկը ձախողվեց՝ %1$s</string>
+    <string name="run_benchmark">Գործարկել բենչմարկը</string>
+    <string name="finish_setup">Ավարտել կարգավորումը</string>
+    <string name="size_mb">Չափ՝ %1$d ՄԲ</string>
+    <string name="params_label">Պարամետրեր՝ %1$s</string>
+    <string name="quant_label">Քվանտացում՝ %1$s</string>
+    <string name="format_label">Ֆորմատ՝ %1$s</string>
+    <string name="score_label">Գնահատական՝ </string>
+    <string name="unknown">Անհայտ</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">Գլուխ / Ուղեղ</string>
+    <string name="body_eyes">Աչքեր</string>
+    <string name="body_ears">Ականջներ</string>
+    <string name="body_throat">Կոկորդ</string>
+    <string name="body_heart">Սիրտ</string>
+    <string name="body_lungs">Թոքեր</string>
+    <string name="body_stomach">Ստամոքս / Մարսողական</string>
+    <string name="body_liver">Լյարդ</string>
+    <string name="body_kidneys">Երիկամներ</string>
+    <string name="body_joints">Հոդեր / Մկաններ</string>
+    <string name="body_skin">Մաշկ</string>
+    <string name="body_blood">Արյուն / Արյունաշրջանակ</string>
+    <string name="body_immune">Իմունային համակարգ</string>
+    <string name="body_hormones">Հորմոնալ / Էնդոկրին</string>
+    <string name="body_nervous_system">Ներվային համակարգ</string>
+    <string name="body_bones">Ոսկորներ</string>
+    <string name="body_full_body">Ամբողջ մարմին</string>
+    <string name="ai_ready_desc">ԱԲ շարժիչը պատրաստ է։ Կարող եք փորձարկել այն կամ ավարտել կարգավորումը։</string>
+
+    <!-- AI Setup Wizard -->
+
 </resources>

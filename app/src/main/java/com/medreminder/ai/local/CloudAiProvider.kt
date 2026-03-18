@@ -2,6 +2,7 @@ package com.medreminder.ai.local
 
 import android.util.Log
 import com.medreminder.ai.*
+import com.medreminder.ai.AiLanguageHelper
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -431,7 +432,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
             |4. "riskLevel": "LOW" (≥90%), "MODERATE" (70-89%), or "HIGH" (<70%)
             |
             |Respond ONLY with valid JSON (no markdown, no extra text):
-            |{"summary": "...", "insights": ["...", "..."], "recommendations": ["...", "..."], "riskLevel": "LOW|MODERATE|HIGH"}
+            |{"summary": "...", "insights": ["...", "..."], "recommendations": ["...", "..."], "riskLevel": "LOW|MODERATE|HIGH"}${AiLanguageHelper.getLanguageInstruction()}
         """.trimMargin()
     }
 

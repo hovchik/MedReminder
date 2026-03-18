@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.medreminder.ai.BodyRegion
+import com.medreminder.presentation.util.translatedName
 
 /**
  * Interactive 3D human anatomy viewer using WebGL (Three.js) rendered in a WebView.
@@ -130,7 +131,7 @@ fun Anatomy3DView(
             ) {
                 highlightedRegions.take(4).forEach { region ->
                     Text(
-                        text = region.displayName,
+                        text = region.translatedName(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
