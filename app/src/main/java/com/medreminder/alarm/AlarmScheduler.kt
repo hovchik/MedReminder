@@ -129,7 +129,9 @@ class AlarmScheduler @Inject constructor(
     }
 
     fun cancelAlarm(scheduleId: Long) {
-        val intent = Intent(context, AlarmReceiver::class.java)
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = "com.medreminder.MEDICATION_ALARM"
+        }
         val pendingIntent = PendingIntent.getBroadcast(
             context, scheduleId.toInt(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

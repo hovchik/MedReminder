@@ -141,9 +141,7 @@ class BootReceiver : BroadcastReceiver() {
             val pendingResult = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val db = androidx.room.Room.databaseBuilder(
-                        context.applicationContext, AppDatabase::class.java, AppDatabase.DATABASE_NAME
-                    ).build()
+                    val db = AppDatabase.getInstance(context.applicationContext)
                     val scheduler = AlarmScheduler(context.applicationContext, db.scheduleDao())
                     scheduler.scheduleAllAlarms()
                 } catch (e: Exception) {

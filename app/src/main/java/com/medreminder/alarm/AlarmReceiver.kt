@@ -124,15 +124,10 @@ class AlarmReceiver : BroadcastReceiver() {
 
                 withContext(Dispatchers.Main) {
                     createNotificationChannel(context)
-                    showFullScreenAlarm(
-                        context,
-                        doseLogIds.toLongArray(),
-                        scheduleIds.toLongArray(),
-                        medicationIds.toLongArray(),
-                        medicationNames.toTypedArray(),
-                        medicationDosages.toTypedArray(),
-                        medicationColors.toTypedArray()
-                    )
+                    // Post the notification with setFullScreenIntent — Android will launch
+                    // FullScreenAlarmActivity via the full-screen intent (screen off/locked) or
+                    // show a heads-up notification (screen on). Directly calling startActivity()
+                    // from a BroadcastReceiver is prohibited on Android 10+ and would silently fail.
                     showNotification(
                         context,
                         doseLogIds.toLongArray(),
@@ -175,29 +170,6 @@ class AlarmReceiver : BroadcastReceiver() {
         }
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(channel)
-    }
-
-    private fun showFullScreenAlarm(
-        context: Context,
-        doseLogIds: LongArray,
-        scheduleIds: LongArray,
-        medicationIds: LongArray,
-        names: Array<String>,
-        dosages: Array<String>,
-        colors: Array<String>
-    ) {
-        val alarmIntent = Intent(context, FullScreenAlarmActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_NO_USER_ACTION or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS, doseLogIds)
-            putExtra(FullScreenAlarmActivity.EXTRA_SCHEDULE_IDS, scheduleIds)
-            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_IDS, medicationIds)
-            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_NAMES, names)
-            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_DOSAGES, dosages)
-            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_COLORS, colors)
-        }
-        context.startActivity(alarmIntent)
     }
 
     private fun showNotification(
