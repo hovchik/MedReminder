@@ -12,6 +12,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -34,8 +35,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import com.medreminder.R
 import com.medreminder.data.local.AppDatabase
+import com.medreminder.presentation.theme.MedReminderTheme
 import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -89,6 +93,9 @@ class FullScreenAlarmActivity : ComponentActivity() {
             WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
         )
 
+        // Draw behind system bars so the gradient fills the full screen
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         medicationsState.value = parseMedications(intent)
 
         // Prevent dismissal with back button - user must choose an action
@@ -100,22 +107,26 @@ class FullScreenAlarmActivity : ComponentActivity() {
         startVibration()
 
         setContent {
-            val medications by medicationsState
-            if (medications.size == 1) {
-                AlarmScreen(
-                    medicationName = medications.first().name,
-                    medicationDosage = medications.first().dosage,
-                    onTaken = { handleTakenAll() },
-                    onSnooze = { handleSnoozeAll() },
-                    onSkip = { handleSkipAll() }
-                )
-            } else if (medications.size > 1) {
-                CombinedAlarmScreen(
-                    medications = medications,
-                    onTakenAll = { handleTakenAll() },
-                    onSnoozeAll = { handleSnoozeAll() },
-                    onSkipAll = { handleSkipAll() }
-                )
+            // Use dark theme so Material3 components (Button, Surface, etc.)
+            // render correctly on the dark gradient background
+            MedReminderTheme(darkTheme = true) {
+                val medications by medicationsState
+                if (medications.size == 1) {
+                    AlarmScreen(
+                        medicationName = medications.first().name,
+                        medicationDosage = medications.first().dosage,
+                        onTaken = { handleTakenAll() },
+                        onSnooze = { handleSnoozeAll() },
+                        onSkip = { handleSkipAll() }
+                    )
+                } else if (medications.size > 1) {
+                    CombinedAlarmScreen(
+                        medications = medications,
+                        onTakenAll = { handleTakenAll() },
+                        onSnoozeAll = { handleSnoozeAll() },
+                        onSkipAll = { handleSkipAll() }
+                    )
+                }
             }
         }
     }
@@ -306,6 +317,19 @@ fun AlarmScreen(
         SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
     }
 
+    val snoozeColor = Color(0xFFF39C12)
+    val skipColor = Color(0xFFE74C3C)
+
+    // Override MedReminderTheme's status bar color so the gradient shows through
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as android.app.Activity).window
+        @Suppress("DEPRECATION")
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        @Suppress("DEPRECATION")
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -317,7 +341,8 @@ fun AlarmScreen(
                         Color(0xFF0F3460)
                     )
                 )
-            ),
+            )
+            .systemBarsPadding(),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -406,8 +431,9 @@ fun AlarmScreen(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
+                    border = BorderStroke(1.dp, snoozeColor.copy(alpha = 0.6f)),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFFF39C12)
+                        contentColor = snoozeColor
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -421,8 +447,9 @@ fun AlarmScreen(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
+                    border = BorderStroke(1.dp, skipColor.copy(alpha = 0.6f)),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFFE74C3C)
+                        contentColor = skipColor
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -455,6 +482,9 @@ fun CombinedAlarmScreen(
         SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
     }
 
+    val snoozeColor = Color(0xFFF39C12)
+    val skipColor = Color(0xFFE74C3C)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -466,7 +496,8 @@ fun CombinedAlarmScreen(
                         Color(0xFF0F3460)
                     )
                 )
-            ),
+            )
+            .systemBarsPadding(),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -557,8 +588,9 @@ fun CombinedAlarmScreen(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
+                    border = BorderStroke(1.dp, snoozeColor.copy(alpha = 0.6f)),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFFF39C12)
+                        contentColor = snoozeColor
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -572,8 +604,9 @@ fun CombinedAlarmScreen(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
+                    border = BorderStroke(1.dp, skipColor.copy(alpha = 0.6f)),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFFE74C3C)
+                        contentColor = skipColor
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
