@@ -62,6 +62,12 @@ class AdherenceViewModel @Inject constructor(
     private val _isWeeklyAnalyzing = MutableStateFlow(false)
     val isWeeklyAnalyzing: StateFlow<Boolean> = _isWeeklyAnalyzing.asStateFlow()
 
+    private val _dailyError = MutableStateFlow<String?>(null)
+    val dailyError: StateFlow<String?> = _dailyError.asStateFlow()
+
+    private val _weeklyError = MutableStateFlow<String?>(null)
+    val weeklyError: StateFlow<String?> = _weeklyError.asStateFlow()
+
     init {
         loadStats()
         // Auto-trigger AI analyses on screen load
@@ -77,10 +83,11 @@ class AdherenceViewModel @Inject constructor(
     fun runDailyAnalysis() {
         viewModelScope.launch {
             _isDailyAnalyzing.value = true
+            _dailyError.value = null
             try {
                 _dailyAiReport.value = dailyAnalysisUseCase.analyze()
-            } catch (_: Exception) {
-                // Analysis failed silently
+            } catch (e: Exception) {
+                _dailyError.value = e.message ?: "Daily analysis failed"
             }
             _isDailyAnalyzing.value = false
         }
@@ -89,10 +96,11 @@ class AdherenceViewModel @Inject constructor(
     fun runWeeklyAnalysis() {
         viewModelScope.launch {
             _isWeeklyAnalyzing.value = true
+            _weeklyError.value = null
             try {
                 _weeklyAiReport.value = weeklyReportUseCase.analyze()
-            } catch (_: Exception) {
-                // Analysis failed silently
+            } catch (e: Exception) {
+                _weeklyError.value = e.message ?: "Weekly analysis failed"
             }
             _isWeeklyAnalyzing.value = false
         }
@@ -214,18 +222,22 @@ fun AdherenceScreen(viewModel: AdherenceViewModel = hiltViewModel()) {
         }
 
         // AI Daily Insight
+        val dailyError by viewModel.dailyError.collectAsStateWithLifecycle()
         AiInsightCard(
             title = stringResource(R.string.ai_daily_insight),
             analysis = dailyReport,
             isAnalyzing = isDailyAnalyzing,
+            error = dailyError,
             onRunAnalysis = { viewModel.runDailyAnalysis() }
         )
 
         // AI Weekly Report
+        val weeklyError by viewModel.weeklyError.collectAsStateWithLifecycle()
         AiInsightCard(
             title = stringResource(R.string.ai_weekly_insight),
             analysis = weeklyReport,
             isAnalyzing = isWeeklyAnalyzing,
+            error = weeklyError,
             onRunAnalysis = { viewModel.runWeeklyAnalysis() }
         )
 
@@ -277,6 +289,7 @@ fun AiInsightCard(
     title: String,
     analysis: AnalysisResult?,
     isAnalyzing: Boolean,
+    error: String? = null,
     onRunAnalysis: () -> Unit
 ) {
     Card(
@@ -333,6 +346,37 @@ fun AiInsightCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            } else if (error != null) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            error,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+                TextButton(
+                    onClick = onRunAnalysis,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Icon(Icons.Default.Refresh, null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(stringResource(R.string.refresh_analysis), style = MaterialTheme.typography.labelSmall)
+                }
             } else if (analysis != null) {
                 // Risk level badge
                 val riskColor = when (analysis.riskLevel) {
@@ -351,6 +395,32 @@ fun AiInsightCard(
                         fontWeight = FontWeight.SemiBold,
                         color = riskColor
                     )
+                }
+
+                // Cloud error warning (fell back to local)
+                if (!analysis.cloudError.isNullOrEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFFF3E0)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Icon(
+                                Icons.Default.WarningAmber,
+                                contentDescription = null,
+                                tint = Color(0xFFF57C00),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                analysis.cloudError,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFE65100)
+                            )
+                        }
+                    }
                 }
 
                 // Summary

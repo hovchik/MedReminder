@@ -82,7 +82,9 @@ data class AnalysisResult(
     val recommendations: List<String> = emptyList(),
     val riskLevel: RiskLevel = RiskLevel.LOW,
     val providerUsed: AiProviderType = AiProviderType.CLOUD,
-    val latencyMs: Long = 0
+    val latencyMs: Long = 0,
+    /** Non-null when the cloud call failed and local fallback was used. */
+    val cloudError: String? = null
 )
 
 enum class RiskLevel {

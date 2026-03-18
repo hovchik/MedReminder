@@ -88,11 +88,9 @@ class AiProviderSelector @Inject constructor(
             prefs[KEY_CLOUD_SERVICE] = service.name
         }
         cloudProvider.setService(service)
-        // Load the API key for this service
+        // Always sync the API key for the newly selected service
         val key = getApiKeyForService(service).first()
-        if (!key.isNullOrBlank()) {
-            cloudProvider.setApiKey(key)
-        }
+        cloudProvider.setApiKey(key ?: "")
     }
 
     fun getApiKeyForService(service: CloudAiService): Flow<String?> =
@@ -130,10 +128,9 @@ class AiProviderSelector @Inject constructor(
     suspend fun ensureCloudProviderConfigured() {
         val service = getSelectedCloudService().first()
         cloudProvider.setService(service)
+        // Always sync — clear key if none is stored for this service
         val key = getApiKeyForService(service).first()
-        if (!key.isNullOrBlank()) {
-            cloudProvider.setApiKey(key)
-        }
+        cloudProvider.setApiKey(key ?: "")
     }
 
     /**

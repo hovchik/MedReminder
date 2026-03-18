@@ -6,6 +6,8 @@ import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 import javax.inject.Inject
@@ -44,20 +46,31 @@ class CloudAiProvider @Inject constructor() : AiProvider {
 
     fun getApiKey(): String? = apiKey
 
-    override fun isAvailable(): Boolean = true // Always available; falls back to local analysis if no API key
+    override fun isAvailable(): Boolean = !apiKey.isNullOrBlank()
 
     /**
      * Send a raw prompt and return the raw text response from the active cloud service.
-     * Used by MedicationAnalysisUseCase for custom prompt/response formats.
+     * Returns null if the API key is missing or the call fails.
      */
-    fun generateRawCompletion(prompt: String): String {
-        val key = apiKey ?: throw IllegalStateException("No API key configured")
-        val rawResponse = when (activeService) {
-            CloudAiService.CLAUDE -> callClaudeApi(key, prompt)
-            CloudAiService.CHATGPT -> callChatGptApi(key, prompt)
-            CloudAiService.DEEPSEEK -> callDeepSeekApi(key, prompt)
+    suspend fun generateRawCompletion(prompt: String): String? {
+        val key = apiKey
+        if (key.isNullOrBlank()) {
+            Log.w(TAG, "No API key configured for ${activeService.name}, cannot call cloud AI")
+            return null
         }
-        return extractJson(rawResponse)
+        return try {
+            val rawResponse = withContext(Dispatchers.IO) {
+                when (activeService) {
+                    CloudAiService.CLAUDE -> callClaudeApi(key, prompt)
+                    CloudAiService.CHATGPT -> callChatGptApi(key, prompt)
+                    CloudAiService.DEEPSEEK -> callDeepSeekApi(key, prompt)
+                }
+            }
+            extractJson(rawResponse)
+        } catch (e: Exception) {
+            Log.e(TAG, "Cloud raw completion failed (${activeService.name})", e)
+            null
+        }
     }
 
     override suspend fun generateAnalysis(input: AnalysisInput): AnalysisResult {
@@ -65,6 +78,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
         val key = apiKey
 
         if (key.isNullOrBlank()) {
+            Log.w(TAG, "No API key configured for ${activeService.name}, using local fallback")
             return generateLocalFallbackAnalysis(input).copy(
                 providerUsed = AiProviderType.CLOUD,
                 latencyMs = System.currentTimeMillis() - startTime
@@ -73,22 +87,88 @@ class CloudAiProvider @Inject constructor() : AiProvider {
 
         return try {
             val prompt = buildPrompt(input)
-            val responseText = when (activeService) {
-                CloudAiService.CLAUDE -> callClaudeApi(key, prompt)
-                CloudAiService.CHATGPT -> callChatGptApi(key, prompt)
-                CloudAiService.DEEPSEEK -> callDeepSeekApi(key, prompt)
+            val responseText = withContext(Dispatchers.IO) {
+                when (activeService) {
+                    CloudAiService.CLAUDE -> callClaudeApi(key, prompt)
+                    CloudAiService.CHATGPT -> callChatGptApi(key, prompt)
+                    CloudAiService.DEEPSEEK -> callDeepSeekApi(key, prompt)
+                }
             }
             parseApiResponse(responseText, activeService).copy(
                 providerUsed = AiProviderType.CLOUD,
                 latencyMs = System.currentTimeMillis() - startTime
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Cloud API call failed (${activeService.name}), using fallback", e)
+            val errorDetail = e.message ?: e.toString()
+            Log.e(TAG, "Cloud API call failed (${activeService.name}): $errorDetail", e)
             generateLocalFallbackAnalysis(input).copy(
                 providerUsed = AiProviderType.CLOUD,
-                latencyMs = System.currentTimeMillis() - startTime
+                latencyMs = System.currentTimeMillis() - startTime,
+                cloudError = "Cloud AI (${activeService.displayName}) failed: $errorDetail"
             )
         }
+    }
+
+    private fun generateLocalFallbackAnalysis(input: AnalysisInput): AnalysisResult {
+        val riskLevel = when {
+            input.adherenceRate >= 90f -> RiskLevel.LOW
+            input.adherenceRate >= 70f -> RiskLevel.MODERATE
+            else -> RiskLevel.HIGH
+        }
+
+        val isDaily = input.analysisType == AnalysisType.DAILY
+        val summary = if (isDaily) {
+            when (riskLevel) {
+                RiskLevel.LOW -> "Great job today! You've taken ${input.takenDoses} of ${input.totalDoses} doses with ${String.format("%.0f", input.adherenceRate)}% adherence."
+                RiskLevel.MODERATE -> "You've taken ${input.takenDoses} of ${input.totalDoses} doses today (${String.format("%.0f", input.adherenceRate)}%). Consider setting additional reminders."
+                RiskLevel.HIGH -> "You've missed ${input.missedDoses} doses today (${String.format("%.0f", input.adherenceRate)}% adherence). Please prioritize taking your medications on time."
+            }
+        } else {
+            when (riskLevel) {
+                RiskLevel.LOW -> "Excellent week! ${String.format("%.0f", input.adherenceRate)}% adherence over ${input.periodDays} days with a ${input.currentStreak}-day streak."
+                RiskLevel.MODERATE -> "Your weekly adherence of ${String.format("%.0f", input.adherenceRate)}% shows room for improvement. You missed ${input.missedDoses} doses this period."
+                RiskLevel.HIGH -> "This week needs attention — ${String.format("%.0f", input.adherenceRate)}% adherence with ${input.missedDoses} missed doses. Consider reviewing your schedule."
+            }
+        }
+
+        val insights = buildList {
+            if (input.currentStreak > 0) add("You're on a ${input.currentStreak}-day streak.")
+            if (input.missedDoses > 0) add("You've missed ${input.missedDoses} dose(s) in this period.")
+            if (input.totalSnoozedCount > 0) add("You snoozed ${input.totalSnoozedCount} time(s) — consider adjusting reminder times.")
+            if (input.averageDelayMinutes > 15) add("Average dose delay: ${String.format("%.0f", input.averageDelayMinutes)} minutes.")
+            input.timeOfDayBreakdown?.let { tod ->
+                val worst = listOf("Morning" to tod.morningRate, "Afternoon" to tod.afternoonRate,
+                    "Evening" to tod.eveningRate, "Night" to tod.nightRate)
+                    .filter { it.second > 0f }.minByOrNull { it.second }
+                if (worst != null && worst.second < 80f) add("${worst.first} doses have the lowest adherence (${String.format("%.0f", worst.second)}%).")
+            }
+            if (isEmpty()) add("Keep tracking your medications for more detailed insights.")
+        }.take(5)
+
+        val recommendations = buildList {
+            when (riskLevel) {
+                RiskLevel.HIGH -> {
+                    add("Set up additional reminders for frequently missed doses.")
+                    add("Talk to your healthcare provider about simplifying your schedule.")
+                }
+                RiskLevel.MODERATE -> {
+                    add("Try taking medications at the same time each day to build a habit.")
+                    add("Use the snooze feature instead of missing doses entirely.")
+                }
+                RiskLevel.LOW -> add("Maintain your excellent routine!")
+            }
+            val emergencyMissed = input.medications.filter { it.isEmergency && it.missedCount > 0 }
+            if (emergencyMissed.isNotEmpty()) add("Critical medication ${emergencyMissed.first().name} was missed — please prioritize this.")
+            val refillNeeded = input.medications.filter { it.needsRefill }
+            if (refillNeeded.isNotEmpty()) add("Refill ${refillNeeded.joinToString(", ") { it.name }} before running out.")
+        }.take(5)
+
+        return AnalysisResult(
+            summary = summary,
+            insights = insights,
+            recommendations = recommendations,
+            riskLevel = riskLevel
+        )
     }
 
     private fun callClaudeApi(apiKey: String, prompt: String): String {
@@ -138,7 +218,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
     }
 
     private fun callDeepSeekApi(apiKey: String, prompt: String): String {
-        val url = URL("https://api.deepseek.com/chat/completions")
+        val url = URL("https://api.deepseek.com/v1/chat/completions")
         val body = JSONObject().apply {
             put("model", "deepseek-chat")
             put("max_tokens", 1024)
@@ -150,14 +230,24 @@ class CloudAiProvider @Inject constructor() : AiProvider {
             })
         }
 
-        return makeHttpPost(url, body.toString(), mapOf(
+        val response = makeHttpPost(url, body.toString(), mapOf(
             "Authorization" to "Bearer $apiKey",
             "Content-Type" to "application/json"
-        )).let { response ->
-            val json = JSONObject(response)
-            json.getJSONArray("choices").getJSONObject(0)
-                .getJSONObject("message").getString("content")
+        ))
+        Log.d(TAG, "DeepSeek raw response (first 500 chars): ${response.take(500)}")
+        val json = JSONObject(response)
+
+        // Check for API-level error
+        if (json.has("error")) {
+            val err = json.optJSONObject("error")
+            val errMsg = err?.optString("message") ?: json.getString("error")
+            throw Exception("DeepSeek API error: $errMsg")
         }
+
+        val choices = json.optJSONArray("choices")
+            ?: throw Exception("DeepSeek response missing 'choices': ${response.take(200)}")
+        return choices.getJSONObject(0)
+            .getJSONObject("message").getString("content")
     }
 
     private fun makeHttpPost(url: URL, body: String, headers: Map<String, String>): String {
@@ -343,144 +433,6 @@ class CloudAiProvider @Inject constructor() : AiProvider {
             |Respond ONLY with valid JSON (no markdown, no extra text):
             |{"summary": "...", "insights": ["...", "..."], "recommendations": ["...", "..."], "riskLevel": "LOW|MODERATE|HIGH"}
         """.trimMargin()
-    }
-
-    private fun generateLocalFallbackAnalysis(input: AnalysisInput): AnalysisResult {
-        val riskLevel = when {
-            input.adherenceRate >= 90f -> RiskLevel.LOW
-            input.adherenceRate >= 70f -> RiskLevel.MODERATE
-            else -> RiskLevel.HIGH
-        }
-
-        val summary = when (input.analysisType) {
-            AnalysisType.DAILY -> buildDailySummary(input, riskLevel)
-            AnalysisType.WEEKLY -> buildWeeklySummary(input, riskLevel)
-        }
-
-        val insights = buildInsights(input)
-        val recommendations = buildRecommendations(input, riskLevel)
-
-        return AnalysisResult(
-            summary = summary,
-            insights = insights,
-            recommendations = recommendations,
-            riskLevel = riskLevel
-        )
-    }
-
-    private fun buildDailySummary(input: AnalysisInput, riskLevel: RiskLevel): String {
-        return when (riskLevel) {
-            RiskLevel.LOW -> "Great job! You've taken ${input.takenDoses} of ${input.totalDoses} doses today. Your adherence rate of ${String.format("%.0f", input.adherenceRate)}% shows excellent medication management."
-            RiskLevel.MODERATE -> "You've taken ${input.takenDoses} of ${input.totalDoses} doses. Your adherence rate of ${String.format("%.0f", input.adherenceRate)}% could be improved. Consider setting additional reminders."
-            RiskLevel.HIGH -> "You've missed several doses today (${input.missedDoses} missed). With an adherence rate of ${String.format("%.0f", input.adherenceRate)}%, it's important to prioritize taking your medications on time."
-        }
-    }
-
-    private fun buildWeeklySummary(input: AnalysisInput, riskLevel: RiskLevel): String {
-        return when (riskLevel) {
-            RiskLevel.LOW -> "Excellent week! Your ${String.format("%.0f", input.adherenceRate)}% adherence rate over ${input.periodDays} days shows strong medication management. You've maintained a ${input.currentStreak}-day streak."
-            RiskLevel.MODERATE -> "Your weekly adherence of ${String.format("%.0f", input.adherenceRate)}% shows room for improvement. You missed ${input.missedDoses} doses this period."
-            RiskLevel.HIGH -> "This week needs attention. With ${String.format("%.0f", input.adherenceRate)}% adherence and ${input.missedDoses} missed doses, consider reviewing your medication schedule."
-        }
-    }
-
-    private fun buildInsights(input: AnalysisInput): List<String> {
-        val insights = mutableListOf<String>()
-
-        if (input.currentStreak > 0) {
-            insights.add("You're on a ${input.currentStreak}-day streak of taking all your medications.")
-        }
-        if (input.longestStreak > input.currentStreak && input.longestStreak > 0) {
-            insights.add("Your best streak was ${input.longestStreak} days — you can beat it!")
-        }
-        if (input.missedDoses > 0) {
-            insights.add("You've missed ${input.missedDoses} doses in the last ${input.periodDays} day(s).")
-        }
-        if (input.skippedDoses > 0) {
-            insights.add("You've intentionally skipped ${input.skippedDoses} doses.")
-        }
-        if (input.totalSnoozedCount > 0) {
-            insights.add("You snoozed ${input.totalSnoozedCount} time(s) — consider adjusting reminder times.")
-        }
-        if (input.averageDelayMinutes > 15) {
-            insights.add("On average, you take doses ${String.format("%.0f", input.averageDelayMinutes)} minutes late.")
-        }
-        if (input.adherenceRate >= 95f) {
-            insights.add("Your adherence is in the top tier — keep it up!")
-        }
-        // Time-of-day insights
-        input.timeOfDayBreakdown?.let { tod ->
-            val worst = listOf("Morning" to tod.morningRate, "Afternoon" to tod.afternoonRate,
-                "Evening" to tod.eveningRate, "Night" to tod.nightRate)
-                .filter { it.second > 0f }
-                .minByOrNull { it.second }
-            if (worst != null && worst.second < 80f) {
-                insights.add("${worst.first} doses have the lowest adherence (${String.format("%.0f", worst.second)}%).")
-            }
-        }
-        // Per-medication insights
-        val worstMed = input.medications.filter { it.takenCount + it.missedCount > 0 }
-            .minByOrNull { it.adherenceRate }
-        if (worstMed != null && worstMed.adherenceRate < 80f && input.medications.size > 1) {
-            insights.add("${worstMed.name} has the lowest adherence at ${String.format("%.0f", worstMed.adherenceRate)}%.")
-        }
-        // Stock warning
-        val lowStock = input.medications.filter { it.needsRefill }
-        if (lowStock.isNotEmpty()) {
-            insights.add("${lowStock.joinToString(", ") { it.name }} need(s) a refill soon.")
-        }
-        if (input.medications.size > 3) {
-            insights.add("Managing ${input.medications.size} medications requires careful scheduling.")
-        }
-
-        return insights.take(5).ifEmpty { listOf("Keep tracking your medications for more detailed insights.") }
-    }
-
-    private fun buildRecommendations(input: AnalysisInput, riskLevel: RiskLevel): List<String> {
-        val recommendations = mutableListOf<String>()
-
-        when (riskLevel) {
-            RiskLevel.HIGH -> {
-                recommendations.add("Set up additional reminders for frequently missed doses.")
-                if (!input.hasCaregivers) {
-                    recommendations.add("Consider adding a caregiver to help track your medications.")
-                }
-                recommendations.add("Talk to your healthcare provider about simplifying your medication schedule.")
-            }
-            RiskLevel.MODERATE -> {
-                recommendations.add("Try taking medications at the same time each day to build a habit.")
-                recommendations.add("Use the snooze feature instead of missing doses entirely.")
-            }
-            RiskLevel.LOW -> {
-                recommendations.add("Maintain your excellent routine!")
-                if (input.medications.any { it.instructions.isNotBlank() }) {
-                    recommendations.add("Continue following the special instructions for your medications.")
-                }
-            }
-        }
-
-        // Enriched recommendations
-        if (input.totalSnoozedCount > 3) {
-            recommendations.add("You snooze often — consider rescheduling medications to a more convenient time.")
-        }
-        input.timeOfDayBreakdown?.let { tod ->
-            if (tod.eveningRate < 70f && tod.morningRate > 85f) {
-                recommendations.add("Evening doses are often missed. Try setting a dinner-time reminder.")
-            }
-            if (tod.morningRate < 70f && tod.eveningRate > 85f) {
-                recommendations.add("Morning doses need attention. Try linking them to your morning routine.")
-            }
-        }
-        val emergencyMissed = input.medications.filter { it.isEmergency && it.missedCount > 0 }
-        if (emergencyMissed.isNotEmpty()) {
-            recommendations.add("Critical medication ${emergencyMissed.first().name} was missed — please prioritize this.")
-        }
-        val refillNeeded = input.medications.filter { it.needsRefill }
-        if (refillNeeded.isNotEmpty()) {
-            recommendations.add("Refill ${refillNeeded.joinToString(", ") { it.name }} before running out.")
-        }
-
-        return recommendations.take(5)
     }
 
     companion object {

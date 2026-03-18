@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -308,15 +310,17 @@ fun SettingsScreen(
     val installedModels by viewModel.installedModels.collectAsStateWithLifecycle()
     val activeModelId by viewModel.activeModelId.collectAsStateWithLifecycle()
     val isLoadingModel by viewModel.isLoadingModel.collectAsStateWithLifecycle()
-    val activeProviderInfo = remember(selectedProvider) { viewModel.getActiveProviderInfo(selectedProvider) }
-    val allProviders = remember { viewModel.getAllProviders() }
+    val selectedCloudService by viewModel.selectedCloudService.collectAsStateWithLifecycle()
+    val currentApiKey by viewModel.getApiKeyForService(selectedCloudService)
+        .collectAsStateWithLifecycle(initialValue = null)
+    val activeProviderInfo = remember(selectedProvider, currentApiKey, installedModels) {
+        viewModel.getActiveProviderInfo(selectedProvider)
+    }
+    val allProviders = remember(installedModels) { viewModel.getAllProviders() }
     var showAiProviderDialog by remember { mutableStateOf(false) }
     var showModelPickerDialog by remember { mutableStateOf(false) }
     var showCloudServiceDialog by remember { mutableStateOf(false) }
     var showApiKeyDialog by remember { mutableStateOf(false) }
-    val selectedCloudService by viewModel.selectedCloudService.collectAsStateWithLifecycle()
-    val currentApiKey by viewModel.getApiKeyForService(selectedCloudService)
-        .collectAsStateWithLifecycle(initialValue = null)
 
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val userAge by viewModel.userAge.collectAsStateWithLifecycle()
@@ -463,8 +467,10 @@ fun SettingsScreen(
             onClick = { showAiProviderDialog = true }
         )
 
-        // Cloud AI service settings (shown when Cloud is selected)
-        if (selectedProvider == AiProviderType.CLOUD) {
+        // Cloud AI service settings (shown when Cloud is active — either explicitly or as fallback)
+        val showCloudSettings = selectedProvider == AiProviderType.CLOUD ||
+            activeProviderInfo.type == AiProviderType.CLOUD
+        if (showCloudSettings) {
             SettingsItem(
                 icon = Icons.Default.Cloud,
                 title = stringResource(R.string.cloud_ai_service),
@@ -1173,6 +1179,7 @@ fun ApiKeyDialog(
     onSave: (String) -> Unit
 ) {
     var apiKey by remember { mutableStateOf(currentKey) }
+    var keyVisible by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1189,8 +1196,31 @@ fun ApiKeyDialog(
                     onValueChange = { apiKey = it },
                     label = { Text(stringResource(R.string.api_key)) },
                     singleLine = true,
+                    visualTransformation = if (keyVisible) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { keyVisible = !keyVisible }) {
+                            Icon(
+                                if (keyVisible) Icons.Default.VisibilityOff
+                                else Icons.Default.Visibility,
+                                contentDescription = null
+                            )
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
+                if (apiKey.isNotBlank()) {
+                    TextButton(
+                        onClick = { apiKey = "" },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(Icons.Default.Delete, null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.remove))
+                    }
+                }
             }
         },
         confirmButton = {
