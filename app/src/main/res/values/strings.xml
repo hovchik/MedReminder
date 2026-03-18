@@ -503,7 +503,9 @@
     <string name="permission_location">Location</string>
     <string name="permission_location_desc">Share your location with caregivers in emergencies</string>
     <string name="permission_granted">Granted</string>
-    <string name="permission_denied">Tap to grant</string>
+    <string name="permission_denied">Not granted</string>
+    <string name="permission_allow">Allow</string>
+    <string name="permission_revoke">Revoke</string>
     <string name="grant_all_permissions">Grant All Permissions</string>
     <string name="permissions_can_change">You can change permissions later in Settings</string>
     <string name="permissions">Permissions</string>

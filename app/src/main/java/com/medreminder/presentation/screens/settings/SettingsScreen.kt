@@ -1,12 +1,15 @@
 package com.medreminder.presentation.screens.settings
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.FileProvider
 import androidx.compose.foundation.clickable
@@ -330,6 +333,34 @@ fun SettingsScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
 
+    // --- Permission states ---
+    var notifGranted by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            else true
+        )
+    }
+    var smsGranted by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED)
+    }
+    var callGranted by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED)
+    }
+    var locationGranted by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+    }
+    var cameraGranted by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+    }
+
+    // Permission request launchers — must be called unconditionally at composable scope
+    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { notifGranted = it }
+    val smsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { smsGranted = it }
+    val callLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { callGranted = it }
+    val locationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { locationGranted = it }
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { cameraGranted = it }
+
     if (showThemeDialog) {
         ThemeDialog(
             currentTheme = themeMode,
@@ -645,15 +676,75 @@ fun SettingsScreen(
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(vertical = 4.dp))
 
-        SettingsItem(
-            icon = Icons.Default.Security,
-            title = stringResource(R.string.permissions),
-            subtitle = stringResource(R.string.permissions_settings_subtitle),
-            onClick = {
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.parse("package:${context.packageName}")
+        // Notifications
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            PermissionRow(
+                icon = Icons.Default.Notifications,
+                title = stringResource(R.string.permission_notifications),
+                description = stringResource(R.string.permission_notifications_desc),
+                isGranted = notifGranted,
+                onAllow = { notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                onRevoke = {
+                    context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                    })
                 }
-                context.startActivity(intent)
+            )
+        }
+
+        // SMS
+        PermissionRow(
+            icon = Icons.Default.Message,
+            title = stringResource(R.string.permission_sms),
+            description = stringResource(R.string.permission_sms_desc),
+            isGranted = smsGranted,
+            onAllow = { smsLauncher.launch(Manifest.permission.SEND_SMS) },
+            onRevoke = {
+                context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                })
+            }
+        )
+
+        // Phone Calls
+        PermissionRow(
+            icon = Icons.Default.Phone,
+            title = stringResource(R.string.permission_phone),
+            description = stringResource(R.string.permission_phone_desc),
+            isGranted = callGranted,
+            onAllow = { callLauncher.launch(Manifest.permission.CALL_PHONE) },
+            onRevoke = {
+                context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                })
+            }
+        )
+
+        // Location
+        PermissionRow(
+            icon = Icons.Default.LocationOn,
+            title = stringResource(R.string.permission_location),
+            description = stringResource(R.string.permission_location_desc),
+            isGranted = locationGranted,
+            onAllow = { locationLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+            onRevoke = {
+                context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                })
+            }
+        )
+
+        // Camera
+        PermissionRow(
+            icon = Icons.Default.CameraAlt,
+            title = stringResource(R.string.permission_camera),
+            description = stringResource(R.string.permission_camera_desc),
+            isGranted = cameraGranted,
+            onAllow = { cameraLauncher.launch(Manifest.permission.CAMERA) },
+            onRevoke = {
+                context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                })
             }
         )
 
@@ -801,6 +892,91 @@ fun SettingsItem(
             Icon(Icons.Default.ChevronRight, null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+/**
+ * Displays a single app permission with its current status and Allow/Revoke actions.
+ * Each permission is shown on its own row inside a card.
+ */
+@Composable
+fun PermissionRow(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    isGranted: Boolean,
+    onAllow: () -> Unit,
+    onRevoke: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                icon, contentDescription = null,
+                tint = if (isGranted) MaterialTheme.colorScheme.primary
+                       else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(
+                    description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            if (isGranted) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.CheckCircle, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            stringResource(R.string.permission_granted),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    TextButton(
+                        onClick = onRevoke,
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            stringResource(R.string.permission_revoke),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            } else {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        stringResource(R.string.permission_denied),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Button(
+                        onClick = onAllow,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Text(stringResource(R.string.permission_allow), style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
         }
     }
 }

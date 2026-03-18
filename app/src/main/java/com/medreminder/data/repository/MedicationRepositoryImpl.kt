@@ -7,6 +7,7 @@ import com.medreminder.domain.model.*
 import com.medreminder.domain.repository.MedicationRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import com.medreminder.util.DateUtils
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.*
@@ -55,10 +56,16 @@ class MedicationRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateMedication(medication: Medication, schedules: List<Schedule>) {
+        val todayStart = DateUtils.getStartOfDay()
+        val todayEnd = DateUtils.getEndOfDay()
         database.withTransaction {
             medicationDao.updateMedication(
                 medication.toEntity().copy(updatedAt = System.currentTimeMillis())
             )
+            // Remove today's PENDING dose logs so they are regenerated with the new
+            // schedule IDs and updated times, preventing duplicate entries on the
+            // Today screen after a schedule edit.
+            doseLogDao.deletePendingLogsForMedication(medication.id, todayStart, todayEnd)
             scheduleDao.deleteSchedulesForMedication(medication.id)
             val scheduleEntities = schedules.map {
                 it.copy(id = 0, medicationId = medication.id).toEntity()
