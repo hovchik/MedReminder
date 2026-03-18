@@ -426,6 +426,67 @@
     <string name="risk_moderate">中</string>
     <string name="risk_high">高</string>
 
+    <!-- AI Setup Wizard -->
+    <string name="local_ai_setup">ローカルAIの設定</string>
+    <string name="local_ai_setup_desc">MedReminderはAIを使って服薬遵守状況を分析できます。完全なプライバシーのためにデバイス上でAI分析を実行するか、より高度な分析のためにクラウドAIを使用するかを選択できます。</string>
+    <string name="device_check_hint">デバイスの性能を確認し、最適なAIモードをお勧めします。</string>
+    <string name="check_device_compatibility">デバイスの互換性を確認</string>
+    <string name="device_compatibility">デバイスの互換性</string>
+    <string name="android_version">Androidバージョン</string>
+    <string name="aicore_gemini">AICore (Gemini Nano)</string>
+    <string name="ml_kit_genai">ML Kit GenAI</string>
+    <string name="available">利用可能</string>
+    <string name="not_available">利用不可</string>
+    <string name="ram">RAM</string>
+    <string name="available_storage">利用可能なストレージ</string>
+    <string name="gpu_label">GPU</string>
+    <string name="cpu_cores">CPUコア数</string>
+    <string name="performance_class">パフォーマンスクラス</string>
+    <string name="supported_runtimes">対応ランタイム</string>
+    <string name="choose_ai_mode">AIモードを選択</string>
+    <string name="select_ai_mode_desc">AI分析の実行方法を選択してください：</string>
+    <string name="system_ai_title">システムAI</string>
+    <string name="system_ai_desc">デバイス内蔵のAIエンジンを使用（Gemini Nano / AICore）</string>
+    <string name="local_model_title">ローカルモデル</string>
+    <string name="local_model_desc">互換性のあるAIモデルをダウンロードまたはインポートしてデバイスで実行</string>
+    <string name="cloud_ai_title">クラウドAI（Claude）</string>
+    <string name="cloud_ai_desc">クラウド経由でClaude AIを使用して高度な分析を実行</string>
+    <string name="privacy_local">すべての分析はデバイス上でローカルに実行されます。外部サーバーにデータは送信されません。</string>
+    <string name="privacy_cloud">分析データは処理のためにクラウドサーバーに送信されます。</string>
+    <string name="recommended">おすすめ</string>
+    <string name="install_local_model">ローカルモデルをインストール</string>
+    <string name="no_wifi_warning_model">WiFi接続がありません。大きなモデルのダウンロードにはモバイルデータを使用する場合があります。</string>
+    <string name="no_compatible_models">このデバイスに対応するモデルが見つかりません</string>
+    <string name="download_name">%1$s をダウンロード</string>
+    <string name="import_model_device">デバイスからモデルをインポート</string>
+    <string name="wifi_download_confirm">WiFiに接続されていません。%1$s（%2$d MB）のダウンロードにモバイルデータを使用します。続行しますか？</string>
+    <string name="downloading_name">%1$s をダウンロード中</string>
+    <string name="download_cancelled">ダウンロードがキャンセルされました</string>
+    <string name="resume_download">ダウンロードを再開</string>
+    <string name="verifying_download_ellipsis">ダウンロードを確認中\u2026</string>
+    <string name="model_name_ready">%1$s の準備完了</string>
+    <string name="import_model_title">モデルをインポート</string>
+    <string name="select_model_file">モデルファイルを選択</string>
+    <string name="try_another_file">別のファイルを試す</string>
+    <string name="ai_setup_complete">AIの設定が完了しました</string>
+    <string name="test_prompt">テストプロンプト</string>
+    <string name="running_test">テスト実行中\u2026</string>
+    <string name="run_test_prompt">テストプロンプトを実行</string>
+    <string name="benchmark">ベンチマーク</string>
+    <string name="running_benchmark">ベンチマーク実行中\u2026</string>
+    <string name="inference_latency">推論遅延: %1$d ミリ秒</string>
+    <string name="token_speed">トークン速度: %1$s トークン/秒</string>
+    <string name="memory_usage">メモリ使用量: %1$d MB</string>
+    <string name="benchmark_failed">ベンチマーク失敗: %1$s</string>
+    <string name="run_benchmark">ベンチマークを実行</string>
+    <string name="finish_setup">設定を完了</string>
+    <string name="size_mb">サイズ: %1$d MB</string>
+    <string name="params_label">パラメータ: %1$s</string>
+    <string name="quant_label">量子化: %1$s</string>
+    <string name="format_label">フォーマット: %1$s</string>
+    <string name="score_label">スコア: </string>
+    <string name="unknown">不明</string>
+
     <!-- Body Region Labels -->
     <string name="body_head">頭部 / 脳</string>
     <string name="body_eyes">目</string>
@@ -444,4 +505,5 @@
     <string name="body_nervous_system">神経系</string>
     <string name="body_bones">骨</string>
     <string name="body_full_body">全身</string>
+    <string name="ai_ready_desc">AIエンジンの準備ができました。下でテストするか、セットアップを完了できます。</string>
 </resources>

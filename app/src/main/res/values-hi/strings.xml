@@ -426,6 +426,67 @@
     <string name="risk_moderate">मध्यम</string>
     <string name="risk_high">उच्च</string>
 
+    <!-- AI Setup Wizard -->
+    <string name="local_ai_setup">स्थानीय AI सेटअप</string>
+    <string name="local_ai_setup_desc">MedReminder AI का उपयोग करके आपकी दवाई पालन का विश्लेषण कर सकता है। पूर्ण गोपनीयता के लिए AI विश्लेषण अपने डिवाइस पर चला सकते हैं, या अधिक उन्नत जानकारी के लिए क्लाउड AI का उपयोग कर सकते हैं।</string>
+    <string name="device_check_hint">हम आपके डिवाइस की क्षमताओं की जाँच करेंगे और सर्वोत्तम AI मोड की सिफारिश करेंगे।</string>
+    <string name="check_device_compatibility">डिवाइस संगतता जाँचें</string>
+    <string name="device_compatibility">डिवाइस संगतता</string>
+    <string name="android_version">Android संस्करण</string>
+    <string name="aicore_gemini">AICore (Gemini Nano)</string>
+    <string name="ml_kit_genai">ML Kit GenAI</string>
+    <string name="available">उपलब्ध</string>
+    <string name="not_available">उपलब्ध नहीं</string>
+    <string name="ram">RAM</string>
+    <string name="available_storage">उपलब्ध स्टोरेज</string>
+    <string name="gpu_label">GPU</string>
+    <string name="cpu_cores">CPU कोर</string>
+    <string name="performance_class">प्रदर्शन वर्ग</string>
+    <string name="supported_runtimes">समर्थित रनटाइम</string>
+    <string name="choose_ai_mode">AI मोड चुनें</string>
+    <string name="select_ai_mode_desc">चुनें कि AI विश्लेषण कैसे चले:</string>
+    <string name="system_ai_title">सिस्टम AI</string>
+    <string name="system_ai_desc">अपने डिवाइस के अंतर्निहित AI इंजन का उपयोग करें (Gemini Nano / AICore)</string>
+    <string name="local_model_title">स्थानीय मॉडल</string>
+    <string name="local_model_desc">एक संगत AI मॉडल डाउनलोड या आयात करें और डिवाइस पर चलाएँ</string>
+    <string name="cloud_ai_title">क्लाउड AI (Claude)</string>
+    <string name="cloud_ai_desc">उन्नत विश्लेषण के लिए क्लाउड के माध्यम से Claude AI का उपयोग करें</string>
+    <string name="privacy_local">सभी विश्लेषण आपके डिवाइस पर स्थानीय रूप से किए जाते हैं। बाहरी सर्वर को कोई डेटा नहीं भेजा जाता।</string>
+    <string name="privacy_cloud">विश्लेषण डेटा प्रोसेसिंग के लिए क्लाउड सर्वर पर भेजा जाता है।</string>
+    <string name="recommended">अनुशंसित</string>
+    <string name="install_local_model">स्थानीय मॉडल इंस्टॉल करें</string>
+    <string name="no_wifi_warning_model">WiFi कनेक्शन नहीं। बड़े मॉडल डाउनलोड में मोबाइल डेटा लग सकता है।</string>
+    <string name="no_compatible_models">इस डिवाइस के लिए कोई संगत मॉडल नहीं मिला</string>
+    <string name="download_name">%1$s डाउनलोड करें</string>
+    <string name="import_model_device">डिवाइस से मॉडल आयात करें</string>
+    <string name="wifi_download_confirm">आप WiFi से कनेक्ट नहीं हैं। %1$s (%2$d MB) डाउनलोड करने में मोबाइल डेटा लगेगा। जारी रखें?</string>
+    <string name="downloading_name">%1$s डाउनलोड हो रहा है</string>
+    <string name="download_cancelled">डाउनलोड रद्द</string>
+    <string name="resume_download">डाउनलोड फिर शुरू करें</string>
+    <string name="verifying_download_ellipsis">डाउनलोड सत्यापित हो रहा है\u2026</string>
+    <string name="model_name_ready">%1$s तैयार है</string>
+    <string name="import_model_title">मॉडल आयात करें</string>
+    <string name="select_model_file">मॉडल फ़ाइल चुनें</string>
+    <string name="try_another_file">दूसरी फ़ाइल आज़माएँ</string>
+    <string name="ai_setup_complete">AI सेटअप पूर्ण</string>
+    <string name="test_prompt">टेस्ट प्रॉम्प्ट</string>
+    <string name="running_test">टेस्ट चल रहा है\u2026</string>
+    <string name="run_test_prompt">टेस्ट प्रॉम्प्ट चलाएँ</string>
+    <string name="benchmark">बेंचमार्क</string>
+    <string name="running_benchmark">बेंचमार्क चल रहा है\u2026</string>
+    <string name="inference_latency">अनुमान विलंबता: %1$d मि.से.</string>
+    <string name="token_speed">टोकन गति: %1$s टोकन/सेकंड</string>
+    <string name="memory_usage">मेमोरी उपयोग: %1$d MB</string>
+    <string name="benchmark_failed">बेंचमार्क विफल: %1$s</string>
+    <string name="run_benchmark">बेंचमार्क चलाएँ</string>
+    <string name="finish_setup">सेटअप पूरा करें</string>
+    <string name="size_mb">आकार: %1$d MB</string>
+    <string name="params_label">पैरामीटर: %1$s</string>
+    <string name="quant_label">क्वांटाइज़ेशन: %1$s</string>
+    <string name="format_label">फ़ॉर्मेट: %1$s</string>
+    <string name="score_label">स्कोर: </string>
+    <string name="unknown">अज्ञात</string>
+
     <!-- Body Region Labels -->
     <string name="body_head">सिर / मस्तिष्क</string>
     <string name="body_eyes">आँखें</string>
@@ -444,4 +505,5 @@
     <string name="body_nervous_system">तंत्रिका तंत्र</string>
     <string name="body_bones">हड्डियाँ</string>
     <string name="body_full_body">पूरा शरीर</string>
+    <string name="ai_ready_desc">आपका AI इंजन तैयार है। आप नीचे इसका परीक्षण कर सकते हैं या सेटअप पूरा कर सकते हैं।</string>
 </resources>

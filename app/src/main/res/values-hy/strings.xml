@@ -412,6 +412,67 @@
     <string name="risk_moderate">Միջին</string>
     <string name="risk_high">Բարձր</string>
 
+    <!-- AI Setup Wizard -->
+    <string name="local_ai_setup">Տեղական ԱԲ կարգավորում</string>
+    <string name="local_ai_setup_desc">MedReminder-ը կարող է վերլուծել ձեր դեղերի ընդունման հավատարմությունը արհեստական բանականությամբ։ Կարող եք վերլուծությունը գործարկել սարքի վրա լիովին գաղտնիության համար, կամ օգտագործել ամպային ԱԲ-ն ավելի հանգամանց վերլուծության համար։</string>
+    <string name="device_check_hint">Մենք կստուգենք ձեր սարքի հնարավորությունները և կառաջարկենք լավագույն ԱԲ ռեժիմը։</string>
+    <string name="check_device_compatibility">Ստուգել սարքի համատեղելիությունը</string>
+    <string name="device_compatibility">Սարքի համատեղելիություն</string>
+    <string name="android_version">Android տարբերակ</string>
+    <string name="aicore_gemini">AICore (Gemini Nano)</string>
+    <string name="ml_kit_genai">ML Kit GenAI</string>
+    <string name="available">Հասանելի</string>
+    <string name="not_available">Հասանելի չէ</string>
+    <string name="ram">RAM</string>
+    <string name="available_storage">Հասանելի հիշողություն</string>
+    <string name="gpu_label">GPU</string>
+    <string name="cpu_cores">CPU միջուկներ</string>
+    <string name="performance_class">Արդյունավետության դաս</string>
+    <string name="supported_runtimes">Աջակցվող գործարկման միջավայրեր</string>
+    <string name="choose_ai_mode">Ընտրեք ԱԲ ռեժիմը</string>
+    <string name="select_ai_mode_desc">Ընտրեք թե ինչպես կատարել ԱԲ վերլուծությունը՝</string>
+    <string name="system_ai_title">Համակարգի ԱԲ</string>
+    <string name="system_ai_desc">Օգտագործել սարքի ներկառուցված ԱԲ շարժիչը (Gemini Nano / AICore)</string>
+    <string name="local_model_title">Տեղական մոդել</string>
+    <string name="local_model_desc">Ներբեռնել կամ ներմուծել համատեղելի ԱԲ մոդել սարքի վրա գործարկելու համար</string>
+    <string name="cloud_ai_title">Ամպային ԱԲ (Claude)</string>
+    <string name="cloud_ai_desc">Օգտագործել Claude AI-ն ամպի միջոցով առաջադեմ վերլուծության համար</string>
+    <string name="privacy_local">Բոլոր վերլուծությունները կատարվում են տեղայնորեն ձեր սարքի վրա։ Տվյալներ չեն ուղարկվում արտաքին սերվերներ։</string>
+    <string name="privacy_cloud">Վերլուծության տվյալները ուղարկվում են ամպային սերվերներ մշակման համար։</string>
+    <string name="recommended">Առաջարկվում է</string>
+    <string name="install_local_model">Տեղադրել տեղական մոդել</string>
+    <string name="no_wifi_warning_model">WiFi կապ չկա։ Մեծ մոդելների ներբեռնումը կարող է օգտագործել բջջային տվյալներ։</string>
+    <string name="no_compatible_models">Այս սարքի համար համատեղելի մոդելներ չեն գտնվել</string>
+    <string name="download_name">Ներբեռնել %1$s</string>
+    <string name="import_model_device">Ներմուծել մոդել սարքից</string>
+    <string name="wifi_download_confirm">Դուք WiFi-ին միացված չեք։ %1$s-ի (%2$d ՄԲ) ներբեռնումը կօգտագործի բջջային տվյալներ։ Շարունակե՞լ</string>
+    <string name="downloading_name">Ներբեռնում է %1$s</string>
+    <string name="download_cancelled">Ներբեռնումը չեղարկվեց</string>
+    <string name="resume_download">Շարունակել ներբեռնումը</string>
+    <string name="verifying_download_ellipsis">Ներբեռնումի ստուգում…</string>
+    <string name="model_name_ready">%1$s պատրաստ է</string>
+    <string name="import_model_title">Ներմուծել մոդել</string>
+    <string name="select_model_file">Ընտրեք մոդելի ֆայլը</string>
+    <string name="try_another_file">Փորձեք այլ ֆայլ</string>
+    <string name="ai_setup_complete">ԱԲ կարգավորումը ավարտվեց</string>
+    <string name="test_prompt">Փորձնական հարցում</string>
+    <string name="running_test">Փորձարկումը ընթացքում է…</string>
+    <string name="run_test_prompt">Գործարկել փորձնական հարցումը</string>
+    <string name="benchmark">Բենչմարկ</string>
+    <string name="running_benchmark">Բենչմարկը ընթացքում է…</string>
+    <string name="inference_latency">Եզրակացման ուշացում՝ %1$d մս</string>
+    <string name="token_speed">Տոկենի արագություն՝ %1$s տոկեն/վրկ</string>
+    <string name="memory_usage">Հիշողության օգտագործում՝ %1$d ՄԲ</string>
+    <string name="benchmark_failed">Բենչմարկը ձախողվեց՝ %1$s</string>
+    <string name="run_benchmark">Գործարկել բենչմարկը</string>
+    <string name="finish_setup">Ավարտել կարգավորումը</string>
+    <string name="size_mb">Չափ՝ %1$d ՄԲ</string>
+    <string name="params_label">Պարամետրեր՝ %1$s</string>
+    <string name="quant_label">Քվանտացում՝ %1$s</string>
+    <string name="format_label">Ֆորմատ՝ %1$s</string>
+    <string name="score_label">Գնահատական՝ </string>
+    <string name="unknown">Անհայտ</string>
+
     <!-- Body Region Labels -->
     <string name="body_head">Գլուխ / Ուղեղ</string>
     <string name="body_eyes">Աչքեր</string>
@@ -430,4 +491,8 @@
     <string name="body_nervous_system">Ներվային համակարգ</string>
     <string name="body_bones">Ոսկորներ</string>
     <string name="body_full_body">Ամբողջ մարմին</string>
+    <string name="ai_ready_desc">ԱԲ շարժիչը պատրաստ է։ Կարող եք փորձարկել այն կամ ավարտել կարգավորումը։</string>
+
+    <!-- AI Setup Wizard -->
+
 </resources>

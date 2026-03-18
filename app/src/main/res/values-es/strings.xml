@@ -412,6 +412,67 @@
     <string name="risk_moderate">Moderado</string>
     <string name="risk_high">Alto</string>
 
+    <!-- AI Setup Wizard -->
+    <string name="local_ai_setup">Configuración de IA local</string>
+    <string name="local_ai_setup_desc">MedReminder puede analizar tu adherencia a la medicación usando IA. Puedes ejecutar el análisis de IA en tu dispositivo para total privacidad, o usar IA en la nube para información más avanzada.</string>
+    <string name="device_check_hint">Comprobaremos las capacidades de tu dispositivo y te recomendaremos el mejor modo de IA.</string>
+    <string name="check_device_compatibility">Comprobar compatibilidad del dispositivo</string>
+    <string name="device_compatibility">Compatibilidad del dispositivo</string>
+    <string name="android_version">Versión de Android</string>
+    <string name="aicore_gemini">AICore (Gemini Nano)</string>
+    <string name="ml_kit_genai">ML Kit GenAI</string>
+    <string name="available">Disponible</string>
+    <string name="not_available">No disponible</string>
+    <string name="ram">RAM</string>
+    <string name="available_storage">Almacenamiento disponible</string>
+    <string name="gpu_label">GPU</string>
+    <string name="cpu_cores">Núcleos de CPU</string>
+    <string name="performance_class">Clase de rendimiento</string>
+    <string name="supported_runtimes">Entornos de ejecución compatibles</string>
+    <string name="choose_ai_mode">Elegir modo de IA</string>
+    <string name="select_ai_mode_desc">Selecciona cómo quieres que funcione el análisis de IA:</string>
+    <string name="system_ai_title">IA del sistema</string>
+    <string name="system_ai_desc">Usar el motor de IA integrado de tu dispositivo (Gemini Nano / AICore)</string>
+    <string name="local_model_title">Modelo local</string>
+    <string name="local_model_desc">Descarga o importa un modelo de IA compatible para ejecutar en tu dispositivo</string>
+    <string name="cloud_ai_title">IA en la nube (Claude)</string>
+    <string name="cloud_ai_desc">Usar Claude AI a través de la nube para análisis avanzados</string>
+    <string name="privacy_local">Todo el análisis se realiza localmente en tu dispositivo. No se envían datos a servidores externos.</string>
+    <string name="privacy_cloud">Los datos de análisis se envían a servidores en la nube para su procesamiento.</string>
+    <string name="recommended">Recomendado</string>
+    <string name="install_local_model">Instalar modelo local</string>
+    <string name="no_wifi_warning_model">Sin conexión WiFi. Las descargas de modelos grandes pueden usar datos móviles.</string>
+    <string name="no_compatible_models">No se encontraron modelos compatibles para este dispositivo</string>
+    <string name="download_name">Descargar %1$s</string>
+    <string name="import_model_device">Importar modelo desde el dispositivo</string>
+    <string name="wifi_download_confirm">No estás conectado a WiFi. Descargar %1$s (%2$d MB) usará datos móviles. ¿Continuar?</string>
+    <string name="downloading_name">Descargando %1$s</string>
+    <string name="download_cancelled">Descarga cancelada</string>
+    <string name="resume_download">Reanudar descarga</string>
+    <string name="verifying_download_ellipsis">Verificando descarga\u2026</string>
+    <string name="model_name_ready">%1$s listo</string>
+    <string name="import_model_title">Importar modelo</string>
+    <string name="select_model_file">Seleccionar archivo de modelo</string>
+    <string name="try_another_file">Probar otro archivo</string>
+    <string name="ai_setup_complete">Configuración de IA completada</string>
+    <string name="test_prompt">Prueba de consulta</string>
+    <string name="running_test">Ejecutando prueba\u2026</string>
+    <string name="run_test_prompt">Ejecutar prueba de consulta</string>
+    <string name="benchmark">Benchmark</string>
+    <string name="running_benchmark">Ejecutando benchmark\u2026</string>
+    <string name="inference_latency">Latencia de inferencia: %1$d ms</string>
+    <string name="token_speed">Velocidad de tokens: %1$s tokens/s</string>
+    <string name="memory_usage">Uso de memoria: %1$d MB</string>
+    <string name="benchmark_failed">Benchmark fallido: %1$s</string>
+    <string name="run_benchmark">Ejecutar benchmark</string>
+    <string name="finish_setup">Finalizar configuración</string>
+    <string name="size_mb">Tamaño: %1$d MB</string>
+    <string name="params_label">Parámetros: %1$s</string>
+    <string name="quant_label">Cuantización: %1$s</string>
+    <string name="format_label">Formato: %1$s</string>
+    <string name="score_label">Puntuación: </string>
+    <string name="unknown">Desconocido</string>
+
     <!-- Body Region Labels -->
     <string name="body_head">Cabeza / Cerebro</string>
     <string name="body_eyes">Ojos</string>
@@ -430,4 +491,5 @@
     <string name="body_nervous_system">Sistema nervioso</string>
     <string name="body_bones">Huesos</string>
     <string name="body_full_body">Todo el cuerpo</string>
+    <string name="ai_ready_desc">Su motor de IA está listo. Puede probarlo abajo o finalizar la configuración.</string>
 </resources>

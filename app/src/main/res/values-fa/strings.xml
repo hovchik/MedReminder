@@ -413,6 +413,67 @@
     <string name="risk_moderate">متوسط</string>
     <string name="risk_high">بالا</string>
 
+    <!-- AI Setup Wizard -->
+    <string name="local_ai_setup">تنظیم هوش مصنوعی محلی</string>
+    <string name="local_ai_setup_desc">MedReminder می‌تواند پایبندی شما به مصرف دارو را با هوش مصنوعی تحلیل کند. می‌توانید تحلیل را روی دستگاه خود اجرا کنید تا حریم خصوصی کامل حفظ شود، یا از هوش مصنوعی ابری برای تحلیل پیشرفته‌تر استفاده کنید.</string>
+    <string name="device_check_hint">قابلیت‌های دستگاه شما را بررسی می‌کنیم و بهترین حالت هوش مصنوعی را پیشنهاد می‌دهیم.</string>
+    <string name="check_device_compatibility">بررسی سازگاری دستگاه</string>
+    <string name="device_compatibility">سازگاری دستگاه</string>
+    <string name="android_version">نسخه اندروید</string>
+    <string name="aicore_gemini">AICore (Gemini Nano)</string>
+    <string name="ml_kit_genai">ML Kit GenAI</string>
+    <string name="available">موجود</string>
+    <string name="not_available">موجود نیست</string>
+    <string name="ram">حافظه RAM</string>
+    <string name="available_storage">فضای ذخیره‌سازی موجود</string>
+    <string name="gpu_label">GPU</string>
+    <string name="cpu_cores">هسته‌های CPU</string>
+    <string name="performance_class">کلاس عملکرد</string>
+    <string name="supported_runtimes">محیط‌های اجرایی پشتیبانی شده</string>
+    <string name="choose_ai_mode">انتخاب حالت هوش مصنوعی</string>
+    <string name="select_ai_mode_desc">نحوه اجرای تحلیل هوش مصنوعی را انتخاب کنید:</string>
+    <string name="system_ai_title">هوش مصنوعی سیستم</string>
+    <string name="system_ai_desc">استفاده از موتور هوش مصنوعی داخلی دستگاه (Gemini Nano / AICore)</string>
+    <string name="local_model_title">مدل محلی</string>
+    <string name="local_model_desc">یک مدل هوش مصنوعی سازگار را دانلود یا وارد کنید تا روی دستگاه اجرا شود</string>
+    <string name="cloud_ai_title">هوش مصنوعی ابری (Claude)</string>
+    <string name="cloud_ai_desc">استفاده از Claude AI از طریق ابر برای تحلیل پیشرفته</string>
+    <string name="privacy_local">تمام تحلیل‌ها به صورت محلی روی دستگاه شما انجام می‌شود. هیچ داده‌ای به سرورهای خارجی ارسال نمی‌شود.</string>
+    <string name="privacy_cloud">داده‌های تحلیل برای پردازش به سرورهای ابری ارسال می‌شود.</string>
+    <string name="recommended">پیشنهادی</string>
+    <string name="install_local_model">نصب مدل محلی</string>
+    <string name="no_wifi_warning_model">اتصال WiFi وجود ندارد. دانلود مدل‌های بزرگ ممکن است از داده موبایل استفاده کند.</string>
+    <string name="no_compatible_models">مدل سازگاری برای این دستگاه یافت نشد</string>
+    <string name="download_name">دانلود %1$s</string>
+    <string name="import_model_device">وارد کردن مدل از دستگاه</string>
+    <string name="wifi_download_confirm">شما به WiFi متصل نیستید. دانلود %1$s (%2$d مگابایت) از داده موبایل استفاده خواهد کرد. ادامه دهید؟</string>
+    <string name="downloading_name">در حال دانلود %1$s</string>
+    <string name="download_cancelled">دانلود لغو شد</string>
+    <string name="resume_download">ادامه دانلود</string>
+    <string name="verifying_download_ellipsis">در حال تأیید دانلود\u2026</string>
+    <string name="model_name_ready">%1$s آماده است</string>
+    <string name="import_model_title">وارد کردن مدل</string>
+    <string name="select_model_file">انتخاب فایل مدل</string>
+    <string name="try_another_file">امتحان فایل دیگر</string>
+    <string name="ai_setup_complete">تنظیم هوش مصنوعی تکمیل شد</string>
+    <string name="test_prompt">درخواست آزمایشی</string>
+    <string name="running_test">در حال اجرای آزمایش\u2026</string>
+    <string name="run_test_prompt">اجرای درخواست آزمایشی</string>
+    <string name="benchmark">معیار سنجش</string>
+    <string name="running_benchmark">در حال اجرای معیار سنجش\u2026</string>
+    <string name="inference_latency">تأخیر استنتاج: %1$d میلی‌ثانیه</string>
+    <string name="token_speed">سرعت توکن: %1$s توکن/ثانیه</string>
+    <string name="memory_usage">مصرف حافظه: %1$d مگابایت</string>
+    <string name="benchmark_failed">معیار سنجش ناموفق بود: %1$s</string>
+    <string name="run_benchmark">اجرای معیار سنجش</string>
+    <string name="finish_setup">اتمام تنظیمات</string>
+    <string name="size_mb">حجم: %1$d مگابایت</string>
+    <string name="params_label">پارامترها: %1$s</string>
+    <string name="quant_label">کوانتیزاسیون: %1$s</string>
+    <string name="format_label">فرمت: %1$s</string>
+    <string name="score_label">امتیاز: </string>
+    <string name="unknown">ناشناخته</string>
+
     <!-- Body Region Labels -->
     <string name="body_head">سر / مغز</string>
     <string name="body_eyes">چشم‌ها</string>
@@ -431,4 +492,5 @@
     <string name="body_nervous_system">سیستم عصبی</string>
     <string name="body_bones">استخوان‌ها</string>
     <string name="body_full_body">تمام بدن</string>
+    <string name="ai_ready_desc">موتور هوش مصنوعی شما آماده است. می‌توانید آن را در زیر آزمایش کنید یا تنظیمات را تمام کنید.</string>
 </resources>
