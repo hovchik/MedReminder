@@ -30,6 +30,7 @@ data class AddEditUiState(
     val assignedToName: String = "",
     val schedules: List<ScheduleInput> = listOf(ScheduleInput()),
     val familyMembers: List<FamilyMember> = emptyList(),
+    val createdAt: Long = System.currentTimeMillis(),
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
@@ -38,6 +39,7 @@ data class AddEditUiState(
 
 data class ScheduleInput(
     val id: Long = 0,
+    val medicationId: Long = 0,
     val hour: Int = 8,
     val minute: Int = 0,
     val frequency: ScheduleFrequency = ScheduleFrequency.DAILY,
@@ -46,7 +48,10 @@ data class ScheduleInput(
     val intervalHours: Int = 8,
     val toleranceMinutes: Int = 10,
     val durationType: DurationType = DurationType.ONGOING,
-    val durationValue: Int = 7
+    val durationValue: Int = 7,
+    val startDate: Long = System.currentTimeMillis(),
+    val endDate: Long? = null,
+    val isEnabled: Boolean = true
 )
 
 @HiltViewModel
@@ -93,9 +98,11 @@ class AddEditMedicationViewModel @Inject constructor(
                     isEmergency = med.isEmergency,
                     assignedToId = med.assignedToId,
                     assignedToName = med.assignedToName,
+                    createdAt = med.createdAt,
                     schedules = med.schedules.map { s ->
                         ScheduleInput(
                             id = s.id,
+                            medicationId = s.medicationId,
                             hour = s.timeHour,
                             minute = s.timeMinute,
                             frequency = s.frequency,
@@ -104,7 +111,10 @@ class AddEditMedicationViewModel @Inject constructor(
                             intervalHours = if (s.intervalHours > 0) s.intervalHours else 8,
                             toleranceMinutes = s.toleranceMinutes,
                             durationType = s.durationType,
-                            durationValue = if (s.durationValue > 0) s.durationValue else 7
+                            durationValue = if (s.durationValue > 0) s.durationValue else 7,
+                            startDate = s.startDate,
+                            endDate = s.endDate,
+                            isEnabled = s.isEnabled
                         )
                     }.ifEmpty { listOf(ScheduleInput()) },
                     isEditing = true
@@ -232,12 +242,14 @@ class AddEditMedicationViewModel @Inject constructor(
                     notifyCaregivers = state.notifyCaregivers,
                     isEmergency = state.isEmergency,
                     assignedToId = state.assignedToId,
-                    assignedToName = state.assignedToName
+                    assignedToName = state.assignedToName,
+                    createdAt = state.createdAt
                 )
 
                 val schedules = state.schedules.map {
                     Schedule(
                         id = it.id,
+                        medicationId = it.medicationId,
                         timeHour = it.hour,
                         timeMinute = it.minute,
                         frequency = it.frequency,
@@ -246,7 +258,10 @@ class AddEditMedicationViewModel @Inject constructor(
                         intervalHours = it.intervalHours,
                         toleranceMinutes = it.toleranceMinutes,
                         durationType = it.durationType,
-                        durationValue = it.durationValue
+                        durationValue = it.durationValue,
+                        startDate = it.startDate,
+                        endDate = it.endDate,
+                        isEnabled = it.isEnabled
                     )
                 }
 

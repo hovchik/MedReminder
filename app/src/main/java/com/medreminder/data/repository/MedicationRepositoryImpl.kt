@@ -7,6 +7,7 @@ import com.medreminder.domain.model.*
 import com.medreminder.domain.repository.MedicationRepository
 import com.medreminder.util.DateUtils
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
@@ -247,8 +248,11 @@ class MedicationRepositoryImpl @Inject constructor(
     }
 
     override fun getTodayDoses(startOfDay: Long, endOfDay: Long): Flow<List<DoseLog>> =
-        doseLogDao.getLogsForDateRange(startOfDay, endOfDay).map { list ->
-            list.map { log ->
+        combine(
+            doseLogDao.getLogsForDateRange(startOfDay, endOfDay),
+            medicationDao.getActiveMedications() // re-emit when medications change
+        ) { logs, _ ->
+            logs.map { log ->
                 val med = medicationDao.getMedicationById(log.medicationId)
                 log.toDomain().copy(
                     medicationName = med?.name ?: "Unknown",
@@ -261,8 +265,11 @@ class MedicationRepositoryImpl @Inject constructor(
         }
 
     override fun getDoseLogsForDateRange(startTime: Long, endTime: Long): Flow<List<DoseLog>> =
-        doseLogDao.getLogsForDateRange(startTime, endTime).map { list ->
-            list.map { log ->
+        combine(
+            doseLogDao.getLogsForDateRange(startTime, endTime),
+            medicationDao.getActiveMedications() // re-emit when medications change
+        ) { logs, _ ->
+            logs.map { log ->
                 val med = medicationDao.getMedicationById(log.medicationId)
                 log.toDomain().copy(
                     medicationName = med?.name ?: "Unknown",

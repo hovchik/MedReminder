@@ -43,7 +43,10 @@ object CaregiverNotificationHelper {
         isMissed: Boolean
     ) {
         val medication = db.medicationDao().getMedicationById(medicationId) ?: return
-        if (!medication.notifyCaregivers) return
+
+        // For missed doses: always notify caregivers who opted in (safety-critical).
+        // For taken doses: only notify if the medication has notifyCaregivers enabled.
+        if (!isMissed && !medication.notifyCaregivers) return
 
         val caregivers = if (isMissed) {
             db.caregiverDao().getCaregiversForMissedAlert()
