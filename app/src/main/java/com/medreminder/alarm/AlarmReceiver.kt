@@ -167,7 +167,8 @@ class AlarmReceiver : BroadcastReceiver() {
         val alarmIntent = Intent(context, FullScreenAlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_NO_USER_ACTION or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS, doseLogIds)
             putExtra(FullScreenAlarmActivity.EXTRA_SCHEDULE_IDS, scheduleIds)
             putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_IDS, medicationIds)
@@ -220,6 +221,9 @@ class AlarmReceiver : BroadcastReceiver() {
 
         // Full-screen intent
         val fullScreenIntent = Intent(context, FullScreenAlarmActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS, doseLogIds)
             putExtra(FullScreenAlarmActivity.EXTRA_SCHEDULE_IDS, scheduleIds)
             putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_IDS, medicationIds)
