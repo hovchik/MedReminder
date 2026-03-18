@@ -1,6 +1,7 @@
 package com.medreminder.alarm
 
 import android.app.NotificationManager
+import android.content.Intent
 import androidx.activity.OnBackPressedCallback
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -71,7 +72,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
 
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
-    private var medications: List<AlarmMedication> = emptyList()
+    private var medicationsState = mutableStateOf<List<AlarmMedication>>(emptyList())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,7 +89,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
             WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
         )
 
-        medications = parseMedications(intent)
+        medicationsState.value = parseMedications(intent)
 
         // Prevent dismissal with back button - user must choose an action
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -99,6 +100,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
         startVibration()
 
         setContent {
+            val medications by medicationsState
             if (medications.size == 1) {
                 AlarmScreen(
                     medicationName = medications.first().name,
@@ -107,7 +109,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
                     onSnooze = { handleSnoozeAll() },
                     onSkip = { handleSkipAll() }
                 )
-            } else {
+            } else if (medications.size > 1) {
                 CombinedAlarmScreen(
                     medications = medications,
                     onTakenAll = { handleTakenAll() },
@@ -118,7 +120,14 @@ class FullScreenAlarmActivity : ComponentActivity() {
         }
     }
 
-    private fun parseMedications(intent: android.content.Intent): List<AlarmMedication> {
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // Update medications list with the new (potentially combined) data
+        medicationsState.value = parseMedications(intent)
+    }
+
+    private fun parseMedications(intent: Intent): List<AlarmMedication> {
         val doseLogIds = intent.getLongArrayExtra(EXTRA_DOSE_LOG_IDS)
         val scheduleIds = intent.getLongArrayExtra(EXTRA_SCHEDULE_IDS)
         val medicationIds = intent.getLongArrayExtra(EXTRA_MEDICATION_IDS)
@@ -197,7 +206,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
         // Cancel combined notification
         nm.cancel(AlarmReceiver.COMBINED_NOTIFICATION_ID)
         // Cancel individual notifications
-        for (med in medications) {
+        for (med in medicationsState.value) {
             nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + med.doseLogId.toInt())
         }
     }
@@ -207,7 +216,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
-                for (med in medications) {
+                for (med in medicationsState.value) {
                     db.doseLogDao().updateDoseStatus(med.doseLogId, "taken")
                     db.medicationDao().decrementStock(med.medicationId)
                     CaregiverNotificationHelper.notifyCaregiversOnTaken(
@@ -227,7 +236,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
                 val snoozeUntil = System.currentTimeMillis() + 10 * 60 * 1000
                 val scheduler = AlarmScheduler(applicationContext, db.scheduleDao())
 
-                for (med in medications) {
+                for (med in medicationsState.value) {
                     db.doseLogDao().snoozeDose(med.doseLogId, snoozeUntil)
                     scheduler.scheduleSnoozeAlarm(
                         med.doseLogId, med.scheduleId, med.medicationId,
@@ -244,7 +253,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
-                for (med in medications) {
+                for (med in medicationsState.value) {
                     db.doseLogDao().updateDoseStatus(med.doseLogId, "skipped")
                 }
             } catch (e: Exception) { e.printStackTrace() }

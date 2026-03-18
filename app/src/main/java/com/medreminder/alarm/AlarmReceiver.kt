@@ -46,11 +46,28 @@ class AlarmReceiver : BroadcastReceiver() {
 
                 // Reuse existing dose log if available (from generateTodayDoses or snooze)
                 val doseLogId = if (existingDoseLogId > 0) {
+                    // Verify the dose log is still pending or snoozed
+                    val existingLog = db.doseLogDao().getDoseLogById(existingDoseLogId)
+                    if (existingLog != null && existingLog.status != "pending" && existingLog.status != "snoozed") {
+                        Log.d(TAG, "Dose log $existingDoseLogId already handled (status=${existingLog.status}), skipping alarm")
+                        return@launch
+                    }
                     existingDoseLogId
                 } else {
                     // Check if a dose log already exists for this schedule today
                     val startOfDay = DateUtils.getStartOfDay()
                     val endOfDay = DateUtils.getEndOfDay()
+
+                    // First check if there's already a completed (taken/skipped/missed) dose log
+                    // for this schedule today — if so, don't show the alarm again
+                    val alreadyCompleted = db.doseLogDao().hasCompletedDoseLogForWindow(
+                        scheduleId, startOfDay, endOfDay
+                    )
+                    if (alreadyCompleted) {
+                        Log.d(TAG, "Dose already completed for schedule=$scheduleId today, skipping alarm")
+                        return@launch
+                    }
+
                     val existing = db.doseLogDao().findActiveDoseLogForSchedule(
                         scheduleId, startOfDay, endOfDay
                     )
@@ -90,8 +107,13 @@ class AlarmReceiver : BroadcastReceiver() {
                     }
                 }
 
-                // Fallback: if query returned nothing (edge case), use the current alarm data
+                // Fallback: if query returned nothing (edge case), verify dose is still pending
                 if (doseLogIds.isEmpty()) {
+                    val currentDoseLog = db.doseLogDao().getDoseLogById(doseLogId)
+                    if (currentDoseLog == null || (currentDoseLog.status != "pending" && currentDoseLog.status != "snoozed")) {
+                        Log.d(TAG, "No pending doses found for schedule=$scheduleId, skipping alarm")
+                        return@launch
+                    }
                     doseLogIds.add(doseLogId)
                     scheduleIds.add(scheduleId)
                     medicationIds.add(medicationId)
@@ -102,15 +124,10 @@ class AlarmReceiver : BroadcastReceiver() {
 
                 withContext(Dispatchers.Main) {
                     createNotificationChannel(context)
-                    showFullScreenAlarm(
-                        context,
-                        doseLogIds.toLongArray(),
-                        scheduleIds.toLongArray(),
-                        medicationIds.toLongArray(),
-                        medicationNames.toTypedArray(),
-                        medicationDosages.toTypedArray(),
-                        medicationColors.toTypedArray()
-                    )
+                    // Post the notification with setFullScreenIntent — Android will launch
+                    // FullScreenAlarmActivity via the full-screen intent (screen off/locked) or
+                    // show a heads-up notification (screen on). Directly calling startActivity()
+                    // from a BroadcastReceiver is prohibited on Android 10+ and would silently fail.
                     showNotification(
                         context,
                         doseLogIds.toLongArray(),
@@ -155,29 +172,6 @@ class AlarmReceiver : BroadcastReceiver() {
         manager.createNotificationChannel(channel)
     }
 
-    private fun showFullScreenAlarm(
-        context: Context,
-        doseLogIds: LongArray,
-        scheduleIds: LongArray,
-        medicationIds: LongArray,
-        names: Array<String>,
-        dosages: Array<String>,
-        colors: Array<String>
-    ) {
-        val alarmIntent = Intent(context, FullScreenAlarmActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_NO_USER_ACTION or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS, doseLogIds)
-            putExtra(FullScreenAlarmActivity.EXTRA_SCHEDULE_IDS, scheduleIds)
-            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_IDS, medicationIds)
-            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_NAMES, names)
-            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_DOSAGES, dosages)
-            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_COLORS, colors)
-        }
-        context.startActivity(alarmIntent)
-    }
-
     private fun showNotification(
         context: Context,
         doseLogIds: LongArray,
@@ -220,6 +214,9 @@ class AlarmReceiver : BroadcastReceiver() {
 
         // Full-screen intent
         val fullScreenIntent = Intent(context, FullScreenAlarmActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_NO_USER_ACTION or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS, doseLogIds)
             putExtra(FullScreenAlarmActivity.EXTRA_SCHEDULE_IDS, scheduleIds)
             putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_IDS, medicationIds)

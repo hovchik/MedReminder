@@ -69,9 +69,13 @@ class AddEditMedicationViewModel @Inject constructor(
     }
 
     fun loadMedication(id: Long) {
+        // Set editing state synchronously so save() always takes the update path,
+        // even if the async DB load hasn't completed yet
+        editingMedicationId = id
+        _uiState.update { it.copy(isEditing = true) }
+
         viewModelScope.launch {
             val med = repository.getMedicationById(id) ?: return@launch
-            editingMedicationId = id
             _uiState.update {
                 it.copy(
                     name = med.name,

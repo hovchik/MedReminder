@@ -129,7 +129,9 @@ class AlarmScheduler @Inject constructor(
     }
 
     fun cancelAlarm(scheduleId: Long) {
-        val intent = Intent(context, AlarmReceiver::class.java)
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = "com.medreminder.MEDICATION_ALARM"
+        }
         val pendingIntent = PendingIntent.getBroadcast(
             context, scheduleId.toInt(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -179,6 +181,11 @@ class AlarmScheduler @Inject constructor(
     }
 
     private fun calculateNextAlarmTime(schedule: com.medreminder.domain.model.Schedule): Long? {
+        // Use a buffer so we don't re-schedule an alarm that just fired
+        // (e.g., alarm fires at 4:55:59 for a 4:56 schedule — without buffer,
+        // 4:56 is still "in the future" and gets re-scheduled immediately)
+        val minFutureTime = System.currentTimeMillis() + 60_000L // 1 minute buffer
+
         val calendar = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, schedule.timeHour)
             set(Calendar.MINUTE, schedule.timeMinute)
@@ -188,7 +195,7 @@ class AlarmScheduler @Inject constructor(
 
         when (schedule.frequency) {
             com.medreminder.domain.model.ScheduleFrequency.DAILY -> {
-                if (calendar.timeInMillis <= System.currentTimeMillis()) {
+                if (calendar.timeInMillis <= minFutureTime) {
                     calendar.add(Calendar.DAY_OF_YEAR, 1)
                 }
             }
@@ -198,7 +205,7 @@ class AlarmScheduler @Inject constructor(
                 for (i in 0..7) {
                     val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
                     if (schedule.daysOfWeek.contains(dayOfWeek) &&
-                        calendar.timeInMillis > System.currentTimeMillis()
+                        calendar.timeInMillis > minFutureTime
                     ) {
                         found = true
                         break
@@ -209,7 +216,7 @@ class AlarmScheduler @Inject constructor(
             }
             com.medreminder.domain.model.ScheduleFrequency.INTERVAL -> {
                 if (schedule.intervalDays <= 0) return null
-                if (calendar.timeInMillis <= System.currentTimeMillis()) {
+                if (calendar.timeInMillis <= minFutureTime) {
                     val daysSinceStart = ((System.currentTimeMillis() - schedule.startDate) /
                             (24 * 60 * 60 * 1000)).toInt()
                     val nextInterval = ((daysSinceStart / schedule.intervalDays) + 1) * schedule.intervalDays
@@ -221,10 +228,9 @@ class AlarmScheduler @Inject constructor(
             }
             com.medreminder.domain.model.ScheduleFrequency.EVERY_X_HOURS -> {
                 if (schedule.intervalHours <= 0) return null
-                val now = System.currentTimeMillis()
                 val intervalMs = schedule.intervalHours * 60 * 60 * 1000L
-                if (calendar.timeInMillis <= now) {
-                    val elapsed = now - calendar.timeInMillis
+                if (calendar.timeInMillis <= minFutureTime) {
+                    val elapsed = minFutureTime - calendar.timeInMillis
                     val periods = (elapsed / intervalMs) + 1
                     calendar.timeInMillis = calendar.timeInMillis + periods * intervalMs
                 }

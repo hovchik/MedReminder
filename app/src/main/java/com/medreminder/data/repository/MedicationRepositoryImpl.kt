@@ -5,6 +5,7 @@ import com.medreminder.data.local.*
 import com.medreminder.data.local.entity.*
 import com.medreminder.domain.model.*
 import com.medreminder.domain.repository.MedicationRepository
+import com.medreminder.util.DateUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
@@ -63,7 +64,67 @@ class MedicationRepositoryImpl @Inject constructor(
             val scheduleEntities = schedules.map {
                 it.copy(id = 0, medicationId = medication.id).toEntity()
             }
-            scheduleDao.insertSchedules(scheduleEntities)
+            val newScheduleIds = scheduleDao.insertSchedules(scheduleEntities)
+
+            // Delete today's pending dose logs for this medication and regenerate
+            // them so the home screen reflects the updated schedule times
+            val startOfDay = DateUtils.getStartOfDay()
+            val endOfDay = DateUtils.getEndOfDay()
+            doseLogDao.deletePendingLogsForMedicationInWindow(medication.id, startOfDay, endOfDay)
+
+            // Regenerate dose logs for the new schedules
+            for (i in scheduleEntities.indices) {
+                val entity = scheduleEntities[i]
+                val scheduleId = newScheduleIds[i]
+                if (entity.frequency == "as_needed") continue
+
+                if (entity.frequency == "every_x_hours" && entity.intervalHours > 0) {
+                    val cal = Calendar.getInstance().apply {
+                        set(Calendar.HOUR_OF_DAY, entity.timeHour)
+                        set(Calendar.MINUTE, entity.timeMinute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    while (cal.timeInMillis <= endOfDay) {
+                        if (cal.timeInMillis >= startOfDay) {
+                            val alreadyExists = doseLogDao.doseLogExistsForWindow(
+                                scheduleId, cal.timeInMillis - 60000, cal.timeInMillis + 60000
+                            )
+                            if (!alreadyExists) {
+                                doseLogDao.insertDoseLog(
+                                    DoseLogEntity(
+                                        medicationId = medication.id,
+                                        scheduleId = scheduleId,
+                                        scheduledTime = cal.timeInMillis,
+                                        status = "pending"
+                                    )
+                                )
+                            }
+                        }
+                        cal.add(Calendar.HOUR_OF_DAY, entity.intervalHours)
+                    }
+                } else {
+                    val cal = Calendar.getInstance().apply {
+                        set(Calendar.HOUR_OF_DAY, entity.timeHour)
+                        set(Calendar.MINUTE, entity.timeMinute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    val alreadyExists = doseLogDao.doseLogExistsForWindow(
+                        scheduleId, startOfDay, endOfDay
+                    )
+                    if (!alreadyExists) {
+                        doseLogDao.insertDoseLog(
+                            DoseLogEntity(
+                                medicationId = medication.id,
+                                scheduleId = scheduleId,
+                                scheduledTime = cal.timeInMillis,
+                                status = "pending"
+                            )
+                        )
+                    }
+                }
+            }
         }
     }
 

@@ -95,6 +95,14 @@ interface DoseLogDao {
     @Query("DELETE FROM dose_logs WHERE medicationId = :medicationId")
     suspend fun deleteLogsForMedication(medicationId: Long)
 
+    @Query("""
+        DELETE FROM dose_logs
+        WHERE medicationId = :medicationId
+        AND status = 'pending'
+        AND scheduledTime BETWEEN :windowStart AND :windowEnd
+    """)
+    suspend fun deletePendingLogsForMedicationInWindow(medicationId: Long, windowStart: Long, windowEnd: Long)
+
     // For generating pending doses check
     @Query("""
         SELECT EXISTS(
@@ -127,6 +135,16 @@ interface DoseLogDao {
         LIMIT 1
     """)
     suspend fun findActiveDoseLogForSchedule(scheduleId: Long, windowStart: Long, windowEnd: Long): DoseLogEntity?
+
+    @Query("""
+        SELECT EXISTS(
+            SELECT 1 FROM dose_logs
+            WHERE scheduleId = :scheduleId
+            AND scheduledTime BETWEEN :windowStart AND :windowEnd
+            AND status IN ('taken', 'skipped', 'missed')
+        )
+    """)
+    suspend fun hasCompletedDoseLogForWindow(scheduleId: Long, windowStart: Long, windowEnd: Long): Boolean
 
     // Per-medication adherence stats
     @Query("""
