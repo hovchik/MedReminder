@@ -6,6 +6,8 @@ import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 import javax.inject.Inject
@@ -50,17 +52,19 @@ class CloudAiProvider @Inject constructor() : AiProvider {
      * Send a raw prompt and return the raw text response from the active cloud service.
      * Returns null if the API key is missing or the call fails.
      */
-    fun generateRawCompletion(prompt: String): String? {
+    suspend fun generateRawCompletion(prompt: String): String? {
         val key = apiKey
         if (key.isNullOrBlank()) {
             Log.w(TAG, "No API key configured for ${activeService.name}, cannot call cloud AI")
             return null
         }
         return try {
-            val rawResponse = when (activeService) {
-                CloudAiService.CLAUDE -> callClaudeApi(key, prompt)
-                CloudAiService.CHATGPT -> callChatGptApi(key, prompt)
-                CloudAiService.DEEPSEEK -> callDeepSeekApi(key, prompt)
+            val rawResponse = withContext(Dispatchers.IO) {
+                when (activeService) {
+                    CloudAiService.CLAUDE -> callClaudeApi(key, prompt)
+                    CloudAiService.CHATGPT -> callChatGptApi(key, prompt)
+                    CloudAiService.DEEPSEEK -> callDeepSeekApi(key, prompt)
+                }
             }
             extractJson(rawResponse)
         } catch (e: Exception) {
@@ -83,10 +87,12 @@ class CloudAiProvider @Inject constructor() : AiProvider {
 
         return try {
             val prompt = buildPrompt(input)
-            val responseText = when (activeService) {
-                CloudAiService.CLAUDE -> callClaudeApi(key, prompt)
-                CloudAiService.CHATGPT -> callChatGptApi(key, prompt)
-                CloudAiService.DEEPSEEK -> callDeepSeekApi(key, prompt)
+            val responseText = withContext(Dispatchers.IO) {
+                when (activeService) {
+                    CloudAiService.CLAUDE -> callClaudeApi(key, prompt)
+                    CloudAiService.CHATGPT -> callChatGptApi(key, prompt)
+                    CloudAiService.DEEPSEEK -> callDeepSeekApi(key, prompt)
+                }
             }
             parseApiResponse(responseText, activeService).copy(
                 providerUsed = AiProviderType.CLOUD,
