@@ -40,7 +40,7 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 0.2, 3.8);
+camera.position.set(0, 0.78, 3.8);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -51,7 +51,7 @@ controls.maxDistance = 7;
 controls.enablePan = false;
 controls.autoRotate = true;
 controls.autoRotateSpeed = 1.2;
-controls.target.set(0, 0.2, 0);
+controls.target.set(0, 0.78, 0);
 
 // Lighting
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
