@@ -252,6 +252,15 @@ class FullScreenAlarmActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        // Activity already showing; update medication list if a new/concurrent alarm arrives
+        val updated = parseMedications(intent)
+        if (updated.isNotEmpty()) {
+            medications = updated
+        }
+    }
+
     override fun onDestroy() {
         if (currentInstance == this) currentInstance = null
         stopAlarm()
