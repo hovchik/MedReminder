@@ -145,7 +145,10 @@ class MedicationRepositoryImpl @Inject constructor(
             val endOfDay = DateUtils.getEndOfDay()
             doseLogDao.deletePendingLogsForMedicationInWindow(medication.id, startOfDay, endOfDay)
 
-            // Regenerate dose logs for the schedules
+            // Regenerate dose logs for the schedules.
+            // Use pendingDoseLogExistsForWindow so that completed (taken/skipped/missed)
+            // dose logs at the OLD time don't prevent creating a new pending log at the
+            // NEW time — the updated schedule time must appear on the Today screen.
             for (i in scheduleEntities.indices) {
                 val entity = scheduleEntities[i]
                 val scheduleId = resolvedScheduleIds[i]
@@ -160,7 +163,7 @@ class MedicationRepositoryImpl @Inject constructor(
                     }
                     while (cal.timeInMillis <= endOfDay) {
                         if (cal.timeInMillis >= startOfDay) {
-                            val alreadyExists = doseLogDao.doseLogExistsForWindow(
+                            val alreadyExists = doseLogDao.pendingDoseLogExistsForWindow(
                                 scheduleId, cal.timeInMillis - 60000, cal.timeInMillis + 60000
                             )
                             if (!alreadyExists) {
@@ -183,7 +186,7 @@ class MedicationRepositoryImpl @Inject constructor(
                         set(Calendar.SECOND, 0)
                         set(Calendar.MILLISECOND, 0)
                     }
-                    val alreadyExists = doseLogDao.doseLogExistsForWindow(
+                    val alreadyExists = doseLogDao.pendingDoseLogExistsForWindow(
                         scheduleId, startOfDay, endOfDay
                     )
                     if (!alreadyExists) {
@@ -250,8 +253,9 @@ class MedicationRepositoryImpl @Inject constructor(
     override fun getTodayDoses(startOfDay: Long, endOfDay: Long): Flow<List<DoseLog>> =
         combine(
             doseLogDao.getLogsForDateRange(startOfDay, endOfDay),
-            medicationDao.getActiveMedications() // re-emit when medications change
-        ) { logs, _ ->
+            medicationDao.getActiveMedications(),
+            scheduleDao.getAllActiveSchedulesFlow()
+        ) { logs, _, _ ->
             logs.map { log ->
                 val med = medicationDao.getMedicationById(log.medicationId)
                 log.toDomain().copy(
@@ -267,8 +271,9 @@ class MedicationRepositoryImpl @Inject constructor(
     override fun getDoseLogsForDateRange(startTime: Long, endTime: Long): Flow<List<DoseLog>> =
         combine(
             doseLogDao.getLogsForDateRange(startTime, endTime),
-            medicationDao.getActiveMedications() // re-emit when medications change
-        ) { logs, _ ->
+            medicationDao.getActiveMedications(),
+            scheduleDao.getAllActiveSchedulesFlow()
+        ) { logs, _, _ ->
             logs.map { log ->
                 val med = medicationDao.getMedicationById(log.medicationId)
                 log.toDomain().copy(

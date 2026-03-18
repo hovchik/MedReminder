@@ -113,6 +113,16 @@ interface DoseLogDao {
     """)
     suspend fun doseLogExistsForWindow(scheduleId: Long, windowStart: Long, windowEnd: Long): Boolean
 
+    @Query("""
+        SELECT EXISTS(
+            SELECT 1 FROM dose_logs
+            WHERE scheduleId = :scheduleId
+            AND scheduledTime BETWEEN :windowStart AND :windowEnd
+            AND status IN ('pending', 'snoozed')
+        )
+    """)
+    suspend fun pendingDoseLogExistsForWindow(scheduleId: Long, windowStart: Long, windowEnd: Long): Boolean
+
     @Query("SELECT * FROM dose_logs")
     suspend fun getAllDoseLogsSync(): List<DoseLogEntity>
 

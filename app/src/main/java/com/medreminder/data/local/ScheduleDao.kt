@@ -30,6 +30,9 @@ interface ScheduleDao {
     suspend fun getActiveSchedulesForMedication(medicationId: Long): List<ScheduleEntity>
 
     @Query("SELECT * FROM schedules WHERE isEnabled = 1")
+    fun getAllActiveSchedulesFlow(): Flow<List<ScheduleEntity>>
+
+    @Query("SELECT * FROM schedules WHERE isEnabled = 1")
     suspend fun getAllActiveSchedules(): List<ScheduleEntity>
 
     @Transaction
