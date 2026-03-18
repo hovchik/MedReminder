@@ -108,11 +108,35 @@ class MedicationRepositoryImpl @Inject constructor(
             medicationDao.updateMedication(
                 medication.toEntity().copy(updatedAt = System.currentTimeMillis())
             )
-            scheduleDao.deleteSchedulesForMedication(medication.id)
-            val scheduleEntities = schedules.map {
-                it.copy(id = 0, medicationId = medication.id).toEntity()
+
+            // Determine which schedules to update, insert, or delete
+            val oldScheduleIds = scheduleDao.getActiveSchedulesForMedication(medication.id)
+                .map { it.id }.toSet()
+            val incomingExistingIds = schedules.filter { it.id > 0 }.map { it.id }.toSet()
+            val toDelete = oldScheduleIds - incomingExistingIds
+
+            // Delete removed schedules
+            for (id in toDelete) {
+                val entity = scheduleDao.getScheduleById(id)
+                if (entity != null) scheduleDao.deleteSchedule(entity)
             }
-            val newScheduleIds = scheduleDao.insertSchedules(scheduleEntities)
+
+            // Update existing schedules in place or insert new ones
+            val resolvedScheduleIds = mutableListOf<Long>()
+            val scheduleEntities = mutableListOf<ScheduleEntity>()
+            for (schedule in schedules) {
+                val entity = schedule.copy(medicationId = medication.id).toEntity()
+                if (schedule.id > 0 && schedule.id in oldScheduleIds) {
+                    // Update existing schedule - keep the same ID
+                    scheduleDao.updateSchedule(entity)
+                    resolvedScheduleIds.add(entity.id)
+                } else {
+                    // New schedule - insert with id=0 so Room auto-generates
+                    val newId = scheduleDao.insertSchedule(entity.copy(id = 0))
+                    resolvedScheduleIds.add(newId)
+                }
+                scheduleEntities.add(entity)
+            }
 
             // Delete today's pending dose logs for this medication and regenerate
             // them so the home screen reflects the updated schedule times
@@ -120,10 +144,10 @@ class MedicationRepositoryImpl @Inject constructor(
             val endOfDay = DateUtils.getEndOfDay()
             doseLogDao.deletePendingLogsForMedicationInWindow(medication.id, startOfDay, endOfDay)
 
-            // Regenerate dose logs for the new schedules
+            // Regenerate dose logs for the schedules
             for (i in scheduleEntities.indices) {
                 val entity = scheduleEntities[i]
-                val scheduleId = newScheduleIds[i]
+                val scheduleId = resolvedScheduleIds[i]
                 if (entity.frequency == "as_needed") continue
 
                 if (entity.frequency == "every_x_hours" && entity.intervalHours > 0) {

@@ -37,6 +37,7 @@ data class AddEditUiState(
 )
 
 data class ScheduleInput(
+    val id: Long = 0,
     val hour: Int = 8,
     val minute: Int = 0,
     val frequency: ScheduleFrequency = ScheduleFrequency.DAILY,
@@ -94,6 +95,7 @@ class AddEditMedicationViewModel @Inject constructor(
                     assignedToName = med.assignedToName,
                     schedules = med.schedules.map { s ->
                         ScheduleInput(
+                            id = s.id,
                             hour = s.timeHour,
                             minute = s.timeMinute,
                             frequency = s.frequency,
@@ -235,6 +237,7 @@ class AddEditMedicationViewModel @Inject constructor(
 
                 val schedules = state.schedules.map {
                     Schedule(
+                        id = it.id,
                         timeHour = it.hour,
                         timeMinute = it.minute,
                         frequency = it.frequency,
@@ -248,9 +251,8 @@ class AddEditMedicationViewModel @Inject constructor(
                 }
 
                 if (state.isEditing && editingMedicationId != null) {
-                    // Cancel alarms for the OLD schedules before updateMedication()
-                    // replaces them with new IDs — otherwise the old PendingIntents
-                    // remain active in AlarmManager and fire as stale ghost alarms.
+                    // Cancel alarms for schedules that will be removed or updated,
+                    // then updateMedication() will handle the DB changes.
                     val oldSchedules = repository.getSchedulesForMedication(editingMedicationId!!)
                     for (schedule in oldSchedules) {
                         alarmScheduler.cancelAlarm(schedule.id)
