@@ -402,4 +402,32 @@
     <string name="med_optimization_tips">优化建议</string>
     <string name="med_stock_remaining">库存剩余 %1$d</string>
     <string name="med_analysis_provider_info">由 %1$s 分析，耗时 %2$d 毫秒</string>
+
+    <!-- AI Provider Labels -->
+    <string name="provider_cloud">云端</string>
+    <string name="provider_on_device">设备端</string>
+    <string name="provider_local">本地</string>
+    <string name="provider_auto">自动</string>
+    <string name="risk_low">低</string>
+    <string name="risk_moderate">中等</string>
+    <string name="risk_high">高</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">头部 / 大脑</string>
+    <string name="body_eyes">眼睛</string>
+    <string name="body_ears">耳朵</string>
+    <string name="body_throat">喉嘴</string>
+    <string name="body_heart">心脏</string>
+    <string name="body_lungs">肺部</string>
+    <string name="body_stomach">胃 / 消化道</string>
+    <string name="body_liver">肝脏</string>
+    <string name="body_kidneys">肾脏</string>
+    <string name="body_joints">关节 / 肌肉</string>
+    <string name="body_skin">皮肤</string>
+    <string name="body_blood">血液 / 循环</string>
+    <string name="body_immune">免疫系统</string>
+    <string name="body_hormones">激素 / 内分泌</string>
+    <string name="body_nervous_system">神经系统</string>
+    <string name="body_bones">骨骼</string>
+    <string name="body_full_body">全身</string>
 </resources>

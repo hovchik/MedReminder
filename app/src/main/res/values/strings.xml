@@ -264,6 +264,36 @@
     <string name="no_models_installed">No models installed. Use the setup wizard to download one.</string>
     <string name="ai_performance_note">Performance may vary by device</string>
 
+    <!-- AI Provider Labels (shown in analysis cards) -->
+    <string name="provider_cloud">Cloud</string>
+    <string name="provider_on_device">On-Device</string>
+    <string name="provider_local">Local</string>
+    <string name="provider_auto">Auto</string>
+
+    <!-- Risk Level Labels -->
+    <string name="risk_low">Low</string>
+    <string name="risk_moderate">Moderate</string>
+    <string name="risk_high">High</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">Head / Brain</string>
+    <string name="body_eyes">Eyes</string>
+    <string name="body_ears">Ears</string>
+    <string name="body_throat">Throat</string>
+    <string name="body_heart">Heart</string>
+    <string name="body_lungs">Lungs</string>
+    <string name="body_stomach">Stomach / GI</string>
+    <string name="body_liver">Liver</string>
+    <string name="body_kidneys">Kidneys</string>
+    <string name="body_joints">Joints / Muscles</string>
+    <string name="body_skin">Skin</string>
+    <string name="body_blood">Blood / Circulation</string>
+    <string name="body_immune">Immune System</string>
+    <string name="body_hormones">Hormonal / Endocrine</string>
+    <string name="body_nervous_system">Nervous System</string>
+    <string name="body_bones">Bones</string>
+    <string name="body_full_body">Full Body</string>
+
     <!-- Cloud AI Service -->
     <string name="cloud_ai_service">Cloud AI service</string>
     <string name="select_cloud_service">Select cloud AI service</string>

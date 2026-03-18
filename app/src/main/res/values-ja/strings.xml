@@ -416,4 +416,32 @@
     <string name="permissions_can_change">権限は後から設定で変更できます</string>
     <string name="permissions">権限</string>
     <string name="permissions_settings_subtitle">アプリの権限を管理</string>
+
+    <!-- AI Provider Labels -->
+    <string name="provider_cloud">クラウド</string>
+    <string name="provider_on_device">オンデバイス</string>
+    <string name="provider_local">ローカル</string>
+    <string name="provider_auto">自動</string>
+    <string name="risk_low">低</string>
+    <string name="risk_moderate">中</string>
+    <string name="risk_high">高</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">頭部 / 脳</string>
+    <string name="body_eyes">目</string>
+    <string name="body_ears">耳</string>
+    <string name="body_throat">喍</string>
+    <string name="body_heart">心臓</string>
+    <string name="body_lungs">肺</string>
+    <string name="body_stomach">胃 / 消化器</string>
+    <string name="body_liver">肝臓</string>
+    <string name="body_kidneys">腎臓</string>
+    <string name="body_joints">関節 / 筋肉</string>
+    <string name="body_skin">皮膚</string>
+    <string name="body_blood">血液 / 循環</string>
+    <string name="body_immune">免疫系</string>
+    <string name="body_hormones">ホルモン / 内分泌</string>
+    <string name="body_nervous_system">神経系</string>
+    <string name="body_bones">骨</string>
+    <string name="body_full_body">全身</string>
 </resources>

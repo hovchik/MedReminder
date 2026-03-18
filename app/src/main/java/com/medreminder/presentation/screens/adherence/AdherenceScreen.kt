@@ -323,10 +323,10 @@ fun AiInsightCard(
                 )
                 if (analysis != null) {
                     val providerLabel = when (analysis.providerUsed) {
-                        AiProviderType.CLOUD -> "Cloud"
-                        AiProviderType.SYSTEM_AI -> "On-Device"
-                        AiProviderType.CUSTOM_LOCAL -> "Local"
-                        AiProviderType.AUTO -> "Auto"
+                        AiProviderType.CLOUD -> stringResource(R.string.provider_cloud)
+                        AiProviderType.SYSTEM_AI -> stringResource(R.string.provider_on_device)
+                        AiProviderType.CUSTOM_LOCAL -> stringResource(R.string.provider_local)
+                        AiProviderType.AUTO -> stringResource(R.string.provider_auto)
                     }
                     Text(
                         providerLabel,
@@ -388,8 +388,13 @@ fun AiInsightCard(
                     shape = RoundedCornerShape(8.dp),
                     color = riskColor.copy(alpha = 0.15f)
                 ) {
+                    val riskLabel = when (analysis.riskLevel) {
+                        RiskLevel.LOW -> stringResource(R.string.risk_low)
+                        RiskLevel.MODERATE -> stringResource(R.string.risk_moderate)
+                        RiskLevel.HIGH -> stringResource(R.string.risk_high)
+                    }
                     Text(
-                        "Risk: ${analysis.riskLevel.name}",
+                        "${stringResource(R.string.med_risk_assessment)}: $riskLabel",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,

@@ -402,4 +402,32 @@
     <string name="med_optimization_tips">Consejos de optimización</string>
     <string name="med_stock_remaining">%1$d restantes en inventario</string>
     <string name="med_analysis_provider_info">Analizado por %1$s en %2$d ms</string>
+
+    <!-- AI Provider Labels -->
+    <string name="provider_cloud">Nube</string>
+    <string name="provider_on_device">En dispositivo</string>
+    <string name="provider_local">Local</string>
+    <string name="provider_auto">Auto</string>
+    <string name="risk_low">Bajo</string>
+    <string name="risk_moderate">Moderado</string>
+    <string name="risk_high">Alto</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">Cabeza / Cerebro</string>
+    <string name="body_eyes">Ojos</string>
+    <string name="body_ears">Oídos</string>
+    <string name="body_throat">Garganta</string>
+    <string name="body_heart">Corazón</string>
+    <string name="body_lungs">Pulmones</string>
+    <string name="body_stomach">Estómago / GI</string>
+    <string name="body_liver">Hígado</string>
+    <string name="body_kidneys">Riñones</string>
+    <string name="body_joints">Articulaciones / Músculos</string>
+    <string name="body_skin">Piel</string>
+    <string name="body_blood">Sangre / Circulación</string>
+    <string name="body_immune">Sistema inmunitario</string>
+    <string name="body_hormones">Hormonal / Endocrino</string>
+    <string name="body_nervous_system">Sistema nervioso</string>
+    <string name="body_bones">Huesos</string>
+    <string name="body_full_body">Todo el cuerpo</string>
 </resources>

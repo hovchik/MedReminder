@@ -26,6 +26,7 @@ import com.medreminder.domain.model.DurationType
 import com.medreminder.domain.model.MedicationForm
 import com.medreminder.domain.model.ScheduleFrequency
 import com.medreminder.presentation.theme.MedicationColors
+import com.medreminder.presentation.util.translatedName
 import com.medreminder.util.DateUtils
 import java.util.*
 
@@ -195,7 +196,7 @@ fun AddEditMedicationScreen(
                     FilterChip(
                         selected = uiState.form == form,
                         onClick = { viewModel.updateForm(form) },
-                        label = { Text(form.displayName) },
+                        label = { Text(form.translatedName()) },
                         shape = RoundedCornerShape(10.dp)
                     )
                 }

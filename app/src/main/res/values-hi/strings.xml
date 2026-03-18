@@ -416,4 +416,32 @@
     <string name="permissions_can_change">आप बाद में सेटिंग्स में अनुमतियाँ बदल सकते हैं</string>
     <string name="permissions">अनुमतियाँ</string>
     <string name="permissions_settings_subtitle">ऐप अनुमतियाँ प्रबंधित करें</string>
+
+    <!-- AI Provider Labels -->
+    <string name="provider_cloud">क्लाउड</string>
+    <string name="provider_on_device">डिवाइस पर</string>
+    <string name="provider_local">स्थानीय</string>
+    <string name="provider_auto">स्वचालित</string>
+    <string name="risk_low">कम</string>
+    <string name="risk_moderate">मध्यम</string>
+    <string name="risk_high">उच्च</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">सिर / मस्तिष्क</string>
+    <string name="body_eyes">आँखें</string>
+    <string name="body_ears">कान</string>
+    <string name="body_throat">गला</string>
+    <string name="body_heart">हृदय</string>
+    <string name="body_lungs">फेफड़े</string>
+    <string name="body_stomach">पेट / पाचन तंत्र</string>
+    <string name="body_liver">यकृत</string>
+    <string name="body_kidneys">गुर्दे</string>
+    <string name="body_joints">जोड़ / मांसपेशियाँ</string>
+    <string name="body_skin">त्वचा</string>
+    <string name="body_blood">रक्त / परिसंचरण</string>
+    <string name="body_immune">प्रतिरक्षा प्रणाली</string>
+    <string name="body_hormones">हार्मोनल / अंतःस्रावी</string>
+    <string name="body_nervous_system">तंत्रिका तंत्र</string>
+    <string name="body_bones">हड्डियाँ</string>
+    <string name="body_full_body">पूरा शरीर</string>
 </resources>

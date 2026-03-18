@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.medreminder.ai.BodyRegion
+import com.medreminder.presentation.util.translatedName
 
 /**
  * Primary entry point — renders an interactive 3D human anatomy model.
@@ -160,7 +161,7 @@ internal fun AnatomyBodyView2D(
         ) {
             highlightedRegions.forEach { region ->
                 Text(
-                    text = region.displayName,
+                    text = region.translatedName(),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary

@@ -402,4 +402,32 @@
     <string name="no_models_installed">Մոդելներ տեղադրված չեն։ Օգտագործեք կարգավորման օգնականը ներբեռնելու համար։</string>
     <string name="ai_performance_note">Արդյունավետությունը կախված է սարքից</string>
 
+
+    <!-- AI Provider Labels -->
+    <string name="provider_cloud">Ամպային</string>
+    <string name="provider_on_device">Սարքի վրա</string>
+    <string name="provider_local">Տեղական</string>
+    <string name="provider_auto">Ավտոմատ</string>
+    <string name="risk_low">Ցածր</string>
+    <string name="risk_moderate">Միջին</string>
+    <string name="risk_high">Բարձր</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">Գլուխ / Ուղեղ</string>
+    <string name="body_eyes">Աչքեր</string>
+    <string name="body_ears">Ականջներ</string>
+    <string name="body_throat">Կոկորդ</string>
+    <string name="body_heart">Սիրտ</string>
+    <string name="body_lungs">Թոքեր</string>
+    <string name="body_stomach">Ստամոքս / Մարսողական</string>
+    <string name="body_liver">Լյարդ</string>
+    <string name="body_kidneys">Երիկամներ</string>
+    <string name="body_joints">Հոդեր / Մկաններ</string>
+    <string name="body_skin">Մաշկ</string>
+    <string name="body_blood">Արյուն / Արյունաշրջանակ</string>
+    <string name="body_immune">Իմունային համակարգ</string>
+    <string name="body_hormones">Հորմոնալ / Էնդոկրին</string>
+    <string name="body_nervous_system">Ներվային համակարգ</string>
+    <string name="body_bones">Ոսկորներ</string>
+    <string name="body_full_body">Ամբողջ մարմին</string>
 </resources>

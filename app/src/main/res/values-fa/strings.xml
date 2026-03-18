@@ -403,4 +403,32 @@
     <string name="med_optimization_tips">نکات بهینه‌سازی</string>
     <string name="med_stock_remaining">%1$d باقی‌مانده در انبار</string>
     <string name="med_analysis_provider_info">تحلیل توسط %1$s در %2$d میلی‌ثانیه</string>
+
+    <!-- AI Provider Labels -->
+    <string name="provider_cloud">ابری</string>
+    <string name="provider_on_device">روی دستگاه</string>
+    <string name="provider_local">محلی</string>
+    <string name="provider_auto">خودکار</string>
+    <string name="risk_low">کم</string>
+    <string name="risk_moderate">متوسط</string>
+    <string name="risk_high">بالا</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">سر / مغز</string>
+    <string name="body_eyes">چشم‌ها</string>
+    <string name="body_ears">گوش‌ها</string>
+    <string name="body_throat">گلو</string>
+    <string name="body_heart">قلب</string>
+    <string name="body_lungs">ریه‌ها</string>
+    <string name="body_stomach">معده / گوارش</string>
+    <string name="body_liver">کبد</string>
+    <string name="body_kidneys">کلیه‌ها</string>
+    <string name="body_joints">مفاصل / ماهیچه‌ها</string>
+    <string name="body_skin">پوست</string>
+    <string name="body_blood">خون / گردش خون</string>
+    <string name="body_immune">سیستم ایمنی</string>
+    <string name="body_hormones">هورمونی / غدد درون‌ریز</string>
+    <string name="body_nervous_system">سیستم عصبی</string>
+    <string name="body_bones">استخوان‌ها</string>
+    <string name="body_full_body">تمام بدن</string>
 </resources>

@@ -25,6 +25,7 @@ import com.medreminder.ai.*
 import com.medreminder.ai.local.MedicationAnalysisUseCase
 import com.medreminder.domain.model.Medication
 import com.medreminder.domain.repository.MedicationRepository
+import com.medreminder.presentation.util.translatedName
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -182,10 +183,10 @@ fun MedicationAnalysisScreen(
                 // Provider info
                 if (result.latencyMs > 0) {
                     val providerLabel = when (result.providerUsed) {
-                        AiProviderType.CLOUD -> "Cloud"
-                        AiProviderType.SYSTEM_AI -> "On-Device"
-                        AiProviderType.CUSTOM_LOCAL -> "Local"
-                        AiProviderType.AUTO -> "Auto"
+                        AiProviderType.CLOUD -> stringResource(R.string.provider_cloud)
+                        AiProviderType.SYSTEM_AI -> stringResource(R.string.provider_on_device)
+                        AiProviderType.CUSTOM_LOCAL -> stringResource(R.string.provider_local)
+                        AiProviderType.AUTO -> stringResource(R.string.provider_auto)
                     }
                     Text(
                         stringResource(R.string.med_analysis_provider_info, providerLabel, result.latencyMs),
@@ -228,7 +229,7 @@ private fun MedicationHeaderCard(med: Medication) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "${med.dosage} ${med.dosageUnit} - ${med.form.displayName}",
+                        "${med.dosage} ${med.dosageUnit} - ${med.form.translatedName()}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

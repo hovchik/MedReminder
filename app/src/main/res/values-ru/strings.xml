@@ -402,4 +402,32 @@
     <string name="med_optimization_tips">Советы по оптимизации</string>
     <string name="med_stock_remaining">Осталось %1$d в запасе</string>
     <string name="med_analysis_provider_info">Проанализировано %1$s за %2$d мс</string>
+
+    <!-- AI Provider Labels -->
+    <string name="provider_cloud">Облако</string>
+    <string name="provider_on_device">На устройстве</string>
+    <string name="provider_local">Локальный</string>
+    <string name="provider_auto">Авто</string>
+    <string name="risk_low">Низкий</string>
+    <string name="risk_moderate">Средний</string>
+    <string name="risk_high">Высокий</string>
+
+    <!-- Body Region Labels -->
+    <string name="body_head">Голова / Мозг</string>
+    <string name="body_eyes">Глаза</string>
+    <string name="body_ears">Уши</string>
+    <string name="body_throat">Горло</string>
+    <string name="body_heart">Сердце</string>
+    <string name="body_lungs">Лёгкие</string>
+    <string name="body_stomach">Желудок / ЖКТ</string>
+    <string name="body_liver">Печень</string>
+    <string name="body_kidneys">Почки</string>
+    <string name="body_joints">Суставы / Мышцы</string>
+    <string name="body_skin">Кожа</string>
+    <string name="body_blood">Кровь / Кровообращение</string>
+    <string name="body_immune">Иммунная система</string>
+    <string name="body_hormones">Гормональная / Эндокринная</string>
+    <string name="body_nervous_system">Нервная система</string>
+    <string name="body_bones">Кости</string>
+    <string name="body_full_body">Всё тело</string>
 </resources>
