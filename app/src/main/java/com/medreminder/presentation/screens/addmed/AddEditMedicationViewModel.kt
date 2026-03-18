@@ -248,6 +248,13 @@ class AddEditMedicationViewModel @Inject constructor(
                 }
 
                 if (state.isEditing && editingMedicationId != null) {
+                    // Cancel alarms for the OLD schedules before updateMedication()
+                    // replaces them with new IDs — otherwise the old PendingIntents
+                    // remain active in AlarmManager and fire as stale ghost alarms.
+                    val oldSchedules = repository.getSchedulesForMedication(editingMedicationId!!)
+                    for (schedule in oldSchedules) {
+                        alarmScheduler.cancelAlarm(schedule.id)
+                    }
                     repository.updateMedication(medication, schedules)
                 } else {
                     repository.addMedication(medication, schedules)
@@ -264,6 +271,13 @@ class AddEditMedicationViewModel @Inject constructor(
     fun deleteMedication() {
         editingMedicationId?.let { id ->
             viewModelScope.launch {
+                // Cancel alarms for this medication's schedules BEFORE the cascade
+                // delete removes them from the DB — otherwise cancelAllAlarms() inside
+                // scheduleAllAlarms() won't find them and the PendingIntents persist.
+                val oldSchedules = repository.getSchedulesForMedication(id)
+                for (schedule in oldSchedules) {
+                    alarmScheduler.cancelAlarm(schedule.id)
+                }
                 repository.deleteMedication(id)
                 alarmScheduler.scheduleAllAlarms()
                 _uiState.update { it.copy(isSaved = true) }
