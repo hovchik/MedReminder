@@ -161,6 +161,13 @@ class DailyDoseWorker @AssistedInject constructor(
 
     private fun isScheduledForToday(schedule: com.medreminder.domain.model.Schedule): Boolean {
         val today = Calendar.getInstance()
+
+        // Check if schedule has expired (endDate set by duration)
+        if (schedule.endDate != null && today.timeInMillis > schedule.endDate) return false
+
+        // Check if schedule has started
+        if (today.timeInMillis < schedule.startDate) return false
+
         return when (schedule.frequency) {
             ScheduleFrequency.DAILY -> true
             ScheduleFrequency.SPECIFIC_DAYS -> {

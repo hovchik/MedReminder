@@ -1,21 +1,29 @@
 package com.medreminder.alarm
 
 import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.Uri
+import android.os.Build
 import android.telephony.SmsManager
+import android.telephony.SubscriptionManager
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.medreminder.R
 import com.medreminder.data.local.AppDatabase
 import com.medreminder.domain.model.toDomain
 
 object CaregiverNotificationHelper {
 
     private const val TAG = "CaregiverNotify"
+    private const val CHANNEL_ID = "sms_failure_channel"
+    private const val NOTIFICATION_ID_BASE = 9000
 
     suspend fun notifyCaregiversOnMissed(
         context: Context,
@@ -140,21 +148,16 @@ object CaregiverNotificationHelper {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            Log.w(TAG, "SEND_SMS permission not granted, falling back to call for $phone")
-            makeCallFallback(context, phone)
+            Log.w(TAG, "SEND_SMS permission not granted for $phone")
+            showCallNotification(context, phone, caregiverName, medicationName)
             return
         }
         try {
-            val smsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                context.getSystemService(SmsManager::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                SmsManager.getDefault()
-            }
+            val smsManager = getSmsManager(context)
 
             if (smsManager == null) {
-                Log.e(TAG, "SmsManager not available, falling back to call for $phone")
-                makeCallFallback(context, phone)
+                Log.e(TAG, "SmsManager not available for $phone")
+                showCallNotification(context, phone, caregiverName, medicationName)
                 return
             }
 
@@ -183,28 +186,101 @@ object CaregiverNotificationHelper {
             }
             Log.d(TAG, "SMS sent to $phone (tracking enabled)")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send SMS to $phone, attempting call fallback", e)
-            makeCallFallback(context, phone)
+            Log.e(TAG, "Failed to send SMS to $phone", e)
+            showCallNotification(context, phone, caregiverName, medicationName)
         }
     }
 
-    private fun makeCallFallback(context: Context, phone: String) {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE)
+    /**
+     * Obtain the platform SmsManager, handling API-level differences.
+     *
+     * Android 12 (API 31) deprecated the static SmsManager.getDefault() in favour
+     * of Context.getSystemService(SmsManager::class.java), which returns an instance
+     * bound to the default subscription.  On earlier API levels we fall back to the
+     * static method.  If the device has no telephony at all we return null.
+     */
+    private fun getSmsManager(context: Context): SmsManager? {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // Prefer the context-based API on Android 12+
+                val mgr = context.getSystemService(SmsManager::class.java)
+                if (mgr != null) return mgr
+
+                // Fallback: try to create one for the default subscription
+                val subId = SubscriptionManager.getDefaultSmsSubscriptionId()
+                if (subId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+                    @Suppress("DEPRECATION")
+                    SmsManager.getSmsManagerForSubscriptionId(subId)
+                } else {
+                    null
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                SmsManager.getDefault()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error obtaining SmsManager", e)
+            null
+        }
+    }
+
+    /**
+     * Show a high-priority notification that lets the user tap to call the caregiver.
+     *
+     * On Android 10+ we cannot start Activities from a background context (receiver/service),
+     * so instead of calling context.startActivity() directly, we always post a notification
+     * with a PendingIntent that opens the dialer or places a call when tapped.
+     */
+    fun showCallNotification(
+        context: Context,
+        phone: String,
+        caregiverName: String,
+        medicationName: String
+    ) {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                context.getString(R.string.sms_failure_channel_name),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = context.getString(R.string.sms_failure_channel_desc)
+            }
+            nm.createNotificationChannel(channel)
+        }
+
+        // Use ACTION_DIAL (not ACTION_CALL) so it works without CALL_PHONE permission
+        // and is not restricted by background activity start limitations via PendingIntent
+        val callAction = if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE)
             == PackageManager.PERMISSION_GRANTED
         ) {
-            try {
-                val callIntent = Intent(Intent.ACTION_CALL).apply {
-                    data = Uri.parse("tel:$phone")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(callIntent)
-                Log.d(TAG, "Fallback call initiated to $phone")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to initiate fallback call to $phone", e)
-            }
+            Intent(Intent.ACTION_CALL).apply { data = Uri.parse("tel:$phone") }
         } else {
-            Log.w(TAG, "CALL_PHONE permission not granted for fallback call to $phone")
+            Intent(Intent.ACTION_DIAL).apply { data = Uri.parse("tel:$phone") }
         }
+        callAction.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        val pendingCallIntent = PendingIntent.getActivity(
+            context, phone.hashCode(), callAction,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val displayName = caregiverName.ifBlank { phone }
+        val title = context.getString(R.string.sms_failed_title)
+        val body = context.getString(R.string.sms_failed_body, displayName, medicationName)
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_medication)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingCallIntent)
+            .setAutoCancel(true)
+            .build()
+
+        nm.notify(NOTIFICATION_ID_BASE + phone.hashCode(), notification)
     }
 
     private fun sendEmail(context: Context, email: String, subject: String, body: String) {
@@ -220,7 +296,9 @@ object CaregiverNotificationHelper {
             context.startActivity(intent)
             Log.d(TAG, "Email intent launched for $email")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send email to $email (no email app?)", e)
+            // Starting an activity from background fails on Android 10+.
+            // Email is a secondary notification channel, so just log the failure.
+            Log.e(TAG, "Failed to send email to $email (background restriction or no email app)", e)
         }
     }
 }

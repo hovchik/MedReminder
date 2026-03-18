@@ -247,6 +247,23 @@ class AddEditMedicationViewModel @Inject constructor(
                 )
 
                 val schedules = state.schedules.map {
+                    // Compute endDate from durationType + durationValue so the
+                    // schedule actually stops generating dose logs after its duration.
+                    val computedEndDate = when (it.durationType) {
+                        DurationType.DAYS -> {
+                            java.util.Calendar.getInstance().apply {
+                                timeInMillis = it.startDate
+                                add(java.util.Calendar.DAY_OF_YEAR, it.durationValue)
+                            }.timeInMillis
+                        }
+                        DurationType.MONTHS -> {
+                            java.util.Calendar.getInstance().apply {
+                                timeInMillis = it.startDate
+                                add(java.util.Calendar.MONTH, it.durationValue)
+                            }.timeInMillis
+                        }
+                        DurationType.ONGOING -> null
+                    }
                     Schedule(
                         id = it.id,
                         medicationId = it.medicationId,
@@ -260,7 +277,7 @@ class AddEditMedicationViewModel @Inject constructor(
                         durationType = it.durationType,
                         durationValue = it.durationValue,
                         startDate = it.startDate,
-                        endDate = it.endDate,
+                        endDate = computedEndDate,
                         isEnabled = it.isEnabled
                     )
                 }
