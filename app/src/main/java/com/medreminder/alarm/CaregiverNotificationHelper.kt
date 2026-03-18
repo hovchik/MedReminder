@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.Uri
+import android.os.Build
 import android.telephony.SmsManager
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -127,7 +128,12 @@ object CaregiverNotificationHelper {
             return
         }
         try {
-            val smsManager = SmsManager.getDefault()
+            @Suppress("DEPRECATION")
+            val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                context.getSystemService(SmsManager::class.java)
+            } else {
+                SmsManager.getDefault()
+            }
             val parts = smsManager.divideMessage(message)
 
             // Create sent PendingIntent per part to track delivery

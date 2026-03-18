@@ -95,6 +95,19 @@ interface DoseLogDao {
     @Query("DELETE FROM dose_logs WHERE medicationId = :medicationId")
     suspend fun deleteLogsForMedication(medicationId: Long)
 
+    /**
+     * Deletes only PENDING dose logs for a medication within a time window.
+     * Called when a medication's schedules are updated so stale pending entries
+     * (referencing old schedule IDs) are removed and regenerated fresh.
+     */
+    @Query("""
+        DELETE FROM dose_logs
+        WHERE medicationId = :medicationId
+        AND status = 'pending'
+        AND scheduledTime BETWEEN :startTime AND :endTime
+    """)
+    suspend fun deletePendingLogsForMedication(medicationId: Long, startTime: Long, endTime: Long)
+
     // For generating pending doses check
     @Query("""
         SELECT EXISTS(

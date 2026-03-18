@@ -23,6 +23,14 @@ interface ScheduleDao {
     @Query("DELETE FROM schedules WHERE medicationId = :medicationId")
     suspend fun deleteSchedulesForMedication(medicationId: Long)
 
+    /** Returns ALL schedules for a medication (enabled or not), used during smart upsert. */
+    @Query("SELECT * FROM schedules WHERE medicationId = :medicationId")
+    suspend fun getAllSchedulesForMedication(medicationId: Long): List<ScheduleEntity>
+
+    /** Deletes schedules by their primary keys (used to remove schedules the user deleted). */
+    @Query("DELETE FROM schedules WHERE id IN (:ids)")
+    suspend fun deleteSchedulesByIds(ids: List<Long>)
+
     @Query("SELECT * FROM schedules WHERE medicationId = :medicationId AND isEnabled = 1")
     fun getSchedulesForMedication(medicationId: Long): Flow<List<ScheduleEntity>>
 

@@ -37,6 +37,7 @@ data class AddEditUiState(
 )
 
 data class ScheduleInput(
+    val id: Long = 0,          // 0 = new schedule, non-zero = existing schedule being edited
     val hour: Int = 8,
     val minute: Int = 0,
     val frequency: ScheduleFrequency = ScheduleFrequency.DAILY,
@@ -90,6 +91,7 @@ class AddEditMedicationViewModel @Inject constructor(
                     assignedToName = med.assignedToName,
                     schedules = med.schedules.map { s ->
                         ScheduleInput(
+                            id = s.id,           // preserve the schedule's DB id
                             hour = s.timeHour,
                             minute = s.timeMinute,
                             frequency = s.frequency,
@@ -231,6 +233,7 @@ class AddEditMedicationViewModel @Inject constructor(
 
                 val schedules = state.schedules.map {
                     Schedule(
+                        id = it.id,              // 0 for new schedules, existing id for edits
                         timeHour = it.hour,
                         timeMinute = it.minute,
                         frequency = it.frequency,
