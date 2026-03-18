@@ -96,17 +96,13 @@ class MedicationAnalysisUseCase @Inject constructor(
         prompt: String,
         latencyMs: Long
     ): MedicationAnalysisResult {
-        // Use the cloud provider's raw generation if available
+        // Use the cloud provider's raw generation if cloud is selected
         if (provider is CloudAiProvider) {
-            try {
-                val rawJson = provider.generateRawCompletion(prompt)
-                return parseMedicationResult(rawJson, provider.type, latencyMs)
-            } catch (_: Exception) {
-                // Fall through to fallback
-            }
+            val rawJson = provider.generateRawCompletion(prompt)
+            return parseMedicationResult(rawJson, provider.type, latencyMs)
         }
 
-        // Fallback: generate a reasonable result based on medication name
+        // Non-cloud providers: generate a reasonable result locally
         return generateFallbackResult(input, provider.type, latencyMs)
     }
 
