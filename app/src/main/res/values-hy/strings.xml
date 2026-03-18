@@ -326,4 +326,80 @@
     <string name="med_optimization_tips">Օպտիմալացման խորհուրդներ</string>
     <string name="med_stock_remaining">Պաշարում մնացել է %1$d</string>
     <string name="med_analysis_provider_info">Վերլուծել է %1$s-ի կողմից %2$d մս-ում</string>
+
+    <!-- Today Screen - Time sections -->
+    <string name="time_section_morning">Առավոտ</string>
+    <string name="time_section_afternoon">Կեսօր</string>
+    <string name="time_section_evening">Երեկո</string>
+    <string name="time_section_night">Գիշեր</string>
+    <string name="next_dose_in">Հաջորդը %1$s հետո</string>
+    <string name="snoozed_until">Հետաձգված մինչեվ %1$s</string>
+    <string name="all_done_title">Այսօր ամեն ինչ արվել է։</string>
+    <string name="all_done_subtitle">Հանիալի աշխատանք</string>
+    <string name="upcoming">Առաջիկա</string>
+    <string name="overdue">Ուշացած</string>
+
+    <!-- Family Members -->
+    <string name="family">Ընտանիք</string>
+    <string name="caregivers">Խնամակալներ</string>
+    <string name="add_family_member">Ավելացնել ընտանիքի անդամ</string>
+    <string name="no_family_members_yet">Ընտանիքի անդամներ դեռ չեն ավելացվել</string>
+    <string name="add_family_members_hint">Ավելացրեք ծնողներինՍ երեխաներին կամ այլ ընտանիքի անդամներին</string>
+    <string name="family_info">Ավելացրեք ընտանիքի անդամներին նրանց դեղերի պլանավորման և հետևի համար։</string>
+    <string name="member_name">Անուն</string>
+    <string name="member_age">Տարիք</string>
+    <string name="relation">Կապ</string>
+    <string name="relation_parent">Ծնող</string>
+    <string name="relation_child">Երեխա</string>
+    <string name="relation_spouse">Ամուսին</string>
+    <string name="relation_sibling">Եղբայր/քույր</string>
+    <string name="relation_other">Այլ</string>
+    <string name="age_years">%1$d տարեկան</string>
+
+    <!-- Medication Assignment -->
+    <string name="medication_for">Դեղը նախատեսված է</string>
+    <string name="myself">Ինձս</string>
+    <string name="select_person">Ընտրեք ում այս դեղը նախատեսված է</string>
+
+    <!-- Schedule Duration -->
+    <string name="duration">Տևողություն</string>
+    <string name="ongoing_lifetime">Շարունակական / Ցիահեում</string>
+    <string name="for_x_days">X օրվա</string>
+    <string name="for_x_months">X ամսվա</string>
+    <string name="number_of_days">Օրերի քանակ</string>
+    <string name="number_of_months">Ամիսների քանակ</string>
+
+    <!-- Recurrent Schedule -->
+    <string name="every_x_hours">Ամեն X ժամը</string>
+    <string name="hours">ժամ</string>
+    <string name="starting_from">Սկսած</string>
+    <string name="tolerance">Թույլատրելիություն</string>
+    <string name="tolerance_minutes">%1$d րոպե թույլատրելիություն</string>
+    <string name="minutes">րոպե</string>
+
+    <!-- AI Analysis -->
+    <string name="ai_daily_insight">ԱԲ օրական վերլուծություն</string>
+    <string name="ai_weekly_insight">ԱԲ շաբաթական վերլուծություն</string>
+    <string name="analyzing">Տվյալների վերլուծություն…</string>
+    <string name="get_ai_insight">Ստանալ ԱԲ վերլուծություն</string>
+
+    <!-- AI Engine Settings -->
+    <string name="ai_engine">ԱԲ շարժիչ</string>
+    <string name="ai_provider">ԱԲ մատակարար</string>
+    <string name="select_ai_provider">Ընտրեք ԱԲ մատակարար</string>
+    <string name="ai_auto_desc">Ավտոմատ (առաջարկվում է) — լավագույն հասանելի ԱԲ</string>
+    <string name="ai_system_desc">Համակարգի ԱԲ — սարքի ներկառուցված ԱԲ</string>
+    <string name="ai_local_desc">Տեղական մոդել — ներբեռնված ԱԲ մոդելի գործարկում</string>
+    <string name="ai_cloud_desc">Ամպային ԱԲ (Claude) — առաջադեմ ամպային վերլուծություն</string>
+    <string name="active_provider">Ակտիվ՝ %1$s</string>
+    <string name="installed_models_count">%1$d մոդել(ներ) տեղադրված</string>
+    <string name="setup_local_ai">Կարգավորել տեղական ԱԲ</string>
+    <string name="setup_local_ai_subtitle">Կարգավորել սարքի վրա ԱԲ գաղտնի վերլուծության համար</string>
+    <string name="active_local_model">Ակտիվ տեղական մոդել</string>
+    <string name="loading_model">Մոդելի բեռնում…</string>
+    <string name="no_model_selected">Սեղմեք մոդել ընտրելու համար</string>
+    <string name="select_active_model">Ընտրեք ակտիվ մոդել</string>
+    <string name="no_models_installed">Մոդելներ տեղադրված չեն։ Օգտագործեք կարգավորման օգնականը ներբեռնելու համար։</string>
+    <string name="ai_performance_note">Արդյունավետությունը կախված է սարքից</string>
+
 </resources>
