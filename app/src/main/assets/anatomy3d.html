@@ -49,8 +49,7 @@ controls.enableZoom = true;
 controls.minDistance = 2;
 controls.maxDistance = 7;
 controls.enablePan = false;
-controls.autoRotate = true;
-controls.autoRotateSpeed = 1.2;
+controls.autoRotate = false;
 controls.target.set(0, 0.78, 0);
 
 // Lighting
@@ -960,26 +959,6 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-// ============================================================
-//  Tap to toggle auto-rotation
-// ============================================================
-let tapStart = 0;
-let tapPos = { x: 0, y: 0 };
-renderer.domElement.addEventListener('pointerdown', (e) => {
-  tapStart = performance.now();
-  tapPos.x = e.clientX;
-  tapPos.y = e.clientY;
-});
-renderer.domElement.addEventListener('pointerup', (e) => {
-  const dt = performance.now() - tapStart;
-  const dx = Math.abs(e.clientX - tapPos.x);
-  const dy = Math.abs(e.clientY - tapPos.y);
-  // Short tap with minimal movement = toggle rotation
-  if (dt < 300 && dx < 10 && dy < 10) {
-    controls.autoRotate = !controls.autoRotate;
-  }
 });
 
 // ============================================================
