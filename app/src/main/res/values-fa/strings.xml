@@ -308,4 +308,22 @@
     <string name="recommendations_header">توصیه‌ها</string>
     <string name="analysis_time">تحلیل %1$d میلی‌ثانیه طول کشید</string>
     <string name="refresh_analysis">به‌روزرسانی</string>
+
+    <!-- Medication AI Analysis -->
+    <string name="view_ai_analysis">تحلیل هوش مصنوعی دارو</string>
+    <string name="med_analysis_title">تحلیل دارو</string>
+    <string name="analyzing_medication">در حال تحلیل اطلاعات دارو…</string>
+    <string name="med_body_targets">قسمت‌های بدن</string>
+    <string name="med_info_title">اطلاعات دارو</string>
+    <string name="med_common_uses">کاربردهای رایج</string>
+    <string name="med_side_effects">عوارض جانبی</string>
+    <string name="med_warnings">هشدارهای مهم</string>
+    <string name="med_interactions">تداخلات دارویی</string>
+    <string name="med_dosing_predictions">پیش‌بینی مصرف</string>
+    <string name="med_adherence_forecast">پیش‌بینی پایبندی</string>
+    <string name="med_stock_forecast">پیش‌بینی موجودی</string>
+    <string name="med_risk_assessment">ارزیابی ریسک</string>
+    <string name="med_optimization_tips">نکات بهینه‌سازی</string>
+    <string name="med_stock_remaining">%1$d باقی‌مانده در انبار</string>
+    <string name="med_analysis_provider_info">تحلیل توسط %1$s در %2$d میلی‌ثانیه</string>
 </resources>

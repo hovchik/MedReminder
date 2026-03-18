@@ -307,4 +307,22 @@
     <string name="recommendations_header">建议</string>
     <string name="analysis_time">分析耗时 %1$d 毫秒</string>
     <string name="refresh_analysis">刷新</string>
+
+    <!-- Medication AI Analysis -->
+    <string name="view_ai_analysis">AI 药物分析</string>
+    <string name="med_analysis_title">药物分析</string>
+    <string name="analyzing_medication">正在分析药物数据…</string>
+    <string name="med_body_targets">作用部位</string>
+    <string name="med_info_title">药物信息</string>
+    <string name="med_common_uses">常见用途</string>
+    <string name="med_side_effects">副作用</string>
+    <string name="med_warnings">重要警告</string>
+    <string name="med_interactions">药物相互作用</string>
+    <string name="med_dosing_predictions">用药预测</string>
+    <string name="med_adherence_forecast">依从性预测</string>
+    <string name="med_stock_forecast">库存预测</string>
+    <string name="med_risk_assessment">风险评估</string>
+    <string name="med_optimization_tips">优化建议</string>
+    <string name="med_stock_remaining">库存剩余 %1$d</string>
+    <string name="med_analysis_provider_info">由 %1$s 分析，耗时 %2$d 毫秒</string>
 </resources>

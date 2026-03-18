@@ -307,4 +307,22 @@
     <string name="recommendations_header">Recomendaciones</string>
     <string name="analysis_time">Análisis tomó %1$d ms</string>
     <string name="refresh_analysis">Actualizar</string>
+
+    <!-- Medication AI Analysis -->
+    <string name="view_ai_analysis">Análisis AI del medicamento</string>
+    <string name="med_analysis_title">Análisis del medicamento</string>
+    <string name="analyzing_medication">Analizando datos del medicamento…</string>
+    <string name="med_body_targets">Áreas del cuerpo</string>
+    <string name="med_info_title">Información del medicamento</string>
+    <string name="med_common_uses">Usos comunes</string>
+    <string name="med_side_effects">Efectos secundarios</string>
+    <string name="med_warnings">Advertencias importantes</string>
+    <string name="med_interactions">Interacciones medicamentosas</string>
+    <string name="med_dosing_predictions">Predicciones de dosificación</string>
+    <string name="med_adherence_forecast">Pronóstico de adherencia</string>
+    <string name="med_stock_forecast">Pronóstico de inventario</string>
+    <string name="med_risk_assessment">Evaluación de riesgo</string>
+    <string name="med_optimization_tips">Consejos de optimización</string>
+    <string name="med_stock_remaining">%1$d restantes en inventario</string>
+    <string name="med_analysis_provider_info">Analizado por %1$s en %2$d ms</string>
 </resources>

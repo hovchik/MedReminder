@@ -46,6 +46,20 @@ class CloudAiProvider @Inject constructor() : AiProvider {
 
     override fun isAvailable(): Boolean = true // Always available; falls back to local analysis if no API key
 
+    /**
+     * Send a raw prompt and return the raw text response from the active cloud service.
+     * Used by MedicationAnalysisUseCase for custom prompt/response formats.
+     */
+    fun generateRawCompletion(prompt: String): String {
+        val key = apiKey ?: throw IllegalStateException("No API key configured")
+        val rawResponse = when (activeService) {
+            CloudAiService.CLAUDE -> callClaudeApi(key, prompt)
+            CloudAiService.CHATGPT -> callChatGptApi(key, prompt)
+            CloudAiService.DEEPSEEK -> callDeepSeekApi(key, prompt)
+        }
+        return extractJson(rawResponse)
+    }
+
     override suspend fun generateAnalysis(input: AnalysisInput): AnalysisResult {
         val startTime = System.currentTimeMillis()
         val key = apiKey

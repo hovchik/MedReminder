@@ -227,6 +227,24 @@
     <string name="analysis_time">Analysis took %1$d ms</string>
     <string name="refresh_analysis">Refresh</string>
 
+    <!-- Medication AI Analysis -->
+    <string name="view_ai_analysis">AI Medication Analysis</string>
+    <string name="med_analysis_title">Medication Analysis</string>
+    <string name="analyzing_medication">Analyzing medication data…</string>
+    <string name="med_body_targets">Body Targets</string>
+    <string name="med_info_title">Medication Information</string>
+    <string name="med_common_uses">Common Uses</string>
+    <string name="med_side_effects">Side Effects</string>
+    <string name="med_warnings">Important Warnings</string>
+    <string name="med_interactions">Drug Interactions</string>
+    <string name="med_dosing_predictions">Dosing Predictions</string>
+    <string name="med_adherence_forecast">Adherence Forecast</string>
+    <string name="med_stock_forecast">Stock Forecast</string>
+    <string name="med_risk_assessment">Risk Assessment</string>
+    <string name="med_optimization_tips">Optimization Tips</string>
+    <string name="med_stock_remaining">%1$d remaining in stock</string>
+    <string name="med_analysis_provider_info">Analyzed by %1$s in %2$d ms</string>
+
     <!-- AI Engine Settings -->
     <string name="ai_engine">AI Engine</string>
     <string name="ai_provider">AI Provider</string>

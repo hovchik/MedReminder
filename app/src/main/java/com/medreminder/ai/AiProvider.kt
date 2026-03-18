@@ -102,3 +102,83 @@ interface AiProvider {
     suspend fun generateAnalysis(input: AnalysisInput): AnalysisResult
     fun isAvailable(): Boolean
 }
+
+// --- Medication-specific AI analysis ---
+
+/** Input for a single-medication deep analysis */
+data class MedicationAnalysisInput(
+    val medicationName: String,
+    val dosage: String,
+    val form: String,
+    val frequency: String,
+    val instructions: String,
+    val scheduledTimes: List<String>,
+    val isEmergency: Boolean,
+    val currentStock: Int,
+    val refillThreshold: Int,
+    val needsRefill: Boolean,
+    val notes: String,
+    val assignedTo: String,
+    // Adherence data
+    val takenCount: Int,
+    val missedCount: Int,
+    val skippedCount: Int,
+    val snoozedCount: Int,
+    val adherenceRate: Float,
+    val averageDelayMinutes: Float,
+    // Period context
+    val periodDays: Int,
+    val currentStreak: Int,
+    // Timeline
+    val recentDoseEvents: List<DoseEvent> = emptyList(),
+    val timeOfDayBreakdown: TimeOfDayBreakdown? = null,
+    // User context
+    val userName: String = "",
+    val userAge: Int = 0
+)
+
+/** Result of a single-medication AI analysis */
+data class MedicationAnalysisResult(
+    val medicationInfo: MedicationInfoSection,
+    val dosingPredictions: DosingPredictionSection,
+    val bodyRegions: List<BodyRegion>,
+    val providerUsed: AiProviderType = AiProviderType.CLOUD,
+    val latencyMs: Long = 0
+)
+
+data class MedicationInfoSection(
+    val description: String,            // What this medication is / does
+    val drugClass: String,              // e.g. "NSAID", "Beta-blocker"
+    val commonUses: List<String>,       // e.g. ["Pain relief", "Inflammation"]
+    val sideEffects: List<String>,      // Common side effects
+    val importantWarnings: List<String>, // Critical warnings
+    val interactions: List<String>       // Known drug interactions to watch
+)
+
+data class DosingPredictionSection(
+    val adherenceForecast: String,      // e.g. "Based on your pattern, you're likely to miss evening doses"
+    val optimizationTips: List<String>,  // Personalized timing suggestions
+    val stockForecast: String,          // e.g. "At current rate, you'll run out in ~12 days"
+    val riskAssessment: String          // Overall risk summary for this specific med
+)
+
+/** Represents a body region the medication targets */
+enum class BodyRegion(val displayName: String) {
+    HEAD("Head / Brain"),
+    EYES("Eyes"),
+    EARS("Ears"),
+    THROAT("Throat"),
+    HEART("Heart"),
+    LUNGS("Lungs"),
+    STOMACH("Stomach / GI"),
+    LIVER("Liver"),
+    KIDNEYS("Kidneys"),
+    JOINTS("Joints / Muscles"),
+    SKIN("Skin"),
+    BLOOD("Blood / Circulation"),
+    IMMUNE("Immune System"),
+    HORMONES("Hormonal / Endocrine"),
+    NERVOUS_SYSTEM("Nervous System"),
+    BONES("Bones"),
+    FULL_BODY("Full Body / Systemic")
+}

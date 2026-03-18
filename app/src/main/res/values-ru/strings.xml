@@ -307,4 +307,22 @@
     <string name="recommendations_header">Рекомендации</string>
     <string name="analysis_time">Анализ занял %1$d мс</string>
     <string name="refresh_analysis">Обновить</string>
+
+    <!-- Medication AI Analysis -->
+    <string name="view_ai_analysis">AI анализ лекарства</string>
+    <string name="med_analysis_title">Анализ лекарства</string>
+    <string name="analyzing_medication">Анализ данных лекарства…</string>
+    <string name="med_body_targets">Области воздействия</string>
+    <string name="med_info_title">Информация о лекарстве</string>
+    <string name="med_common_uses">Обычное применение</string>
+    <string name="med_side_effects">Побочные эффекты</string>
+    <string name="med_warnings">Важные предупреждения</string>
+    <string name="med_interactions">Лекарственные взаимодействия</string>
+    <string name="med_dosing_predictions">Прогнозы приёма</string>
+    <string name="med_adherence_forecast">Прогноз соблюдения</string>
+    <string name="med_stock_forecast">Прогноз запасов</string>
+    <string name="med_risk_assessment">Оценка рисков</string>
+    <string name="med_optimization_tips">Советы по оптимизации</string>
+    <string name="med_stock_remaining">Осталось %1$d в запасе</string>
+    <string name="med_analysis_provider_info">Проанализировано %1$s за %2$d мс</string>
 </resources>

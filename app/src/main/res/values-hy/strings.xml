@@ -308,4 +308,22 @@
     <string name="recommendations_header">Հանդեսարակություններ</string>
     <string name="analysis_time">Վերլուծությունը տևեց %1$d մս</string>
     <string name="refresh_analysis">Թարմացնել</string>
+
+    <!-- Medication AI Analysis -->
+    <string name="view_ai_analysis">AI դեղի վերլուծություն</string>
+    <string name="med_analysis_title">Դեղի վերլուծություն</string>
+    <string name="analyzing_medication">Վերլուծում է դեղի տվյալները…</string>
+    <string name="med_body_targets">Մարմնի թիրախներ</string>
+    <string name="med_info_title">Դեղի տեղեկատվություն</string>
+    <string name="med_common_uses">Տարածված կիրառումներ</string>
+    <string name="med_side_effects">Կողմնակի ազդեցություններ</string>
+    <string name="med_warnings">Կարևոր նախազգուշացումներ</string>
+    <string name="med_interactions">Դեղերի փոխազդեցություններ</string>
+    <string name="med_dosing_predictions">Դեղաչափի կանխատեսումներ</string>
+    <string name="med_adherence_forecast">Հավատարմության կանխատեսում</string>
+    <string name="med_stock_forecast">Պաշարի կանխատեսում</string>
+    <string name="med_risk_assessment">Ռիսկի գնահատում</string>
+    <string name="med_optimization_tips">Օպտիմալացման խորհուրդներ</string>
+    <string name="med_stock_remaining">Պաշարում մնացել է %1$d</string>
+    <string name="med_analysis_provider_info">Վերլուծել է %1$s-ի կողմից %2$d մս-ում</string>
 </resources>
