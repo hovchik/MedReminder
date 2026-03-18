@@ -93,11 +93,12 @@ class CloudAiProvider @Inject constructor() : AiProvider {
                 latencyMs = System.currentTimeMillis() - startTime
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Cloud API call failed (${activeService.name}): ${e.message}", e)
+            val errorDetail = e.message ?: e.toString()
+            Log.e(TAG, "Cloud API call failed (${activeService.name}): $errorDetail", e)
             generateLocalFallbackAnalysis(input).copy(
                 providerUsed = AiProviderType.CLOUD,
                 latencyMs = System.currentTimeMillis() - startTime,
-                cloudError = "Cloud AI (${activeService.displayName}) failed: ${e.message}"
+                cloudError = "Cloud AI (${activeService.displayName}) failed: $errorDetail"
             )
         }
     }
@@ -223,14 +224,24 @@ class CloudAiProvider @Inject constructor() : AiProvider {
             })
         }
 
-        return makeHttpPost(url, body.toString(), mapOf(
+        val response = makeHttpPost(url, body.toString(), mapOf(
             "Authorization" to "Bearer $apiKey",
             "Content-Type" to "application/json"
-        )).let { response ->
-            val json = JSONObject(response)
-            json.getJSONArray("choices").getJSONObject(0)
-                .getJSONObject("message").getString("content")
+        ))
+        Log.d(TAG, "DeepSeek raw response (first 500 chars): ${response.take(500)}")
+        val json = JSONObject(response)
+
+        // Check for API-level error
+        if (json.has("error")) {
+            val err = json.optJSONObject("error")
+            val errMsg = err?.optString("message") ?: json.getString("error")
+            throw Exception("DeepSeek API error: $errMsg")
         }
+
+        val choices = json.optJSONArray("choices")
+            ?: throw Exception("DeepSeek response missing 'choices': ${response.take(200)}")
+        return choices.getJSONObject(0)
+            .getJSONObject("message").getString("content")
     }
 
     private fun makeHttpPost(url: URL, body: String, headers: Map<String, String>): String {
