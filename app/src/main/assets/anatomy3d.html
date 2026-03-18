@@ -54,30 +54,67 @@ controls.autoRotateSpeed = 1.2;
 controls.target.set(0, 0.2, 0);
 
 // Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-scene.add(ambientLight);
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
 dirLight.position.set(3, 5, 4);
 scene.add(dirLight);
 const backLight = new THREE.DirectionalLight(0x8899bb, 0.4);
 backLight.position.set(-2, 3, -3);
 scene.add(backLight);
-const rimLight = new THREE.DirectionalLight(0xaaccff, 0.3);
-rimLight.position.set(0, -2, 2);
-scene.add(rimLight);
+scene.add(new THREE.DirectionalLight(0xaaccff, 0.3).translateZ(2).translateY(-2));
+
+// ============================================================
+//  Utility: Lathe body part from profile points
+// ============================================================
+// points = [[radius, height], ...] — creates smooth lathe geometry
+function latheFromProfile(points, segments = 32) {
+  const curve = new THREE.CatmullRomCurve3(
+    points.map(([r, y]) => new THREE.Vector3(r, y, 0)),
+    false, 'catmullrom', 0.5
+  );
+  const sampled = curve.getPoints(60);
+  const vec2s = sampled.map(p => new THREE.Vector2(Math.max(p.x, 0), p.y));
+  return new THREE.LatheGeometry(vec2s, segments);
+}
+
+// Smooth limb: tapered cylinder with rounded ends
+function smoothLimb(rTop, rBot, length, segments = 16) {
+  const pts = [];
+  // top cap
+  for (let i = 0; i <= 6; i++) {
+    const a = (Math.PI / 2) * (i / 6);
+    pts.push([Math.sin(a) * rTop, length / 2 + Math.cos(a) * rTop * 0.4]);
+  }
+  // shaft
+  pts.push([rTop, length * 0.3]);
+  pts.push([rTop * 0.98 + rBot * 0.02, length * 0.1]);
+  pts.push([rTop * 0.6 + rBot * 0.4, -length * 0.15]);
+  pts.push([rBot * 1.02, -length * 0.3]);
+  // bottom cap
+  for (let i = 0; i <= 6; i++) {
+    const a = (Math.PI / 2) * (i / 6);
+    pts.push([Math.cos(a) * rBot, -length / 2 - Math.sin(a) * rBot * 0.4]);
+  }
+  return latheFromProfile(pts, segments);
+}
 
 // ============================================================
 //  Materials
 // ============================================================
+const skinColor = 0xd4a088;
 const skinMat = new THREE.MeshStandardMaterial({
-  color: 0xd4a88c, roughness: 0.65, metalness: 0.02,
-  transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false
+  color: skinColor, roughness: 0.55, metalness: 0.02,
+  transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false
 });
-const organBaseMat = (color) => new THREE.MeshStandardMaterial({
-  color, roughness: 0.5, metalness: 0.05, transparent: true, opacity: 0.7
+const solidSkinMat = new THREE.MeshStandardMaterial({
+  color: skinColor, roughness: 0.55, metalness: 0.02,
+  transparent: true, opacity: 0.6
+});
+const organMat = (color, opacity = 0.72) => new THREE.MeshStandardMaterial({
+  color, roughness: 0.5, metalness: 0.05, transparent: true, opacity
 });
 const boneMat = new THREE.MeshStandardMaterial({
-  color: 0xf5f0e8, roughness: 0.6, metalness: 0.05, transparent: true, opacity: 0.6
+  color: 0xf5f0e8, roughness: 0.6, metalness: 0.05, transparent: true, opacity: 0.55
 });
 const highlightMat = (color) => new THREE.MeshStandardMaterial({
   color, roughness: 0.3, metalness: 0.1, transparent: true, opacity: 0.92,
@@ -85,12 +122,10 @@ const highlightMat = (color) => new THREE.MeshStandardMaterial({
 });
 
 // ============================================================
-//  Body model — built from parametric geometry
+//  Body group + organ registry
 // ============================================================
 const bodyGroup = new THREE.Group();
 scene.add(bodyGroup);
-
-// Registry: name -> { mesh, defaultMat, region }
 const organs = {};
 
 function addOrgan(name, geometry, material, position, rotation, scale, region) {
@@ -108,233 +143,689 @@ function addOrgan(name, geometry, material, position, rotation, scale, region) {
   return mesh;
 }
 
-// --- Head ---
-const headGeo = new THREE.SphereGeometry(0.22, 32, 24);
-headGeo.scale(1, 1.15, 0.95);
-addOrgan('head', headGeo, skinMat.clone(), [0, 1.62, 0], null, null, 'HEAD');
+// ============================================================
+//  HEAD — realistic cranium shape via lathe
+// ============================================================
+const headProfile = [
+  [0, 1.86],        // crown
+  [0.04, 1.85],
+  [0.10, 1.83],
+  [0.16, 1.79],     // upper forehead
+  [0.19, 1.74],     // forehead
+  [0.21, 1.68],     // brow
+  [0.20, 1.64],     // eye socket indent
+  [0.19, 1.60],     // cheekbone
+  [0.21, 1.57],     // cheek
+  [0.20, 1.53],     // jaw
+  [0.17, 1.49],     // jaw angle
+  [0.12, 1.46],     // chin area
+  [0.06, 1.44],     // chin
+  [0, 1.43],        // chin bottom
+];
+const headGeo = latheFromProfile(headProfile, 36);
+addOrgan('head', headGeo, skinMat.clone(), null, null, [1, 1, 0.92], 'HEAD');
 
-// Face features (eyes, nose hints) using small spheres
-const eyeGeo = new THREE.SphereGeometry(0.028, 16, 12);
+// Face detail: nose ridge
+const noseShape = new THREE.Shape();
+noseShape.moveTo(-0.012, 0);
+noseShape.quadraticCurveTo(-0.015, 0.04, -0.008, 0.08);
+noseShape.quadraticCurveTo(0, 0.1, 0.008, 0.08);
+noseShape.quadraticCurveTo(0.015, 0.04, 0.012, 0);
+const noseGeo = new THREE.ExtrudeGeometry(noseShape, { depth: 0.04, bevelEnabled: true, bevelSize: 0.004, bevelThickness: 0.003, bevelSegments: 3 });
+addOrgan('nose', noseGeo, solidSkinMat.clone(), [0, 1.56, 0.17], [-0.2, 0, 0], null, 'HEAD');
+
+// Eyes — almond-shaped
+const eyeShape = new THREE.Shape();
+eyeShape.moveTo(-0.022, 0);
+eyeShape.quadraticCurveTo(0, 0.012, 0.022, 0);
+eyeShape.quadraticCurveTo(0, -0.008, -0.022, 0);
+const eyeGeo = new THREE.ExtrudeGeometry(eyeShape, { depth: 0.012, bevelEnabled: true, bevelSize: 0.003, bevelThickness: 0.002, bevelSegments: 2 });
 const eyeMat = new THREE.MeshStandardMaterial({ color: 0x334455, roughness: 0.3 });
-addOrgan('left_eye', eyeGeo, eyeMat.clone(), [-0.072, 1.65, 0.18], null, [1, 0.7, 0.5], 'EYES');
-addOrgan('right_eye', eyeGeo, eyeMat.clone(), [0.072, 1.65, 0.18], null, [1, 0.7, 0.5], 'EYES');
+addOrgan('left_eye', eyeGeo, eyeMat.clone(), [-0.072, 1.635, 0.155], [0, 0, 0], null, 'EYES');
+addOrgan('right_eye', eyeGeo, eyeMat.clone(), [0.072, 1.635, 0.155], [0, 0, 0], null, 'EYES');
 
-// Ears
-const earGeo = new THREE.SphereGeometry(0.04, 12, 8);
-addOrgan('left_ear', earGeo, skinMat.clone(), [-0.24, 1.62, 0], null, [0.4, 1.2, 0.8], 'EARS');
-addOrgan('right_ear', earGeo, skinMat.clone(), [0.24, 1.62, 0], null, [0.4, 1.2, 0.8], 'EARS');
+// Iris/pupil
+const irisGeo = new THREE.CircleGeometry(0.009, 16);
+const irisMat = new THREE.MeshStandardMaterial({ color: 0x445566, roughness: 0.2 });
+addOrgan('left_iris', irisGeo, irisMat.clone(), [-0.072, 1.635, 0.17], null, null, 'EYES');
+addOrgan('right_iris', irisGeo, irisMat.clone(), [0.072, 1.635, 0.17], null, null, 'EYES');
 
-// --- Neck ---
-const neckGeo = new THREE.CylinderGeometry(0.07, 0.09, 0.14, 16);
-addOrgan('neck', neckGeo, skinMat.clone(), [0, 1.38, 0], null, null, 'THROAT');
+// Ears — organic shape
+const earShape = new THREE.Shape();
+earShape.moveTo(0, -0.03);
+earShape.quadraticCurveTo(0.02, -0.025, 0.025, 0);
+earShape.quadraticCurveTo(0.028, 0.025, 0.018, 0.04);
+earShape.quadraticCurveTo(0.005, 0.05, 0, 0.035);
+earShape.quadraticCurveTo(-0.005, 0.015, 0, -0.03);
+const earGeo = new THREE.ExtrudeGeometry(earShape, { depth: 0.012, bevelEnabled: true, bevelSize: 0.003, bevelThickness: 0.002, bevelSegments: 2 });
+addOrgan('left_ear', earGeo, solidSkinMat.clone(), [-0.21, 1.61, -0.02], [0, -0.3, 0], null, 'EARS');
+addOrgan('right_ear', earGeo, solidSkinMat.clone(), [0.21, 1.61, -0.02], [0, 0.3, 0], [-1, 1, 1], 'EARS');
 
-// --- Torso (made from merged shapes for organic look) ---
-// Upper torso (chest)
-const chestGeo = new THREE.SphereGeometry(0.32, 32, 24);
-chestGeo.scale(1, 0.75, 0.7);
-addOrgan('chest', chestGeo, skinMat.clone(), [0, 1.15, 0], null, null, 'FULL_BODY');
-
-// Lower torso (abdomen)
-const abdomenGeo = new THREE.SphereGeometry(0.28, 32, 24);
-abdomenGeo.scale(1, 0.85, 0.68);
-addOrgan('abdomen', abdomenGeo, skinMat.clone(), [0, 0.88, 0], null, null, 'FULL_BODY');
-
-// Hips / pelvis area
-const hipGeo = new THREE.SphereGeometry(0.3, 32, 24);
-hipGeo.scale(1, 0.5, 0.65);
-addOrgan('hips', hipGeo, skinMat.clone(), [0, 0.68, 0], null, null, 'FULL_BODY');
-
-// --- Shoulders ---
-const shoulderGeo = new THREE.SphereGeometry(0.09, 16, 12);
-addOrgan('left_shoulder', shoulderGeo, skinMat.clone(), [-0.38, 1.28, 0], null, [1.1, 0.85, 0.9], 'JOINTS');
-addOrgan('right_shoulder', shoulderGeo, skinMat.clone(), [0.38, 1.28, 0], null, [1.1, 0.85, 0.9], 'JOINTS');
-
-// --- Arms ---
-function createLimb(radiusTop, radiusBottom, length, segs) {
-  return new THREE.CylinderGeometry(radiusTop, radiusBottom, length, segs || 12);
-}
-// Upper arms
-addOrgan('left_upper_arm', createLimb(0.06, 0.055, 0.32), skinMat.clone(), [-0.42, 1.1, 0], [0, 0, 0.12], null, 'JOINTS');
-addOrgan('right_upper_arm', createLimb(0.06, 0.055, 0.32), skinMat.clone(), [0.42, 1.1, 0], [0, 0, -0.12], null, 'JOINTS');
-// Forearms
-addOrgan('left_forearm', createLimb(0.05, 0.04, 0.32), skinMat.clone(), [-0.46, 0.78, 0.02], [0.05, 0, 0.08], null, 'JOINTS');
-addOrgan('right_forearm', createLimb(0.05, 0.04, 0.32), skinMat.clone(), [0.46, 0.78, 0.02], [0.05, 0, -0.08], null, 'JOINTS');
-// Hands
-const handGeo = new THREE.BoxGeometry(0.06, 0.09, 0.03, 2, 2, 1);
-addOrgan('left_hand', handGeo, skinMat.clone(), [-0.48, 0.58, 0.03], null, null, 'JOINTS');
-addOrgan('right_hand', handGeo, skinMat.clone(), [0.48, 0.58, 0.03], null, null, 'JOINTS');
-// Fingers (simple cylinders)
-for (let i = 0; i < 4; i++) {
-  const fx = -0.015 + i * 0.015;
-  const fGeo = new THREE.CylinderGeometry(0.008, 0.007, 0.06, 6);
-  addOrgan(`left_finger_${i}`, fGeo, skinMat.clone(), [-0.465 + fx, 0.52, 0.03], null, null, 'JOINTS');
-  addOrgan(`right_finger_${i}`, fGeo, skinMat.clone(), [0.465 + fx, 0.52, 0.03], null, null, 'JOINTS');
-}
-// Thumbs
-const thumbGeo = new THREE.CylinderGeometry(0.01, 0.008, 0.05, 6);
-addOrgan('left_thumb', thumbGeo, skinMat.clone(), [-0.5, 0.56, 0.045], [0.3, 0, 0.5], null, 'JOINTS');
-addOrgan('right_thumb', thumbGeo, skinMat.clone(), [0.5, 0.56, 0.045], [0.3, 0, -0.5], null, 'JOINTS');
-
-// --- Legs ---
-// Upper legs (thighs)
-addOrgan('left_thigh', createLimb(0.09, 0.07, 0.44, 16), skinMat.clone(), [-0.14, 0.43, 0], null, null, 'JOINTS');
-addOrgan('right_thigh', createLimb(0.09, 0.07, 0.44, 16), skinMat.clone(), [0.14, 0.43, 0], null, null, 'JOINTS');
-// Knees
-const kneeGeo = new THREE.SphereGeometry(0.065, 12, 8);
-addOrgan('left_knee', kneeGeo, skinMat.clone(), [-0.14, 0.2, 0.02], null, [1, 0.8, 0.9], 'JOINTS');
-addOrgan('right_knee', kneeGeo, skinMat.clone(), [0.14, 0.2, 0.02], null, [1, 0.8, 0.9], 'JOINTS');
-// Lower legs (calves)
-addOrgan('left_calf', createLimb(0.065, 0.045, 0.42, 12), skinMat.clone(), [-0.14, -0.04, 0], null, null, 'JOINTS');
-addOrgan('right_calf', createLimb(0.065, 0.045, 0.42, 12), skinMat.clone(), [0.14, -0.04, 0], null, null, 'JOINTS');
-// Ankles
-const ankleGeo = new THREE.SphereGeometry(0.04, 10, 8);
-addOrgan('left_ankle', ankleGeo, skinMat.clone(), [-0.14, -0.26, 0], null, null, 'JOINTS');
-addOrgan('right_ankle', ankleGeo, skinMat.clone(), [0.14, -0.26, 0], null, null, 'JOINTS');
-// Feet
-const footGeo = new THREE.BoxGeometry(0.08, 0.04, 0.16, 2, 1, 2);
-addOrgan('left_foot', footGeo, skinMat.clone(), [-0.14, -0.3, 0.04], null, null, 'BONES');
-addOrgan('right_foot', footGeo, skinMat.clone(), [0.14, -0.3, 0.04], null, null, 'BONES');
+// Mouth hint
+const mouthGeo = new THREE.TorusGeometry(0.025, 0.004, 6, 16, Math.PI);
+addOrgan('mouth', mouthGeo, organMat(0xbb6666, 0.4), [0, 1.49, 0.16], [0, 0, Math.PI], null, 'HEAD');
 
 // ============================================================
-//  Internal Organs
+//  NECK — smooth anatomical cylinder
+// ============================================================
+const neckProfile = [
+  [0, 1.43],
+  [0.055, 1.42],
+  [0.065, 1.40],
+  [0.072, 1.37],
+  [0.075, 1.34],
+  [0.078, 1.31],
+  [0.085, 1.28],   // base widens into shoulders
+  [0, 1.28],
+];
+const neckGeo = latheFromProfile(neckProfile, 20);
+addOrgan('neck', neckGeo, skinMat.clone(), null, null, [1, 1, 0.85], 'THROAT');
+
+// Adam's apple hint
+const adamsGeo = new THREE.SphereGeometry(0.012, 8, 6);
+addOrgan('adams_apple', adamsGeo, solidSkinMat.clone(), [0, 1.36, 0.065], null, [1, 1.3, 0.7], 'THROAT');
+
+// ============================================================
+//  TORSO — realistic lathe profile with chest, waist, hips
+// ============================================================
+const torsoProfile = [
+  [0, 1.30],        // top of shoulders
+  [0.14, 1.30],
+  [0.26, 1.28],     // shoulder width
+  [0.30, 1.24],     // deltoid area
+  [0.30, 1.18],     // chest
+  [0.29, 1.12],     // mid chest
+  [0.27, 1.05],     // lower chest
+  [0.24, 0.98],     // waist begins
+  [0.22, 0.92],     // waist
+  [0.21, 0.86],     // natural waist
+  [0.23, 0.80],     // hip begins
+  [0.26, 0.74],     // hip width
+  [0.27, 0.68],     // widest hip
+  [0.26, 0.64],     // lower hip
+  [0.22, 0.60],     // groin area
+  [0.15, 0.57],
+  [0, 0.55],
+];
+const torsoGeo = latheFromProfile(torsoProfile, 36);
+addOrgan('torso', torsoGeo, skinMat.clone(), null, null, [1, 1, 0.62], 'FULL_BODY');
+
+// Pectoral definition (subtle)
+const pecGeo = new THREE.SphereGeometry(0.08, 16, 12);
+addOrgan('left_pec', pecGeo, skinMat.clone(), [-0.1, 1.17, 0.1], null, [1.3, 0.6, 0.5], 'FULL_BODY');
+addOrgan('right_pec', pecGeo, skinMat.clone(), [0.1, 1.17, 0.1], null, [1.3, 0.6, 0.5], 'FULL_BODY');
+
+// Navel hint
+const navelGeo = new THREE.CircleGeometry(0.008, 10);
+const navelMat = new THREE.MeshStandardMaterial({ color: 0xb08870, roughness: 0.6, side: THREE.DoubleSide });
+addOrgan('navel', navelGeo, navelMat, [0, 0.85, 0.145], null, null, 'FULL_BODY');
+
+// ============================================================
+//  ARMS — smooth organic limbs with musculature hints
+// ============================================================
+function createArm(side) {
+  const s = side === 'left' ? -1 : 1;
+
+  // Shoulder cap
+  const shoulderGeo = new THREE.SphereGeometry(0.072, 20, 14);
+  addOrgan(`${side}_shoulder`, shoulderGeo, skinMat.clone(), [s * 0.33, 1.27, 0], null, [1, 0.9, 0.85], 'JOINTS');
+
+  // Upper arm — with bicep bulge
+  const upperArmProfile = [
+    [0, 0.19],
+    [0.048, 0.18],
+    [0.058, 0.14],    // deltoid transition
+    [0.062, 0.08],    // bicep peak
+    [0.060, 0.02],
+    [0.055, -0.04],
+    [0.050, -0.10],
+    [0.044, -0.16],   // taper to elbow
+    [0.040, -0.18],
+    [0, -0.19],
+  ];
+  const upperArmGeo = latheFromProfile(upperArmProfile, 16);
+  addOrgan(`${side}_upper_arm`, upperArmGeo, skinMat.clone(),
+    [s * 0.38, 1.10, 0], [0, 0, s * 0.06], null, 'JOINTS');
+
+  // Elbow
+  const elbowGeo = new THREE.SphereGeometry(0.042, 12, 10);
+  addOrgan(`${side}_elbow`, elbowGeo, skinMat.clone(),
+    [s * 0.40, 0.92, 0], null, [1, 0.85, 0.9], 'JOINTS');
+
+  // Forearm — tapers to wrist
+  const forearmProfile = [
+    [0, 0.18],
+    [0.044, 0.16],
+    [0.048, 0.10],     // forearm bulk
+    [0.046, 0.04],
+    [0.040, -0.02],
+    [0.034, -0.08],
+    [0.028, -0.14],    // wrist
+    [0.026, -0.17],
+    [0, -0.18],
+  ];
+  const forearmGeo = latheFromProfile(forearmProfile, 14);
+  addOrgan(`${side}_forearm`, forearmGeo, skinMat.clone(),
+    [s * 0.43, 0.74, 0.01], [0.04, 0, s * 0.05], null, 'JOINTS');
+
+  // Wrist
+  const wristGeo = new THREE.SphereGeometry(0.026, 10, 8);
+  addOrgan(`${side}_wrist`, wristGeo, skinMat.clone(),
+    [s * 0.45, 0.57, 0.02], null, [1, 0.7, 0.85], 'JOINTS');
+
+  // Hand — flat tapered shape
+  const handShape = new THREE.Shape();
+  handShape.moveTo(-0.028, -0.04);
+  handShape.quadraticCurveTo(-0.032, 0, -0.025, 0.03);
+  handShape.lineTo(-0.018, 0.045);
+  handShape.lineTo(-0.006, 0.05);
+  handShape.lineTo(0.006, 0.05);
+  handShape.lineTo(0.018, 0.045);
+  handShape.lineTo(0.025, 0.03);
+  handShape.quadraticCurveTo(0.032, 0, 0.028, -0.04);
+  handShape.quadraticCurveTo(0, -0.05, -0.028, -0.04);
+  const handGeo = new THREE.ExtrudeGeometry(handShape, {
+    depth: 0.018, bevelEnabled: true, bevelSize: 0.004, bevelThickness: 0.003, bevelSegments: 2
+  });
+  addOrgan(`${side}_hand`, handGeo, solidSkinMat.clone(),
+    [s * 0.46, 0.50, 0.01], null, null, 'JOINTS');
+
+  // Fingers
+  for (let i = 0; i < 4; i++) {
+    const fx = -0.018 + i * 0.012;
+    const fLen = 0.05 + (i === 1 ? 0.008 : i === 2 ? 0.005 : 0);
+    const fGeo = smoothLimb(0.007, 0.005, fLen, 8);
+    addOrgan(`${side}_finger_${i}`, fGeo, solidSkinMat.clone(),
+      [s * (0.445 + fx * s), 0.44 - fLen / 2, 0.02], null, null, 'JOINTS');
+  }
+  // Thumb
+  const thumbGeo = smoothLimb(0.009, 0.007, 0.04, 8);
+  addOrgan(`${side}_thumb`, thumbGeo, solidSkinMat.clone(),
+    [s * 0.485, 0.49, 0.03], [0.3, 0, s * 0.5], null, 'JOINTS');
+}
+createArm('left');
+createArm('right');
+
+// ============================================================
+//  LEGS — realistic profile with thigh, knee, calf, ankle
+// ============================================================
+function createLeg(side) {
+  const s = side === 'left' ? -1 : 1;
+
+  // Thigh
+  const thighProfile = [
+    [0, 0.24],
+    [0.072, 0.22],
+    [0.084, 0.16],     // upper thigh
+    [0.088, 0.10],     // mid thigh — muscular
+    [0.085, 0.04],
+    [0.078, -0.02],
+    [0.068, -0.08],
+    [0.058, -0.14],
+    [0.050, -0.20],    // approaching knee
+    [0.046, -0.23],
+    [0, -0.24],
+  ];
+  const thighGeo = latheFromProfile(thighProfile, 20);
+  addOrgan(`${side}_thigh`, thighGeo, skinMat.clone(),
+    [s * 0.12, 0.40, 0], null, [1, 1, 0.88], 'JOINTS');
+
+  // Knee
+  const kneeGeo = new THREE.SphereGeometry(0.052, 14, 10);
+  addOrgan(`${side}_knee`, kneeGeo, skinMat.clone(),
+    [s * 0.12, 0.17, 0.01], null, [1, 0.8, 0.9], 'JOINTS');
+
+  // Calf — distinctive shape
+  const calfProfile = [
+    [0, 0.22],
+    [0.044, 0.20],
+    [0.052, 0.14],     // calf muscle peak
+    [0.054, 0.08],     // gastrocnemius
+    [0.050, 0.02],
+    [0.044, -0.04],
+    [0.036, -0.10],
+    [0.030, -0.14],    // tapers to ankle
+    [0.026, -0.18],
+    [0.024, -0.20],
+    [0, -0.22],
+  ];
+  const calfGeo = latheFromProfile(calfProfile, 16);
+  addOrgan(`${side}_calf`, calfGeo, skinMat.clone(),
+    [s * 0.12, -0.06, 0], null, [1, 1, 0.85], 'JOINTS');
+
+  // Ankle
+  const ankleGeo = new THREE.SphereGeometry(0.028, 10, 8);
+  addOrgan(`${side}_ankle`, ankleGeo, skinMat.clone(),
+    [s * 0.12, -0.27, 0], null, [1, 0.7, 0.85], 'JOINTS');
+
+  // Foot — anatomical shape
+  const footShape = new THREE.Shape();
+  footShape.moveTo(-0.035, -0.065);
+  footShape.quadraticCurveTo(-0.04, -0.03, -0.035, 0.01);
+  footShape.quadraticCurveTo(-0.03, 0.05, -0.015, 0.07);
+  footShape.lineTo(0, 0.075);
+  footShape.lineTo(0.015, 0.07);
+  footShape.quadraticCurveTo(0.03, 0.05, 0.035, 0.01);
+  footShape.quadraticCurveTo(0.04, -0.03, 0.035, -0.065);
+  footShape.quadraticCurveTo(0, -0.075, -0.035, -0.065);
+  const footGeo = new THREE.ExtrudeGeometry(footShape, {
+    depth: 0.035, bevelEnabled: true, bevelSize: 0.005, bevelThickness: 0.004, bevelSegments: 3
+  });
+  addOrgan(`${side}_foot`, footGeo, solidSkinMat.clone(),
+    [s * 0.12, -0.31, 0.03], [-Math.PI / 2, 0, 0], null, 'BONES');
+
+  // Toes hint
+  for (let i = 0; i < 5; i++) {
+    const tx = -0.02 + i * 0.01;
+    const tLen = i === 0 ? 0.025 : 0.018 - i * 0.001;
+    const tGeo = new THREE.SphereGeometry(tLen / 2, 6, 5);
+    addOrgan(`${side}_toe_${i}`, tGeo, solidSkinMat.clone(),
+      [s * (0.12 + tx), -0.315, 0.095 + (i === 0 ? 0.01 : 0)], null, [0.7, 0.5, 1], 'BONES');
+  }
+}
+createLeg('left');
+createLeg('right');
+
+// ============================================================
+//  INTERNAL ORGANS — anatomically placed
 // ============================================================
 
-// Heart (displaced sphere + cone shape)
-const heartGeo = new THREE.SphereGeometry(0.055, 16, 12);
-heartGeo.scale(1, 1.15, 0.85);
-addOrgan('heart', heartGeo, organBaseMat(0xcc3344), [-0.04, 1.18, 0.08], [0, 0, 0.2], null, 'HEART');
-// Aorta hint
-const aortaGeo = new THREE.CylinderGeometry(0.012, 0.015, 0.1, 8);
-addOrgan('aorta', aortaGeo, organBaseMat(0xcc3344), [-0.02, 1.26, 0.06], [0.2, 0, 0.1], null, 'HEART');
+// Heart — realistic shape using lathe + transform
+const heartProfile = [
+  [0, 0.055],
+  [0.02, 0.05],
+  [0.04, 0.04],
+  [0.052, 0.025],
+  [0.055, 0.01],
+  [0.050, -0.005],
+  [0.040, -0.02],
+  [0.025, -0.035],
+  [0.010, -0.045],
+  [0, -0.05],
+];
+const heartGeo = latheFromProfile(heartProfile, 16);
+addOrgan('heart', heartGeo, organMat(0xcc3344), [-0.04, 1.16, 0.06], [0, 0, 0.2], null, 'HEART');
 
-// Lungs
-const lungGeo = new THREE.SphereGeometry(0.1, 20, 16);
-lungGeo.scale(0.75, 1.2, 0.7);
-addOrgan('left_lung', lungGeo, organBaseMat(0xdd8899), [-0.15, 1.17, 0.02], null, null, 'LUNGS');
-addOrgan('right_lung', lungGeo, organBaseMat(0xdd8899), [0.13, 1.17, 0.02], null, [1.1, 1, 1], 'LUNGS');
+// Aortic arch
+const aortaCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(-0.03, 1.20, 0.06),
+  new THREE.Vector3(-0.02, 1.26, 0.05),
+  new THREE.Vector3(0.01, 1.28, 0.04),
+  new THREE.Vector3(0.02, 1.25, 0.03),
+]);
+const aortaGeo = new THREE.TubeGeometry(aortaCurve, 12, 0.008, 8, false);
+addOrgan('aorta', aortaGeo, organMat(0xcc3344), null, null, null, 'HEART');
+
+// Lungs — organic lathe shape
+const lungProfile = [
+  [0, 0.12],
+  [0.03, 0.11],
+  [0.06, 0.09],
+  [0.08, 0.05],
+  [0.085, 0],
+  [0.08, -0.04],
+  [0.07, -0.08],
+  [0.05, -0.10],
+  [0.02, -0.11],
+  [0, -0.115],
+];
+const lungGeo = latheFromProfile(lungProfile, 16);
+addOrgan('left_lung', lungGeo, organMat(0xdd8899), [-0.14, 1.15, 0.01], null, [0.75, 1, 0.6], 'LUNGS');
+addOrgan('right_lung', lungGeo, organMat(0xdd8899), [0.12, 1.15, 0.01], null, [0.85, 1, 0.6], 'LUNGS');
+
+// Bronchial tubes
+const bronchL = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0, 1.27, 0.03),
+  new THREE.Vector3(-0.05, 1.22, 0.02),
+  new THREE.Vector3(-0.10, 1.18, 0.01),
+]);
+const bronchR = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0, 1.27, 0.03),
+  new THREE.Vector3(0.04, 1.23, 0.02),
+  new THREE.Vector3(0.08, 1.19, 0.01),
+]);
+addOrgan('bronch_l', new THREE.TubeGeometry(bronchL, 8, 0.006, 6, false), organMat(0xddaaaa), null, null, null, 'LUNGS');
+addOrgan('bronch_r', new THREE.TubeGeometry(bronchR, 8, 0.006, 6, false), organMat(0xddaaaa), null, null, null, 'LUNGS');
+
 // Trachea
-const tracheaGeo = new THREE.CylinderGeometry(0.015, 0.018, 0.15, 8);
-addOrgan('trachea', tracheaGeo, organBaseMat(0xddaaaa), [0, 1.33, 0.04], null, null, 'THROAT');
+const tracheaCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0, 1.38, 0.04),
+  new THREE.Vector3(0, 1.34, 0.035),
+  new THREE.Vector3(0, 1.30, 0.03),
+  new THREE.Vector3(0, 1.27, 0.03),
+]);
+addOrgan('trachea', new THREE.TubeGeometry(tracheaCurve, 10, 0.012, 8, false), organMat(0xddaaaa), null, null, null, 'THROAT');
 
-// Liver
-const liverGeo = new THREE.SphereGeometry(0.09, 16, 12);
-liverGeo.scale(1.4, 0.7, 0.8);
-addOrgan('liver', liverGeo, organBaseMat(0x884422), [0.08, 0.98, 0.06], [0, 0, -0.15], null, 'LIVER');
+// Liver — large asymmetric organ
+const liverProfile = [
+  [0, 0.05],
+  [0.04, 0.045],
+  [0.07, 0.03],
+  [0.09, 0.01],
+  [0.085, -0.01],
+  [0.07, -0.025],
+  [0.04, -0.035],
+  [0, -0.04],
+];
+const liverGeo = latheFromProfile(liverProfile, 16);
+addOrgan('liver', liverGeo, organMat(0x884422), [0.06, 0.97, 0.05], [0, 0, -0.15], [1.5, 1, 0.8], 'LIVER');
+
+// Gallbladder
+const gbGeo = new THREE.SphereGeometry(0.015, 8, 6);
+addOrgan('gallbladder', gbGeo, organMat(0x669944), [0.1, 0.93, 0.07], null, [0.7, 1.3, 0.7], 'LIVER');
 
 // Stomach
-const stomachGeo = new THREE.SphereGeometry(0.07, 16, 12);
-stomachGeo.scale(1, 1.2, 0.8);
-addOrgan('stomach', stomachGeo, organBaseMat(0xccaa77), [-0.08, 0.94, 0.06], [0, 0, 0.2], null, 'STOMACH');
+const stomachProfile = [
+  [0, 0.06],
+  [0.03, 0.055],
+  [0.05, 0.04],
+  [0.06, 0.02],
+  [0.058, 0],
+  [0.05, -0.02],
+  [0.035, -0.04],
+  [0.015, -0.05],
+  [0, -0.055],
+];
+const stomachGeo = latheFromProfile(stomachProfile, 14);
+addOrgan('stomach', stomachGeo, organMat(0xccaa77), [-0.06, 0.93, 0.05], [0, 0, 0.25], [1.1, 1, 0.7], 'STOMACH');
 
-// Kidneys
-const kidneyGeo = new THREE.SphereGeometry(0.035, 12, 8);
-kidneyGeo.scale(0.7, 1.2, 0.7);
-addOrgan('left_kidney', kidneyGeo, organBaseMat(0x995544), [-0.12, 0.9, -0.04], null, null, 'KIDNEYS');
-addOrgan('right_kidney', kidneyGeo, organBaseMat(0x995544), [0.12, 0.9, -0.04], null, null, 'KIDNEYS');
+// Intestines — coiled tube
+const intestinePts = [];
+for (let i = 0; i < 60; i++) {
+  const t = i / 60;
+  const r = 0.06 + t * 0.02;
+  const a = t * Math.PI * 6;
+  intestinePts.push(new THREE.Vector3(
+    Math.cos(a) * r * (1 - t * 0.3),
+    0.82 - t * 0.08,
+    0.04 + Math.sin(a) * r * 0.4
+  ));
+}
+const intestineCurve = new THREE.CatmullRomCurve3(intestinePts);
+const intestineGeo = new THREE.TubeGeometry(intestineCurve, 80, 0.012, 6, false);
+addOrgan('intestines', intestineGeo, organMat(0xddaa88, 0.5), null, null, null, 'STOMACH');
 
-// Intestines (coiled torus-like shape)
-const intestineGeo = new THREE.TorusGeometry(0.08, 0.025, 8, 20);
-addOrgan('intestines', intestineGeo, organBaseMat(0xddaa88), [0, 0.82, 0.04], [1.5, 0, 0], null, 'STOMACH');
-const smallIntGeo = new THREE.TorusGeometry(0.05, 0.02, 8, 16);
-addOrgan('small_intestine', smallIntGeo, organBaseMat(0xddbb99), [0, 0.78, 0.04], [1.4, 0.3, 0], null, 'STOMACH');
+// Large intestine — ascending/transverse/descending colon path
+const colonPts = [
+  new THREE.Vector3(0.10, 0.72, 0.03),   // cecum
+  new THREE.Vector3(0.10, 0.78, 0.03),   // ascending
+  new THREE.Vector3(0.10, 0.86, 0.04),
+  new THREE.Vector3(0.06, 0.88, 0.04),   // hepatic flexure
+  new THREE.Vector3(-0.02, 0.88, 0.04),  // transverse
+  new THREE.Vector3(-0.08, 0.88, 0.04),  // splenic flexure
+  new THREE.Vector3(-0.10, 0.85, 0.03),  // descending
+  new THREE.Vector3(-0.10, 0.78, 0.03),
+  new THREE.Vector3(-0.08, 0.73, 0.03),  // sigmoid
+];
+const colonCurve = new THREE.CatmullRomCurve3(colonPts);
+const colonGeo = new THREE.TubeGeometry(colonCurve, 24, 0.016, 8, false);
+addOrgan('colon', colonGeo, organMat(0xccaa77, 0.45), null, null, null, 'STOMACH');
+
+// Kidneys — bean shape via lathe
+const kidneyProfile = [
+  [0, 0.028],
+  [0.012, 0.025],
+  [0.020, 0.018],
+  [0.022, 0.008],
+  [0.018, -0.002],  // hilum indent
+  [0.020, -0.012],
+  [0.018, -0.022],
+  [0.010, -0.027],
+  [0, -0.028],
+];
+const kidneyGeo = latheFromProfile(kidneyProfile, 12);
+addOrgan('left_kidney', kidneyGeo, organMat(0x995544), [-0.10, 0.90, -0.03], null, [1, 1, 0.7], 'KIDNEYS');
+addOrgan('right_kidney', kidneyGeo, organMat(0x995544), [0.10, 0.88, -0.03], null, [1, 1, 0.7], 'KIDNEYS');
+
+// Ureters
+const ureterL = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(-0.10, 0.87, -0.02),
+  new THREE.Vector3(-0.08, 0.78, 0),
+  new THREE.Vector3(-0.04, 0.70, 0.01),
+]);
+const ureterR = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0.10, 0.85, -0.02),
+  new THREE.Vector3(0.08, 0.78, 0),
+  new THREE.Vector3(0.04, 0.70, 0.01),
+]);
+addOrgan('ureter_l', new THREE.TubeGeometry(ureterL, 8, 0.004, 6, false), organMat(0x997766), null, null, null, 'KIDNEYS');
+addOrgan('ureter_r', new THREE.TubeGeometry(ureterR, 8, 0.004, 6, false), organMat(0x997766), null, null, null, 'KIDNEYS');
+
+// Bladder
+const bladderGeo = new THREE.SphereGeometry(0.03, 10, 8);
+addOrgan('bladder', bladderGeo, organMat(0xaaaa77, 0.4), [0, 0.66, 0.03], null, [1.2, 0.8, 0.8], 'KIDNEYS');
 
 // ============================================================
-//  Skeleton (visible through transparent skin)
+//  SKELETON
 // ============================================================
 
-// Spine
-const spineGroup = new THREE.Group();
-for (let i = 0; i < 22; i++) {
-  const vGeo = new THREE.CylinderGeometry(0.015, 0.018, 0.03, 8);
+// Spine — individual vertebrae along a curve
+const spineCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0, 1.38, -0.05),
+  new THREE.Vector3(0, 1.25, -0.06),   // cervical
+  new THREE.Vector3(0, 1.10, -0.07),   // thoracic
+  new THREE.Vector3(0, 0.95, -0.065),
+  new THREE.Vector3(0, 0.80, -0.055),  // lumbar
+  new THREE.Vector3(0, 0.68, -0.04),   // sacrum
+]);
+for (let i = 0; i < 24; i++) {
+  const t = i / 23;
+  const pt = spineCurve.getPointAt(t);
+  const size = t < 0.3 ? 0.012 + t * 0.01 : 0.016 + (t - 0.3) * 0.005;
+  const vGeo = new THREE.CylinderGeometry(size, size * 1.1, 0.018, 8);
   const v = new THREE.Mesh(vGeo, boneMat.clone());
-  v.position.set(0, 1.35 - i * 0.035, -0.06);
+  v.position.copy(pt);
   v.userData = { name: `vertebra_${i}`, region: 'BONES', defaultMat: boneMat };
-  spineGroup.add(v);
+  bodyGroup.add(v);
   if (!organs['BONES']) organs['BONES'] = [];
   organs['BONES'].push(v);
 }
-bodyGroup.add(spineGroup);
 
-// Rib cage
+// Rib cage — anatomically curved
 for (let i = 0; i < 12; i++) {
-  const ribRadius = 0.14 + (i < 7 ? i * 0.012 : (12 - i) * 0.01);
-  const ribGeo = new THREE.TorusGeometry(ribRadius, 0.006, 6, 24, Math.PI);
-  const yPos = 1.28 - i * 0.025;
-  // Left rib half
-  const leftRib = new THREE.Mesh(ribGeo, boneMat.clone());
-  leftRib.position.set(0, yPos, 0);
-  leftRib.rotation.set(Math.PI / 2, 0, 0);
-  leftRib.userData = { name: `rib_${i}`, region: 'BONES', defaultMat: boneMat };
-  bodyGroup.add(leftRib);
-  organs['BONES'].push(leftRib);
+  const t = i / 11;
+  const yPos = 1.26 - i * 0.028;
+  const ribW = 0.12 + (i < 7 ? i * 0.012 : (11 - i) * 0.008);
+  const ribD = 0.08 + (i < 7 ? i * 0.006 : (11 - i) * 0.004);
+
+  // Each rib as an elliptical arc
+  const ribPts = [];
+  for (let j = 0; j <= 24; j++) {
+    const a = (j / 24) * Math.PI;
+    ribPts.push(new THREE.Vector3(
+      Math.sin(a) * ribW,
+      yPos - Math.sin(a * 0.5) * 0.01,
+      Math.cos(a) * ribD - 0.01
+    ));
+  }
+  const ribCurve = new THREE.CatmullRomCurve3(ribPts);
+  const ribGeo = new THREE.TubeGeometry(ribCurve, 20, 0.004, 5, false);
+  const rib = new THREE.Mesh(ribGeo, boneMat.clone());
+  rib.userData = { name: `rib_${i}`, region: 'BONES', defaultMat: boneMat };
+  bodyGroup.add(rib);
+  organs['BONES'].push(rib);
 }
 
 // Sternum
-const sternumGeo = new THREE.BoxGeometry(0.025, 0.2, 0.015);
-addOrgan('sternum', sternumGeo, boneMat.clone(), [0, 1.18, 0.12], null, null, 'BONES');
+const sternumCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0, 1.26, 0.1),
+  new THREE.Vector3(0, 1.18, 0.11),
+  new THREE.Vector3(0, 1.10, 0.105),
+  new THREE.Vector3(0, 1.04, 0.095),
+]);
+const sternumGeo = new THREE.TubeGeometry(sternumCurve, 8, 0.008, 6, false);
+addOrgan('sternum', sternumGeo, boneMat.clone(), null, null, null, 'BONES');
 
-// Pelvis (simplified)
-const pelvisGeo = new THREE.TorusGeometry(0.16, 0.02, 8, 16, Math.PI);
-addOrgan('pelvis', pelvisGeo, boneMat.clone(), [0, 0.68, 0], [1.8, 0, 0], null, 'BONES');
+// Pelvis
+const pelvisPts = [];
+for (let i = 0; i <= 20; i++) {
+  const a = (i / 20) * Math.PI;
+  pelvisPts.push(new THREE.Vector3(
+    Math.sin(a) * 0.16,
+    0.64 + Math.cos(a) * 0.05,
+    -0.02 + Math.sin(a * 0.7) * 0.03
+  ));
+}
+const pelvisCurve = new THREE.CatmullRomCurve3(pelvisPts);
+const pelvisGeo = new THREE.TubeGeometry(pelvisCurve, 16, 0.012, 6, false);
+addOrgan('pelvis', pelvisGeo, boneMat.clone(), null, null, null, 'BONES');
 
-// Skull outline
-const skullGeo = new THREE.SphereGeometry(0.2, 20, 16);
-skullGeo.scale(1, 1.1, 0.9);
-addOrgan('skull', skullGeo, boneMat.clone(), [0, 1.63, 0], null, null, 'BONES');
-organs['BONES'][organs['BONES'].length - 1].material.opacity = 0.15;
+// Skull (transparent overlay)
+const skullGeo = new THREE.SphereGeometry(0.20, 24, 18);
+const skullMat = boneMat.clone();
+skullMat.opacity = 0.12;
+addOrgan('skull', skullGeo, skullMat, [0, 1.65, 0], null, [1, 1.05, 0.88], 'BONES');
 
 // Clavicles
-const clavGeo = new THREE.CylinderGeometry(0.008, 0.01, 0.2, 6);
-addOrgan('left_clavicle', clavGeo, boneMat.clone(), [-0.18, 1.3, 0.06], [0, 0, 1.2], null, 'BONES');
-addOrgan('right_clavicle', clavGeo, boneMat.clone(), [0.18, 1.3, 0.06], [0, 0, -1.2], null, 'BONES');
+function makeBoneCurve(pts) {
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 8, 0.006, 6, false);
+}
+addOrgan('left_clavicle', makeBoneCurve([
+  new THREE.Vector3(0, 1.29, 0.08),
+  new THREE.Vector3(-0.1, 1.30, 0.07),
+  new THREE.Vector3(-0.22, 1.28, 0.04),
+]), boneMat.clone(), null, null, null, 'BONES');
+addOrgan('right_clavicle', makeBoneCurve([
+  new THREE.Vector3(0, 1.29, 0.08),
+  new THREE.Vector3(0.1, 1.30, 0.07),
+  new THREE.Vector3(0.22, 1.28, 0.04),
+]), boneMat.clone(), null, null, null, 'BONES');
 
-// Scapulae (shoulder blades)
-const scapGeo = new THREE.BoxGeometry(0.08, 0.12, 0.01);
-addOrgan('left_scapula', scapGeo, boneMat.clone(), [-0.2, 1.18, -0.12], [0.15, 0, -0.1], null, 'BONES');
-addOrgan('right_scapula', scapGeo, boneMat.clone(), [0.2, 1.18, -0.12], [0.15, 0, 0.1], null, 'BONES');
+// Scapulae
+const scapShape = new THREE.Shape();
+scapShape.moveTo(0, 0);
+scapShape.lineTo(-0.04, -0.06);
+scapShape.lineTo(-0.01, -0.10);
+scapShape.lineTo(0.03, -0.06);
+scapShape.lineTo(0, 0);
+const scapGeo = new THREE.ExtrudeGeometry(scapShape, { depth: 0.006, bevelEnabled: true, bevelSize: 0.002, bevelThickness: 0.002, bevelSegments: 1 });
+addOrgan('left_scapula', scapGeo, boneMat.clone(), [-0.18, 1.25, -0.10], [0.2, 0, -0.1], null, 'BONES');
+addOrgan('right_scapula', scapGeo, boneMat.clone(), [0.18, 1.25, -0.10], [0.2, 0, 0.1], [-1, 1, 1], 'BONES');
 
-// Femur bones
-const femurGeo = new THREE.CylinderGeometry(0.018, 0.02, 0.4, 8);
-addOrgan('left_femur', femurGeo, boneMat.clone(), [-0.14, 0.42, 0], null, null, 'BONES');
-addOrgan('right_femur', femurGeo, boneMat.clone(), [0.14, 0.42, 0], null, null, 'BONES');
+// Long bones — humerus, femur, tibia
+addOrgan('left_humerus', makeBoneCurve([
+  new THREE.Vector3(-0.34, 1.25, 0),
+  new THREE.Vector3(-0.38, 1.15, 0),
+  new THREE.Vector3(-0.40, 1.02, 0),
+  new THREE.Vector3(-0.40, 0.92, 0),
+]), boneMat.clone(), null, null, null, 'BONES');
+addOrgan('right_humerus', makeBoneCurve([
+  new THREE.Vector3(0.34, 1.25, 0),
+  new THREE.Vector3(0.38, 1.15, 0),
+  new THREE.Vector3(0.40, 1.02, 0),
+  new THREE.Vector3(0.40, 0.92, 0),
+]), boneMat.clone(), null, null, null, 'BONES');
 
-// Tibia bones
-const tibiaGeo = new THREE.CylinderGeometry(0.015, 0.012, 0.38, 8);
-addOrgan('left_tibia', tibiaGeo, boneMat.clone(), [-0.14, -0.02, 0.01], null, null, 'BONES');
-addOrgan('right_tibia', tibiaGeo, boneMat.clone(), [0.14, -0.02, 0.01], null, null, 'BONES');
+addOrgan('left_radius', makeBoneCurve([
+  new THREE.Vector3(-0.40, 0.92, 0),
+  new THREE.Vector3(-0.42, 0.82, 0.01),
+  new THREE.Vector3(-0.44, 0.68, 0.015),
+  new THREE.Vector3(-0.45, 0.58, 0.02),
+]), boneMat.clone(), null, null, null, 'BONES');
+addOrgan('right_radius', makeBoneCurve([
+  new THREE.Vector3(0.40, 0.92, 0),
+  new THREE.Vector3(0.42, 0.82, 0.01),
+  new THREE.Vector3(0.44, 0.68, 0.015),
+  new THREE.Vector3(0.45, 0.58, 0.02),
+]), boneMat.clone(), null, null, null, 'BONES');
 
-// Humerus bones
-const humerusGeo = new THREE.CylinderGeometry(0.012, 0.015, 0.3, 8);
-addOrgan('left_humerus', humerusGeo, boneMat.clone(), [-0.42, 1.1, 0], [0, 0, 0.1], null, 'BONES');
-addOrgan('right_humerus', humerusGeo, boneMat.clone(), [0.42, 1.1, 0], [0, 0, -0.1], null, 'BONES');
+addOrgan('left_femur', makeBoneCurve([
+  new THREE.Vector3(-0.12, 0.62, 0),
+  new THREE.Vector3(-0.13, 0.50, 0),
+  new THREE.Vector3(-0.12, 0.35, 0),
+  new THREE.Vector3(-0.12, 0.20, 0),
+]), boneMat.clone(), null, null, null, 'BONES');
+addOrgan('right_femur', makeBoneCurve([
+  new THREE.Vector3(0.12, 0.62, 0),
+  new THREE.Vector3(0.13, 0.50, 0),
+  new THREE.Vector3(0.12, 0.35, 0),
+  new THREE.Vector3(0.12, 0.20, 0),
+]), boneMat.clone(), null, null, null, 'BONES');
+
+addOrgan('left_tibia', makeBoneCurve([
+  new THREE.Vector3(-0.12, 0.17, 0.01),
+  new THREE.Vector3(-0.12, 0.05, 0.005),
+  new THREE.Vector3(-0.12, -0.10, 0),
+  new THREE.Vector3(-0.12, -0.25, 0),
+]), boneMat.clone(), null, null, null, 'BONES');
+addOrgan('right_tibia', makeBoneCurve([
+  new THREE.Vector3(0.12, 0.17, 0.01),
+  new THREE.Vector3(0.12, 0.05, 0.005),
+  new THREE.Vector3(0.12, -0.10, 0),
+  new THREE.Vector3(0.12, -0.25, 0),
+]), boneMat.clone(), null, null, null, 'BONES');
 
 // ============================================================
-//  Nervous system hints (brain + spinal cord)
+//  NERVOUS SYSTEM
 // ============================================================
-const brainGeo = new THREE.SphereGeometry(0.15, 20, 16);
-brainGeo.scale(1, 0.9, 0.85);
-addOrgan('brain', brainGeo, organBaseMat(0xffcccc), [0, 1.67, -0.01], null, null, 'NERVOUS_SYSTEM');
-organs['NERVOUS_SYSTEM'][0].material.opacity = 0.3;
+const brainProfile = [
+  [0, 0.08],
+  [0.04, 0.075],
+  [0.08, 0.06],
+  [0.11, 0.04],
+  [0.12, 0.02],
+  [0.12, 0],
+  [0.11, -0.02],
+  [0.08, -0.035],
+  [0.05, -0.04],
+  [0, -0.045],
+];
+const brainGeo = latheFromProfile(brainProfile, 20);
+const brainMat = organMat(0xffcccc, 0.3);
+addOrgan('brain', brainGeo, brainMat, [0, 1.71, -0.01], null, [1, 1, 0.85], 'NERVOUS_SYSTEM');
 
-const spinalCordGeo = new THREE.CylinderGeometry(0.006, 0.005, 0.8, 6);
-addOrgan('spinal_cord', spinalCordGeo, organBaseMat(0xffddcc), [0, 1.0, -0.06], null, null, 'NERVOUS_SYSTEM');
+// Cerebellum
+const cerebGeo = new THREE.SphereGeometry(0.04, 12, 8);
+addOrgan('cerebellum', cerebGeo, organMat(0xffcccc, 0.25), [0, 1.64, -0.07], null, [1.3, 0.8, 0.8], 'NERVOUS_SYSTEM');
+
+// Spinal cord
+const spinalPts = spineCurve.getPoints(20).map(p => new THREE.Vector3(p.x, p.y, p.z + 0.005));
+const spinalCordCurve = new THREE.CatmullRomCurve3(spinalPts);
+addOrgan('spinal_cord', new THREE.TubeGeometry(spinalCordCurve, 16, 0.004, 6, false),
+  organMat(0xffddcc, 0.4), null, null, null, 'NERVOUS_SYSTEM');
 
 // ============================================================
-//  Blood / Circulatory hints
+//  BLOOD / CIRCULATORY
 // ============================================================
-const arteryGeo = new THREE.CylinderGeometry(0.005, 0.005, 0.5, 6);
-addOrgan('aorta_main', arteryGeo, organBaseMat(0xdd2222), [0.02, 1.05, 0.02], null, null, 'BLOOD');
-addOrgan('left_artery', arteryGeo, organBaseMat(0xdd2222), [-0.1, 0.85, 0.02], [0, 0, 0.3], [1, 0.6, 1], 'BLOOD');
-addOrgan('right_artery', arteryGeo, organBaseMat(0xdd2222), [0.1, 0.85, 0.02], [0, 0, -0.3], [1, 0.6, 1], 'BLOOD');
+// Aorta descending
+const aortaDescCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0.02, 1.25, 0.03),
+  new THREE.Vector3(0.02, 1.15, 0.02),
+  new THREE.Vector3(0.02, 1.05, 0.01),
+  new THREE.Vector3(0.02, 0.90, 0.01),
+  new THREE.Vector3(0, 0.78, 0.01),
+]);
+addOrgan('aorta_desc', new THREE.TubeGeometry(aortaDescCurve, 14, 0.007, 8, false),
+  organMat(0xdd2222), null, null, null, 'BLOOD');
+
+// Iliac arteries
+addOrgan('iliac_l', new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0, 0.78, 0.01),
+  new THREE.Vector3(-0.06, 0.72, 0.01),
+  new THREE.Vector3(-0.12, 0.65, 0),
+]), 8, 0.005, 6, false), organMat(0xdd2222), null, null, null, 'BLOOD');
+addOrgan('iliac_r', new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0, 0.78, 0.01),
+  new THREE.Vector3(0.06, 0.72, 0.01),
+  new THREE.Vector3(0.12, 0.65, 0),
+]), 8, 0.005, 6, false), organMat(0xdd2222), null, null, null, 'BLOOD');
+
+// Vena cava
+addOrgan('vena_cava', new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
+  new THREE.Vector3(-0.01, 1.24, 0.02),
+  new THREE.Vector3(-0.01, 1.10, 0.015),
+  new THREE.Vector3(-0.01, 0.95, 0.01),
+  new THREE.Vector3(-0.01, 0.80, 0.01),
+]), 12, 0.006, 8, false), organMat(0x4444cc, 0.5), null, null, null, 'BLOOD');
 
 // ============================================================
-//  Skin layer (full body transparent shell)
+//  SKIN layer (translucent body shell)
 // ============================================================
-const skinShellGeo = new THREE.SphereGeometry(0.34, 32, 24);
-skinShellGeo.scale(1, 2.6, 0.72);
+const skinShellGeo = new THREE.SphereGeometry(0.34, 36, 28);
+skinShellGeo.scale(1, 2.6, 0.65);
 const skinShellMat = new THREE.MeshStandardMaterial({
   color: 0xeeccbb, roughness: 0.7, metalness: 0,
-  transparent: true, opacity: 0.06, side: THREE.DoubleSide, depthWrite: false
+  transparent: true, opacity: 0.05, side: THREE.DoubleSide, depthWrite: false
 });
 const skinShell = new THREE.Mesh(skinShellGeo, skinShellMat);
 skinShell.position.set(0, 0.95, 0);
@@ -344,25 +835,68 @@ if (!organs['SKIN']) organs['SKIN'] = [];
 organs['SKIN'].push(skinShell);
 
 // ============================================================
-//  Hormonal / Endocrine hints
+//  HORMONAL / ENDOCRINE
 // ============================================================
-const thyroidGeo = new THREE.TorusGeometry(0.025, 0.008, 6, 12, Math.PI);
-addOrgan('thyroid', thyroidGeo, organBaseMat(0xcc77aa), [0, 1.35, 0.06], [0, 0, Math.PI], null, 'HORMONES');
-const adrenalGeo = new THREE.SphereGeometry(0.015, 8, 6);
-addOrgan('left_adrenal', adrenalGeo, organBaseMat(0xddaa55), [-0.12, 0.95, -0.03], null, [1.5, 0.8, 0.8], 'HORMONES');
-addOrgan('right_adrenal', adrenalGeo, organBaseMat(0xddaa55), [0.12, 0.95, -0.03], null, [1.5, 0.8, 0.8], 'HORMONES');
+// Thyroid — butterfly shape
+const thyroidL = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0, 1.36, 0.055),
+  new THREE.Vector3(-0.015, 1.355, 0.06),
+  new THREE.Vector3(-0.025, 1.35, 0.055),
+]);
+const thyroidR = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0, 1.36, 0.055),
+  new THREE.Vector3(0.015, 1.355, 0.06),
+  new THREE.Vector3(0.025, 1.35, 0.055),
+]);
+addOrgan('thyroid_l', new THREE.TubeGeometry(thyroidL, 6, 0.008, 6, false), organMat(0xcc77aa), null, null, null, 'HORMONES');
+addOrgan('thyroid_r', new THREE.TubeGeometry(thyroidR, 6, 0.008, 6, false), organMat(0xcc77aa), null, null, null, 'HORMONES');
 
-// Immune hints (spleen + lymph nodes)
-const spleenGeo = new THREE.SphereGeometry(0.04, 10, 8);
-addOrgan('spleen', spleenGeo, organBaseMat(0x884466), [-0.18, 0.96, 0], null, [1.3, 0.8, 0.7], 'IMMUNE');
-const lymphGeo = new THREE.SphereGeometry(0.012, 6, 6);
-addOrgan('lymph_neck_l', lymphGeo, organBaseMat(0x66aa66), [-0.08, 1.38, 0.04], null, null, 'IMMUNE');
-addOrgan('lymph_neck_r', lymphGeo, organBaseMat(0x66aa66), [0.08, 1.38, 0.04], null, null, 'IMMUNE');
-addOrgan('lymph_armpit_l', lymphGeo, organBaseMat(0x66aa66), [-0.32, 1.22, 0], null, null, 'IMMUNE');
-addOrgan('lymph_armpit_r', lymphGeo, organBaseMat(0x66aa66), [0.32, 1.22, 0], null, null, 'IMMUNE');
+// Adrenal glands — caps on kidneys
+const adrenalGeo = new THREE.SphereGeometry(0.012, 8, 6);
+addOrgan('left_adrenal', adrenalGeo, organMat(0xddaa55), [-0.10, 0.93, -0.025], null, [1.5, 0.6, 0.8], 'HORMONES');
+addOrgan('right_adrenal', adrenalGeo, organMat(0xddaa55), [0.10, 0.91, -0.025], null, [1.5, 0.6, 0.8], 'HORMONES');
+
+// Pancreas
+const pancreasCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0.08, 0.93, 0.04),
+  new THREE.Vector3(0.02, 0.925, 0.045),
+  new THREE.Vector3(-0.04, 0.92, 0.04),
+  new THREE.Vector3(-0.08, 0.915, 0.035),
+]);
+addOrgan('pancreas', new THREE.TubeGeometry(pancreasCurve, 10, 0.008, 6, false), organMat(0xccbb88), null, null, null, 'HORMONES');
 
 // ============================================================
-//  Highlight API — called from Android via JS interface
+//  IMMUNE system
+// ============================================================
+// Spleen
+const spleenProfile = [
+  [0, 0.03],
+  [0.015, 0.025],
+  [0.025, 0.015],
+  [0.028, 0],
+  [0.025, -0.015],
+  [0.015, -0.025],
+  [0, -0.03],
+];
+const spleenGeo = latheFromProfile(spleenProfile, 10);
+addOrgan('spleen', spleenGeo, organMat(0x884466), [-0.17, 0.96, 0], null, [1, 1, 0.7], 'IMMUNE');
+
+// Lymph nodes
+const lymphGeo = new THREE.SphereGeometry(0.008, 6, 6);
+const lnMat = organMat(0x66aa66, 0.6);
+addOrgan('lymph_neck_l', lymphGeo, lnMat.clone(), [-0.06, 1.39, 0.03], null, null, 'IMMUNE');
+addOrgan('lymph_neck_r', lymphGeo, lnMat.clone(), [0.06, 1.39, 0.03], null, null, 'IMMUNE');
+addOrgan('lymph_axilla_l', lymphGeo, lnMat.clone(), [-0.30, 1.22, 0], null, null, 'IMMUNE');
+addOrgan('lymph_axilla_r', lymphGeo, lnMat.clone(), [0.30, 1.22, 0], null, null, 'IMMUNE');
+addOrgan('lymph_inguin_l', lymphGeo, lnMat.clone(), [-0.10, 0.62, 0.03], null, null, 'IMMUNE');
+addOrgan('lymph_inguin_r', lymphGeo, lnMat.clone(), [0.10, 0.62, 0.03], null, null, 'IMMUNE');
+
+// Thymus
+const thymusGeo = new THREE.SphereGeometry(0.02, 8, 6);
+addOrgan('thymus', thymusGeo, organMat(0x88aa88, 0.5), [0, 1.24, 0.08], null, [1, 1.3, 0.6], 'IMMUNE');
+
+// ============================================================
+//  Highlight API
 // ============================================================
 const highlightColors = {
   HEAD: 0x66bbff, EYES: 0x44aaff, EARS: 0x55aacc,
@@ -387,9 +921,7 @@ let currentHighlights = [];
 function clearHighlights() {
   for (const region in organs) {
     organs[region].forEach(mesh => {
-      if (mesh.userData.defaultMat) {
-        mesh.material = mesh.userData.defaultMat;
-      }
+      if (mesh.userData.defaultMat) mesh.material = mesh.userData.defaultMat;
     });
   }
   currentHighlights = [];
@@ -399,11 +931,7 @@ function clearHighlights() {
 function highlightRegions(regionListJson) {
   clearHighlights();
   let regionList;
-  try {
-    regionList = JSON.parse(regionListJson);
-  } catch (e) {
-    regionList = [regionListJson];
-  }
+  try { regionList = JSON.parse(regionListJson); } catch (e) { regionList = [regionListJson]; }
 
   currentHighlights = regionList;
   const labels = [];
@@ -411,30 +939,22 @@ function highlightRegions(regionListJson) {
   regionList.forEach(region => {
     const color = highlightColors[region] || 0x66bbff;
     const mat = highlightMat(color);
-    if (organs[region]) {
-      organs[region].forEach(mesh => {
-        mesh.material = mat;
-      });
-    }
+    if (organs[region]) organs[region].forEach(mesh => { mesh.material = mat; });
     if (regionLabels[region]) labels.push(regionLabels[region]);
   });
 
   if (labels.length > 0) {
     const labelEl = document.getElementById('label');
-    labelEl.textContent = labels.join(' • ');
+    labelEl.textContent = labels.join(' \u2022 ');
     labelEl.classList.add('show');
   }
 }
 
-// Pulsing animation for highlighted organs
-let pulseTime = 0;
-
-// Expose to Android WebView
 window.highlightRegions = highlightRegions;
 window.clearHighlights = clearHighlights;
 
 // ============================================================
-//  Resize handler
+//  Resize
 // ============================================================
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -445,12 +965,12 @@ window.addEventListener('resize', () => {
 // ============================================================
 //  Animation loop
 // ============================================================
+let pulseTime = 0;
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
   pulseTime += 0.03;
 
-  // Pulse highlighted organs
   currentHighlights.forEach(region => {
     if (organs[region]) {
       organs[region].forEach(mesh => {
@@ -466,11 +986,9 @@ function animate() {
 animate();
 
 // ============================================================
-//  Notify Android that model is ready
+//  Notify Android
 // ============================================================
-if (window.AndroidBridge) {
-  window.AndroidBridge.onModelReady();
-}
+if (window.AndroidBridge) window.AndroidBridge.onModelReady();
 </script>
 </body>
 </html>
