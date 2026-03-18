@@ -192,7 +192,9 @@ val supportedLanguages = listOf(
     LanguageOption("es", "Espa\u00F1ol"),
     LanguageOption("zh", "\u4E2D\u6587"),
     LanguageOption("hy", "\u0540\u0561\u0575\u0565\u0580\u0565\u0576"),
-    LanguageOption("fa", "\u0641\u0627\u0631\u0633\u06CC")
+    LanguageOption("fa", "\u0641\u0627\u0631\u0633\u06CC"),
+    LanguageOption("ja", "\u65E5\u672C\u8A9E"),
+    LanguageOption("hi", "\u0939\u093F\u0928\u094D\u0926\u0940")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

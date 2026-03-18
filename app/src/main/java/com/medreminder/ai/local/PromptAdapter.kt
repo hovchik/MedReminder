@@ -1,6 +1,7 @@
 package com.medreminder.ai.local
 
 import com.medreminder.ai.*
+import com.medreminder.ai.AiLanguageHelper
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -54,12 +55,14 @@ class PromptAdapter @Inject constructor() {
             |Analysis Type: ${input.analysisType.name}
         """.trimMargin()
 
+        val languageInstruction = AiLanguageHelper.getLanguageInstruction()
+
         return if (supportsStructuredJson) {
             """
                 |$basePrompt
                 |
                 |Respond in JSON:
-                |{"summary": "...", "insights": ["..."], "recommendations": ["..."], "riskLevel": "LOW|MODERATE|HIGH"}
+                |{"summary": "...", "insights": ["..."], "recommendations": ["..."], "riskLevel": "LOW|MODERATE|HIGH"}$languageInstruction
             """.trimMargin()
         } else {
             """
@@ -69,7 +72,7 @@ class PromptAdapter @Inject constructor() {
                 |SUMMARY: A brief summary of adherence patterns
                 |INSIGHTS: Key observations (one per line, prefixed with "- ")
                 |RECOMMENDATIONS: Actionable suggestions (one per line, prefixed with "- ")
-                |RISK: LOW, MODERATE, or HIGH
+                |RISK: LOW, MODERATE, or HIGH$languageInstruction
             """.trimMargin()
         }
     }

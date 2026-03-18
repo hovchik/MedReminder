@@ -1,6 +1,7 @@
 package com.medreminder.ai.local
 
 import com.medreminder.ai.*
+import com.medreminder.ai.AiLanguageHelper
 import com.medreminder.data.local.DoseLogDao
 import com.medreminder.data.local.MedicationDao
 import com.medreminder.data.preferences.UserPreferencesManager
@@ -339,7 +340,7 @@ class MedicationAnalysisUseCase @Inject constructor(
             |    "riskAssessment": "Overall risk assessment for this medication's adherence (2-3 sentences)"
             |  },
             |  "bodyRegions": ["REGION_1", "REGION_2"]
-            |}
+            |}${AiLanguageHelper.getLanguageInstruction()}
         """.trimMargin()
     }
 

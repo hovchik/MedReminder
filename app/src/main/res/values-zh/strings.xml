@@ -23,6 +23,19 @@
     <string name="no_medications_scheduled">没有计划的药物</string>
     <string name="add_first_medication">添加您的第一个药物开始使用</string>
     <string name="add_medication">添加药物</string>
+
+    <!-- Today Screen - Time sections -->
+    <string name="time_section_morning">早晨</string>
+    <string name="time_section_afternoon">下午</string>
+    <string name="time_section_evening">傍晚</string>
+    <string name="time_section_night">夜晚</string>
+    <string name="next_dose_in">下次用药 %1$s 后</string>
+    <string name="snoozed_until">推迟到 %1$s</string>
+    <string name="all_done_title">今天全部完成！</string>
+    <string name="all_done_subtitle">做得很好，继续保持</string>
+    <string name="upcoming">即将到来</string>
+    <string name="overdue">已逾期</string>
+
     <string name="status_taken">已服用</string>
     <string name="status_skipped">已跳过</string>
     <string name="status_missed">已错过</string>
@@ -101,6 +114,45 @@
     <string name="notify_caregivers_description">通过短信或电子邮件通知看护人关于此药物</string>
     <string name="emergency_medication">紧急药物</string>
     <string name="emergency_medication_description">错过用药时，看护人将收到包含您位置的短信</string>
+
+    <!-- Family Members -->
+    <string name="family">家人</string>
+    <string name="caregivers">看护人</string>
+    <string name="add_family_member">添加家庭成员</string>
+    <string name="no_family_members_yet">尚未添加家庭成员</string>
+    <string name="add_family_members_hint">添加父母、子女或其他家庭成员来为他们安排用药</string>
+    <string name="family_info">添加家庭成员以安排和跟踪他们的用药。</string>
+    <string name="member_name">姓名</string>
+    <string name="member_age">年龄</string>
+    <string name="relation">关系</string>
+    <string name="relation_parent">父母</string>
+    <string name="relation_child">子女</string>
+    <string name="relation_spouse">配偶</string>
+    <string name="relation_sibling">兄弟姐妹</string>
+    <string name="relation_other">其他</string>
+    <string name="age_years">%1$d岁</string>
+
+    <!-- Medication Assignment -->
+    <string name="medication_for">药物用于</string>
+    <string name="myself">自己</string>
+    <string name="select_person">选择此药物的使用者</string>
+
+    <!-- Schedule Duration -->
+    <string name="duration">持续时间</string>
+    <string name="ongoing_lifetime">持续 / 终身</string>
+    <string name="for_x_days">X天</string>
+    <string name="for_x_months">X个月</string>
+    <string name="number_of_days">天数</string>
+    <string name="number_of_months">月数</string>
+
+    <!-- Recurrent Schedule -->
+    <string name="every_x_hours">每X小时</string>
+    <string name="hours">小时</string>
+    <string name="starting_from">开始时间</string>
+    <string name="tolerance">容差</string>
+    <string name="tolerance_minutes">%1$d分钟容差</string>
+    <string name="minutes">分钟</string>
+
     <string name="settings">设置</string>
     <string name="active_medications">%1$d 种活跃药物</string>
     <string name="version">版本 1.0.0</string>
@@ -289,6 +341,31 @@
     <string name="permissions_can_change">您可以稍后在设置中更改权限</string>
     <string name="permissions">权限</string>
     <string name="permissions_settings_subtitle">管理应用权限</string>
+
+    <!-- AI Analysis -->
+    <string name="ai_daily_insight">AI 每日分析</string>
+    <string name="ai_weekly_insight">AI 每周分析</string>
+    <string name="analyzing">正在分析您的数据…</string>
+    <string name="get_ai_insight">获取 AI 分析</string>
+
+    <!-- AI Engine Settings -->
+    <string name="ai_engine">AI 引擎</string>
+    <string name="ai_provider">AI 供应商</string>
+    <string name="select_ai_provider">选择 AI 供应商</string>
+    <string name="ai_auto_desc">自动（推荐）— 最佳可用 AI</string>
+    <string name="ai_system_desc">系统 AI — 使用设备内置 AI</string>
+    <string name="ai_local_desc">本地模型 — 运行已下载的 AI 模型</string>
+    <string name="ai_cloud_desc">云端 AI（Claude）— 高级云端分析</string>
+    <string name="active_provider">已激活: %1$s</string>
+    <string name="installed_models_count">已安装 %1$d 个模型</string>
+    <string name="setup_local_ai">设置本地 AI</string>
+    <string name="setup_local_ai_subtitle">配置设备上的 AI 以进行私密分析</string>
+    <string name="active_local_model">活动本地模型</string>
+    <string name="loading_model">正在加载模型\u2026</string>
+    <string name="no_model_selected">点击选择模型</string>
+    <string name="select_active_model">选择活动模型</string>
+    <string name="no_models_installed">未安装模型。使用设置向导下载。</string>
+    <string name="ai_performance_note">性能因设备而异</string>
 
     <!-- Cloud AI Service -->
     <string name="cloud_ai_service">云端 AI 服务</string>
