@@ -397,6 +397,32 @@ fun AiInsightCard(
                     )
                 }
 
+                // Cloud error warning (fell back to local)
+                if (!analysis.cloudError.isNullOrEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFFF3E0)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Icon(
+                                Icons.Default.WarningAmber,
+                                contentDescription = null,
+                                tint = Color(0xFFF57C00),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                analysis.cloudError,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFE65100)
+                            )
+                        }
+                    }
+                }
+
                 // Summary
                 Text(analysis.summary, style = MaterialTheme.typography.bodyMedium)
 

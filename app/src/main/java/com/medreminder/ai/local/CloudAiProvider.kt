@@ -93,10 +93,11 @@ class CloudAiProvider @Inject constructor() : AiProvider {
                 latencyMs = System.currentTimeMillis() - startTime
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Cloud API call failed (${activeService.name}), using local fallback", e)
+            Log.e(TAG, "Cloud API call failed (${activeService.name}): ${e.message}", e)
             generateLocalFallbackAnalysis(input).copy(
                 providerUsed = AiProviderType.CLOUD,
-                latencyMs = System.currentTimeMillis() - startTime
+                latencyMs = System.currentTimeMillis() - startTime,
+                cloudError = "Cloud AI (${activeService.displayName}) failed: ${e.message}"
             )
         }
     }
@@ -210,7 +211,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
     }
 
     private fun callDeepSeekApi(apiKey: String, prompt: String): String {
-        val url = URL("https://api.deepseek.com/chat/completions")
+        val url = URL("https://api.deepseek.com/v1/chat/completions")
         val body = JSONObject().apply {
             put("model", "deepseek-chat")
             put("max_tokens", 1024)
