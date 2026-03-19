@@ -174,7 +174,7 @@ class AiProviderSelector @Inject constructor(
             }
             AiProviderType.CUSTOM_LOCAL -> {
                 if (customLocalProvider.isAvailable()) customLocalProvider
-                else cloudProvider // fallback
+                else ruleBasedProvider // fallback to rule-based when local model is unavailable
             }
             AiProviderType.AUTO -> selectBestAvailable()
         }

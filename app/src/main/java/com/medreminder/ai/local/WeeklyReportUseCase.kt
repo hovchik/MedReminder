@@ -151,8 +151,8 @@ class WeeklyReportUseCase @Inject constructor(
 
         return try {
             provider.generateAnalysis(input)
-        } catch (e: SystemAiUnavailableException) {
-            android.util.Log.w("WeeklyReport", "System AI unavailable, falling back to rule-based", e)
+        } catch (e: Exception) {
+            android.util.Log.w("WeeklyReport", "Provider failed, falling back to rule-based", e)
             ruleBasedProvider.generateAnalysis(input)
         }
     }

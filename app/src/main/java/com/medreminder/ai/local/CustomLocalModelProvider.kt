@@ -1,5 +1,6 @@
 package com.medreminder.ai.local
 
+import android.util.Log
 import com.medreminder.ai.*
 import com.medreminder.ai.modelmanager.LocalModelManager
 import com.medreminder.ai.runtime.LocalModelRuntime
@@ -13,6 +14,10 @@ class CustomLocalModelProvider @Inject constructor(
     private val modelManager: LocalModelManager,
     private val promptAdapter: PromptAdapter
 ) : AiProvider {
+
+    companion object {
+        private const val TAG = "CustomLocalModelProvider"
+    }
 
     override val type = AiProviderType.CUSTOM_LOCAL
     override val displayName = "Local Model (Custom)"
@@ -31,34 +36,57 @@ class CustomLocalModelProvider @Inject constructor(
         val model = modelManager.getModel(modelId) ?: return false
         if (model.installState != InstallState.INSTALLED) return false
 
-        activeRuntime = when (model.runtimeType) {
-            RuntimeType.LITE_RT -> LiteRtRuntimeAdapter(model.localPath)
-            RuntimeType.MEDIA_PIPE -> MediaPipeLlmRuntimeAdapter(model.localPath)
-            RuntimeType.SYSTEM_AI -> null // Handled by SystemAiProvider
+        activeRuntime = try {
+            when (model.runtimeType) {
+                RuntimeType.LITE_RT -> LiteRtRuntimeAdapter(model.localPath)
+                RuntimeType.MEDIA_PIPE -> MediaPipeLlmRuntimeAdapter(model.localPath)
+                RuntimeType.SYSTEM_AI -> null // Handled by SystemAiProvider
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create runtime for model $modelId", e)
+            null
         }
 
         return activeRuntime != null
     }
 
     fun unloadModel() {
+        activeRuntime?.release()
         activeRuntime = null
     }
 
     override suspend fun generateAnalysis(input: AnalysisInput): AnalysisResult {
         val startTime = System.currentTimeMillis()
-        val runtime = activeRuntime ?: throw IllegalStateException("No local model loaded")
+        val runtime = activeRuntime
+        if (runtime == null) {
+            Log.w(TAG, "No local model loaded, cannot generate analysis")
+            throw LocalModelUnavailableException("No local model loaded")
+        }
 
-        val prompt = promptAdapter.adaptPrompt(
-            input = input,
-            supportsStructuredJson = runtime.supportsStructuredJson()
-        )
+        return try {
+            val prompt = promptAdapter.adaptPrompt(
+                input = input,
+                supportsStructuredJson = runtime.supportsStructuredJson()
+            )
 
-        val rawResponse = runtime.runPrompt(prompt)
-        val result = promptAdapter.parseResponse(rawResponse, input)
+            val rawResponse = runtime.runPrompt(prompt)
+            val result = promptAdapter.parseResponse(rawResponse, input)
 
-        return result.copy(
-            providerUsed = AiProviderType.CUSTOM_LOCAL,
-            latencyMs = System.currentTimeMillis() - startTime
-        )
+            result.copy(
+                providerUsed = AiProviderType.CUSTOM_LOCAL,
+                latencyMs = System.currentTimeMillis() - startTime
+            )
+        } catch (e: LocalModelUnavailableException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Local model analysis failed", e)
+            throw LocalModelUnavailableException("Local model analysis failed: ${e.message}", e)
+        }
     }
 }
+
+/** Thrown when a custom local model cannot produce a result and the caller should fall back. */
+class LocalModelUnavailableException(
+    message: String,
+    cause: Throwable? = null
+) : Exception(message, cause)
