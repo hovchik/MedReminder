@@ -219,6 +219,15 @@ class AlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Cancel action
+        val cancelIntent = Intent(context, CancelReceiver::class.java).apply {
+            putExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS, doseLogIds)
+        }
+        val cancelPending = PendingIntent.getBroadcast(
+            context, notificationId * 10 + 3, cancelIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         // Full-screen intent
         val fullScreenIntent = Intent(context, FullScreenAlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -265,6 +274,7 @@ class AlarmReceiver : BroadcastReceiver() {
             .setFullScreenIntent(fullScreenPending, true)
             .addAction(R.drawable.ic_check, "Taken", takenPending)
             .addAction(R.drawable.ic_snooze, "Snooze 10m", snoozePending)
+            .addAction(R.drawable.ic_close, "Cancel", cancelPending)
             .setVibrate(longArrayOf(0, 500, 200, 500, 200, 500))
             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
             .build()

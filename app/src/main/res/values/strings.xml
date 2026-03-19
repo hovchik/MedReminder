@@ -42,7 +42,7 @@
 
     <!-- Dose Status -->
     <string name="status_taken">Taken</string>
-    <string name="status_skipped">Skipped</string>
+    <string name="status_skipped">Cancelled</string>
     <string name="status_missed">Missed</string>
     <string name="status_snoozed">Snoozed</string>
     <string name="status_pending">Pending</string>
@@ -379,6 +379,8 @@
     <string name="medications_count">%1$d Medications</string>
     <string name="i_took_all">I took all</string>
     <string name="skip_all">Skip all</string>
+    <string name="cancel_all">Cancel all</string>
+    <string name="schedule_cancelled">Schedule cancelled</string>
     <string name="time_to_take_meds_count">Time to take %1$d medications</string>
 
     <!-- OCR Scanner -->

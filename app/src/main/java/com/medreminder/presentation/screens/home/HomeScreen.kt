@@ -198,7 +198,7 @@ fun HomeScreen(
                             DoseCard(
                                 dose = dose,
                                 onTaken = { viewModel.markDoseTaken(dose.id) },
-                                onSkip = { viewModel.markDoseSkipped(dose.id) },
+                                onCancel = { viewModel.markDoseSkipped(dose.id) },
                                 onSnooze = { viewModel.snoozeDose(dose) },
                                 onEdit = { onEditMedication(dose.medicationId) }
                             )
@@ -217,7 +217,7 @@ fun HomeScreen(
                     DoseCard(
                         dose = dose,
                         onTaken = { viewModel.markDoseTaken(dose.id) },
-                        onSkip = { viewModel.markDoseSkipped(dose.id) },
+                        onCancel = { viewModel.markDoseSkipped(dose.id) },
                         onSnooze = { viewModel.snoozeDose(dose) },
                         onEdit = { onEditMedication(dose.medicationId) }
                     )
@@ -489,7 +489,7 @@ fun TodayProgressCard(taken: Int, total: Int, rate: Float, streak: Int) {
 fun DoseCard(
     dose: DoseLog,
     onTaken: () -> Unit,
-    onSkip: () -> Unit,
+    onCancel: () -> Unit,
     onSnooze: () -> Unit,
     onEdit: () -> Unit
 ) {
@@ -641,9 +641,9 @@ fun DoseCard(
                                     tint = Color(0xFFF39C12)
                                 )
                             }
-                            IconButton(onClick = onSkip, modifier = Modifier.size(34.dp)) {
+                            IconButton(onClick = onCancel, modifier = Modifier.size(34.dp)) {
                                 Icon(
-                                    Icons.Default.Close, stringResource(R.string.skip),
+                                    Icons.Default.Close, stringResource(R.string.cancel),
                                     modifier = Modifier.size(18.dp),
                                     tint = MaterialTheme.colorScheme.error
                                 )

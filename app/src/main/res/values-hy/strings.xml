@@ -24,7 +24,7 @@
     <string name="add_first_medication">Ավելացրեք ձեր առաջին դեղը</string>
     <string name="add_medication">Ավելացնել դեղ</string>
     <string name="status_taken">Ընդունված</string>
-    <string name="status_skipped">Բաց թողված</string>
+    <string name="status_skipped">Չեղարկված</string>
     <string name="status_missed">Բաց թողված</string>
     <string name="status_snoozed">Հետաձգված</string>
     <string name="status_pending">Սպասվում է</string>
@@ -135,6 +135,8 @@
     <string name="medications_count">%1$d Դեղեր</string>
     <string name="i_took_all">Բոլորը ընդունեցի</string>
     <string name="skip_all">Բոլորը բաց թողնել</string>
+    <string name="cancel_all">Բոլորը չեղարկել</string>
+    <string name="schedule_cancelled">Պլանը չեղարկված է</string>
     <string name="time_to_take_meds_count">Պետք է ընդունել %1$d դեղ</string>
     <string name="scan_medication">Սկանավորել դեղը</string>
     <string name="scan_instruction">Ուղղեք տեսախցիկը դեղի պիտակին</string>
