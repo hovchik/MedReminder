@@ -1,69 +1,82 @@
 package com.medreminder.ai.runtime
 
-import kotlinx.coroutines.delay
+import android.content.Context
+import android.util.Log
+import com.google.mediapipe.tasks.genai.llminference.LlmInference
+import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Runtime adapter for MediaPipe LLM Inference API.
- * This is a placeholder adapter structured so that real MediaPipe
- * LLM Inference bindings can be plugged in later.
- *
- * In production, this would use:
- *   com.google.mediapipe:tasks-genai
- *
- * Example real implementation:
- *   val llmInference = LlmInference.createFromOptions(context, options)
- *   val response = llmInference.generateResponse(prompt)
+ * Runs .task model files on-device using Google's MediaPipe GenAI SDK.
  */
 class MediaPipeLlmRuntimeAdapter(
+    private val context: Context,
     private val modelPath: String
 ) : LocalModelRuntime {
 
-    private var loaded = false
+    companion object {
+        private const val TAG = "MediaPipeRuntime"
+        private const val MAX_TOKENS = 1024
+        private const val MAX_TOP_K = 64
+        private const val TOP_K = 40
+        private const val TEMPERATURE = 0.7f
+    }
+
+    private var llmInference: LlmInference? = null
 
     override suspend fun runPrompt(prompt: String): String {
-        if (!loaded) warmup()
+        if (!isLoaded()) warmup()
 
-        // Placeholder: In production, this would:
-        // 1. Create or reuse an LlmInference instance
-        // 2. Call generateResponse() or generateResponseAsync()
-        // 3. Return the generated text
-        //
-        // val options = LlmInference.LlmInferenceOptions.builder()
-        //     .setModelPath(modelPath)
-        //     .setMaxTokens(512)
-        //     .build()
-        // val llmInference = LlmInference.createFromOptions(context, options)
-        // return llmInference.generateResponse(prompt)
+        val inference = llmInference
+            ?: throw IllegalStateException("MediaPipe LLM not loaded")
 
-        return buildPlaceholderResponse(prompt)
+        return withContext(Dispatchers.Default) {
+            val sessionOptions = LlmInferenceSession.LlmInferenceSessionOptions.builder()
+                .setTopK(TOP_K)
+                .setTemperature(TEMPERATURE)
+                .build()
+            val session = LlmInferenceSession.createFromOptions(inference, sessionOptions)
+            try {
+                session.generateResponse(prompt)
+            } catch (e: Exception) {
+                Log.e(TAG, "MediaPipe inference failed", e)
+                throw e
+            } finally {
+                session.close()
+            }
+        }
     }
 
     override fun supportsStructuredJson(): Boolean = false
 
-    override fun isLoaded(): Boolean = loaded
+    override fun isLoaded(): Boolean = llmInference != null
 
     override suspend fun warmup() {
-        // Placeholder: Load MediaPipe model and initialize inference engine
-        delay(300)
-        loaded = true
+        withContext(Dispatchers.IO) {
+            try {
+                val options = LlmInference.LlmInferenceOptions.builder()
+                    .setModelPath(modelPath)
+                    .setMaxTokens(MAX_TOKENS)
+                    .setMaxTopK(MAX_TOP_K)
+                    .build()
+                llmInference = LlmInference.createFromOptions(context, options)
+                Log.d(TAG, "MediaPipe LLM loaded from: $modelPath")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load MediaPipe LLM from: $modelPath", e)
+                llmInference = null
+                throw e
+            }
+        }
     }
 
     override fun release() {
-        // Placeholder: Close LlmInference and free resources
-        loaded = false
-    }
-
-    private fun buildPlaceholderResponse(prompt: String): String {
-        return """
-            SUMMARY: MediaPipe local analysis completed. Your medication adherence has been analyzed entirely on-device.
-            INSIGHTS:
-            - All processing performed locally using MediaPipe LLM Inference
-            - No data was transmitted to external servers
-            - Analysis based on your recent medication history
-            RECOMMENDATIONS:
-            - Keep taking medications at consistent times
-            - Use reminders for any doses you frequently miss
-            RISK: LOW
-        """.trimIndent()
+        try {
+            llmInference?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "Error closing MediaPipe LLM", e)
+        }
+        llmInference = null
     }
 }

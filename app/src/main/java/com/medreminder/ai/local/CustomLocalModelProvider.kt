@@ -1,16 +1,19 @@
 package com.medreminder.ai.local
 
+import android.content.Context
 import android.util.Log
 import com.medreminder.ai.*
 import com.medreminder.ai.modelmanager.LocalModelManager
 import com.medreminder.ai.runtime.LocalModelRuntime
 import com.medreminder.ai.runtime.LiteRtRuntimeAdapter
 import com.medreminder.ai.runtime.MediaPipeLlmRuntimeAdapter
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class CustomLocalModelProvider @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val modelManager: LocalModelManager,
     private val promptAdapter: PromptAdapter
 ) : AiProvider {
@@ -36,14 +39,21 @@ class CustomLocalModelProvider @Inject constructor(
         val model = modelManager.getModel(modelId) ?: return false
         if (model.installState != InstallState.INSTALLED) return false
 
+        // Release previous runtime before loading a new one
+        activeRuntime?.release()
+        activeRuntime = null
+
         activeRuntime = try {
-            when (model.runtimeType) {
-                RuntimeType.LITE_RT -> LiteRtRuntimeAdapter(model.localPath)
-                RuntimeType.MEDIA_PIPE -> MediaPipeLlmRuntimeAdapter(model.localPath)
+            val runtime = when (model.runtimeType) {
+                RuntimeType.LITE_RT -> LiteRtRuntimeAdapter(context, model.localPath)
+                RuntimeType.MEDIA_PIPE -> MediaPipeLlmRuntimeAdapter(context, model.localPath)
                 RuntimeType.SYSTEM_AI -> null // Handled by SystemAiProvider
             }
+            // Eagerly warm up the model so isLoaded() returns true
+            runtime?.warmup()
+            runtime
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to create runtime for model $modelId", e)
+            Log.e(TAG, "Failed to create/load runtime for model $modelId", e)
             null
         }
 

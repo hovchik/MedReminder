@@ -1,67 +1,82 @@
 package com.medreminder.ai.runtime
 
-import kotlinx.coroutines.delay
+import android.content.Context
+import android.util.Log
+import com.google.mediapipe.tasks.genai.llminference.LlmInference
+import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
- * Runtime adapter for LiteRT (TensorFlow Lite) inference.
- * This is a placeholder adapter structured so that real LiteRT
- * bindings can be plugged in later.
- *
- * In production, this would use:
- *   org.tensorflow:tensorflow-lite
- *   or the LiteRT equivalent SDK
+ * Runtime adapter for LiteRT model files (.tflite, .litertlm).
+ * Uses MediaPipe LLM Inference API which supports both .task and .litertlm formats.
  */
 class LiteRtRuntimeAdapter(
+    private val context: Context,
     private val modelPath: String
 ) : LocalModelRuntime {
 
-    private var loaded = false
+    companion object {
+        private const val TAG = "LiteRtRuntime"
+        private const val MAX_TOKENS = 1024
+        private const val MAX_TOP_K = 64
+        private const val TOP_K = 40
+        private const val TEMPERATURE = 0.7f
+    }
+
+    private var llmInference: LlmInference? = null
 
     override suspend fun runPrompt(prompt: String): String {
-        if (!loaded) warmup()
+        if (!isLoaded()) warmup()
 
-        // Placeholder: In production, this would:
-        // 1. Tokenize the prompt
-        // 2. Run inference through the TFLite interpreter
-        // 3. Decode the output tokens
-        //
-        // val interpreter = Interpreter(File(modelPath))
-        // val inputTokens = tokenizer.encode(prompt)
-        // val outputTokens = interpreter.run(inputTokens)
-        // return tokenizer.decode(outputTokens)
+        val inference = llmInference
+            ?: throw IllegalStateException("LiteRT engine not loaded")
 
-        return buildPlaceholderResponse(prompt)
+        return withContext(Dispatchers.Default) {
+            val sessionOptions = LlmInferenceSession.LlmInferenceSessionOptions.builder()
+                .setTopK(TOP_K)
+                .setTemperature(TEMPERATURE)
+                .build()
+            val session = LlmInferenceSession.createFromOptions(inference, sessionOptions)
+            try {
+                session.generateResponse(prompt)
+            } catch (e: Exception) {
+                Log.e(TAG, "LiteRT inference failed", e)
+                throw e
+            } finally {
+                session.close()
+            }
+        }
     }
 
     override fun supportsStructuredJson(): Boolean = true
 
-    override fun isLoaded(): Boolean = loaded
+    override fun isLoaded(): Boolean = llmInference != null
 
     override suspend fun warmup() {
-        // Placeholder: Load model into memory and run warm-up inference
-        delay(200)
-        loaded = true
+        withContext(Dispatchers.IO) {
+            try {
+                val options = LlmInference.LlmInferenceOptions.builder()
+                    .setModelPath(modelPath)
+                    .setMaxTokens(MAX_TOKENS)
+                    .setMaxTopK(MAX_TOP_K)
+                    .build()
+                llmInference = LlmInference.createFromOptions(context, options)
+                Log.d(TAG, "LiteRT model loaded from: $modelPath")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load LiteRT model from: $modelPath", e)
+                llmInference = null
+                throw e
+            }
+        }
     }
 
     override fun release() {
-        // Placeholder: Release interpreter resources
-        loaded = false
-    }
-
-    private fun buildPlaceholderResponse(prompt: String): String {
-        return """
-            {
-                "summary": "LiteRT local analysis: Your medication adherence has been analyzed on-device using the local AI model.",
-                "insights": [
-                    "All analysis performed locally on your device",
-                    "No data was sent to external servers"
-                ],
-                "recommendations": [
-                    "Review your medication schedule regularly",
-                    "Maintain consistent timing for best results"
-                ],
-                "riskLevel": "LOW"
-            }
-        """.trimIndent()
+        try {
+            llmInference?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "Error closing LiteRT engine", e)
+        }
+        llmInference = null
     }
 }
