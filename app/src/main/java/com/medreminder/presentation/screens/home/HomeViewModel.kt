@@ -88,7 +88,9 @@ class HomeViewModel @Inject constructor(
 
     private fun loadTodayData() {
         val startOfDay = DateUtils.getStartOfDay()
-        val upcomingEnd = System.currentTimeMillis() + 6 * 60 * 60 * 1000 // now + 6 hours
+        val endOfDay = DateUtils.getEndOfDay()
+        val sixHoursAhead = System.currentTimeMillis() + 6 * 60 * 60 * 1000
+        val upcomingEnd = maxOf(endOfDay, sixHoursAhead) // all of today + up to 6h into tomorrow
 
         viewModelScope.launch {
             repository.getTodayDoses(startOfDay, upcomingEnd).collect { allDoses ->
@@ -211,7 +213,9 @@ class HomeViewModel @Inject constructor(
     fun generateTodayDoses() {
         viewModelScope.launch {
             val startOfDay = DateUtils.getStartOfDay()
-            val upcomingEnd = System.currentTimeMillis() + 6 * 60 * 60 * 1000 // now + 6 hours
+            val endOfDay = DateUtils.getEndOfDay()
+            val sixHoursAhead = System.currentTimeMillis() + 6 * 60 * 60 * 1000
+            val upcomingEnd = maxOf(endOfDay, sixHoursAhead) // all of today + up to 6h into tomorrow
             val schedules = repository.getAllActiveSchedules()
 
             for (schedule in schedules) {
