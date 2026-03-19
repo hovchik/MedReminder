@@ -8,6 +8,7 @@ import com.medreminder.ai.runtime.LocalModelRuntime
 import com.medreminder.ai.runtime.LiteRtRuntimeAdapter
 import com.medreminder.ai.runtime.MediaPipeLlmRuntimeAdapter
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -36,8 +37,25 @@ class CustomLocalModelProvider @Inject constructor(
     fun getActiveRuntime(): LocalModelRuntime? = activeRuntime
 
     suspend fun loadModel(modelId: String): Boolean {
-        val model = modelManager.getModel(modelId) ?: return false
-        if (model.installState != InstallState.INSTALLED) return false
+        val model = modelManager.getModel(modelId)
+        if (model == null) {
+            Log.e(TAG, "loadModel: model '$modelId' not found in database")
+            return false
+        }
+        if (model.installState != InstallState.INSTALLED) {
+            Log.e(TAG, "loadModel: model '$modelId' not installed (state=${model.installState})")
+            return false
+        }
+        if (model.localPath.isBlank()) {
+            Log.e(TAG, "loadModel: model '$modelId' has empty localPath")
+            return false
+        }
+        val modelFile = File(model.localPath)
+        if (!modelFile.exists()) {
+            Log.e(TAG, "loadModel: model file does not exist at '${model.localPath}'")
+            return false
+        }
+        Log.d(TAG, "loadModel: loading '$modelId' (runtime=${model.runtimeType}, path=${model.localPath}, size=${modelFile.length()} bytes)")
 
         // Release previous runtime before loading a new one
         activeRuntime?.release()
@@ -47,14 +65,19 @@ class CustomLocalModelProvider @Inject constructor(
             when (model.runtimeType) {
                 RuntimeType.LITE_RT -> LiteRtRuntimeAdapter(context, model.localPath)
                 RuntimeType.MEDIA_PIPE -> MediaPipeLlmRuntimeAdapter(context, model.localPath)
-                RuntimeType.SYSTEM_AI -> null // Handled by SystemAiProvider
+                RuntimeType.SYSTEM_AI -> {
+                    Log.w(TAG, "loadModel: SYSTEM_AI runtime type is not handled here")
+                    null
+                }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to create runtime for model $modelId", e)
+            Log.e(TAG, "loadModel: failed to create runtime for '$modelId'", e)
             null
         }
 
-        return activeRuntime != null
+        val success = activeRuntime != null
+        Log.d(TAG, "loadModel: '$modelId' result=${if (success) "SUCCESS" else "FAILED"}")
+        return success
     }
 
     fun unloadModel() {
