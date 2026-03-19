@@ -1,6 +1,7 @@
 package com.medreminder.ai.local
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -8,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.medreminder.ai.AiProvider
 import com.medreminder.ai.AiProviderType
+import com.medreminder.ai.modelmanager.LocalModelManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -23,9 +25,11 @@ class AiProviderSelector @Inject constructor(
     private val cloudProvider: CloudAiProvider,
     private val systemAiProvider: SystemAiProvider,
     private val customLocalProvider: CustomLocalModelProvider,
-    private val ruleBasedProvider: RuleBasedAiProvider
+    private val ruleBasedProvider: RuleBasedAiProvider,
+    private val modelManager: LocalModelManager
 ) {
     companion object {
+        private const val TAG = "AiProviderSelector"
         private val KEY_SELECTED_PROVIDER = stringPreferencesKey("selected_ai_provider")
         private val KEY_ACTIVE_MODEL_ID = stringPreferencesKey("active_local_model_id")
         private val KEY_CLOUD_SERVICE = stringPreferencesKey("cloud_ai_service")
@@ -136,24 +140,56 @@ class AiProviderSelector @Inject constructor(
 
     /**
      * Ensure the persisted active model is loaded into the runtime.
-     * Call this on app startup or when the provider is first needed.
+     * If no active model is set but installed models exist, auto-select the first one.
      */
     suspend fun ensureActiveModelLoaded() {
-        val modelId = getActiveModelId().first() ?: return
-        if (customLocalProvider.getActiveRuntime()?.isLoaded() != true) {
-            customLocalProvider.loadModel(modelId)
+        var modelId = getActiveModelId().first()
+
+        // If no active model ID is persisted, auto-select the first installed model
+        if (modelId == null) {
+            val installed = modelManager.getInstalledModelsSuspend()
+            if (installed.isNotEmpty()) {
+                modelId = installed.first().modelId
+                Log.d(TAG, "ensureActiveModelLoaded: no active model set, auto-selecting '${modelId}'")
+                setActiveModelId(modelId)
+                // setActiveModelId already calls loadModel(), so we're done
+                return
+            }
+            Log.d(TAG, "ensureActiveModelLoaded: no active model and no installed models")
+            return
+        }
+
+        // Only create the adapter if none exists yet; actual model loading
+        // happens lazily on first runPrompt() call inside the adapter.
+        if (customLocalProvider.getActiveRuntime() == null) {
+            val loaded = customLocalProvider.loadModel(modelId)
+            if (!loaded) {
+                Log.e(TAG, "ensureActiveModelLoaded: failed to load model '$modelId'")
+            }
         }
     }
 
     suspend fun selectProvider(): AiProvider {
         val userChoice = getSelectedProviderType().first()
-        if (userChoice == AiProviderType.CUSTOM_LOCAL || userChoice == AiProviderType.AUTO) {
-            ensureActiveModelLoaded()
-        }
+        Log.d(TAG, "selectProvider: userChoice=$userChoice")
+
+        // Always try to ensure the local model is loaded if one is installed,
+        // because SYSTEM_AI and AUTO also fall back to CUSTOM_LOCAL.
+        ensureSystemAiInitialized()
+        ensureActiveModelLoaded()
         if (userChoice == AiProviderType.CLOUD || userChoice == AiProviderType.AUTO) {
             ensureCloudProviderConfigured()
         }
-        return resolveProvider(userChoice)
+
+        val provider = resolveProvider(userChoice)
+        Log.d(TAG, "selectProvider: resolved to ${provider.type.name} (${provider.displayName})")
+        return provider
+    }
+
+    private fun ensureSystemAiInitialized() {
+        if (!systemAiProvider.isAvailable() && systemAiProvider.hasDeviceCapability()) {
+            systemAiProvider.initialize()
+        }
     }
 
     fun resolveProvider(requestedType: AiProviderType): AiProvider {
@@ -161,22 +197,33 @@ class AiProviderSelector @Inject constructor(
             AiProviderType.CLOUD -> cloudProvider
             AiProviderType.SYSTEM_AI -> {
                 if (systemAiProvider.isAvailable()) systemAiProvider
-                else ruleBasedProvider // fallback to rule-based when System AI is unavailable
+                else if (customLocalProvider.isAvailable()) {
+                    // System AI unavailable — prefer installed local model over rule-based
+                    Log.d(TAG, "resolveProvider: SYSTEM_AI unavailable, using CUSTOM_LOCAL")
+                    customLocalProvider
+                } else {
+                    Log.d(TAG, "resolveProvider: SYSTEM_AI unavailable and no local model, using rule-based")
+                    ruleBasedProvider
+                }
             }
             AiProviderType.CUSTOM_LOCAL -> {
                 if (customLocalProvider.isAvailable()) customLocalProvider
-                else cloudProvider // fallback
+                else {
+                    Log.w(TAG, "resolveProvider: CUSTOM_LOCAL selected but not available, using rule-based")
+                    ruleBasedProvider
+                }
             }
             AiProviderType.AUTO -> selectBestAvailable()
         }
     }
 
     private fun selectBestAvailable(): AiProvider {
-        // Priority: system AI > custom local > cloud
+        // Priority: system AI > custom local > cloud > rule-based
         return when {
             systemAiProvider.isAvailable() -> systemAiProvider
             customLocalProvider.isAvailable() -> customLocalProvider
-            else -> cloudProvider
+            cloudProvider.isAvailable() -> cloudProvider
+            else -> ruleBasedProvider
         }
     }
 
@@ -202,7 +249,7 @@ class AiProviderSelector @Inject constructor(
     }
 
     fun getAllProviders(): List<ProviderInfo> {
-        val systemAiSubtitle = if (systemAiProvider.isAvailable()) {
+        val systemAiSubtitle = if (systemAiProvider.isAvailable() || systemAiProvider.hasDeviceCapability()) {
             "Uses device built-in AI engine."
         } else {
             "System AI unavailable — will use rule-based analysis."

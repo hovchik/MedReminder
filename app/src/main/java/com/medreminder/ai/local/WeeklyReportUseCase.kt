@@ -17,6 +17,7 @@ import javax.inject.Singleton
 class WeeklyReportUseCase @Inject constructor(
     private val repository: MedicationRepository,
     private val providerSelector: AiProviderSelector,
+    private val ruleBasedProvider: RuleBasedAiProvider,
     private val doseLogDao: DoseLogDao,
     private val medicationDao: MedicationDao,
     private val scheduleDao: ScheduleDao,
@@ -148,7 +149,12 @@ class WeeklyReportUseCase @Inject constructor(
             recentDoseEvents = recentEvents
         )
 
-        return provider.generateAnalysis(input)
+        return try {
+            provider.generateAnalysis(input)
+        } catch (e: Exception) {
+            android.util.Log.w("WeeklyReport", "Provider failed, falling back to rule-based", e)
+            ruleBasedProvider.generateAnalysis(input)
+        }
     }
 
     private suspend fun buildDoseEvents(start: Long, end: Long, medicationIds: Set<Long>): List<DoseEvent> {

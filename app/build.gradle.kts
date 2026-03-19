@@ -96,6 +96,9 @@ dependencies {
     // ML Kit Barcode Scanning
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
 
+    // MediaPipe LLM Inference (on-device AI for .task and .litertlm models)
+    implementation("com.google.mediapipe:tasks-genai:0.10.27")
+
     // Tesseract OCR for Armenian, Russian, Farsi scripts
     implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
 
