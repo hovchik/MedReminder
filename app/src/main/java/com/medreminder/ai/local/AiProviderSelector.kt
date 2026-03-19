@@ -40,7 +40,7 @@ class AiProviderSelector @Inject constructor(
 
     fun getSelectedProviderType(): Flow<AiProviderType> =
         context.aiPrefsDataStore.data.map { prefs ->
-            val value = prefs[KEY_SELECTED_PROVIDER] ?: AiProviderType.SYSTEM_AI.name
+            val value = prefs[KEY_SELECTED_PROVIDER] ?: AiProviderType.AUTO.name
             try {
                 AiProviderType.valueOf(value)
             } catch (_: Exception) {

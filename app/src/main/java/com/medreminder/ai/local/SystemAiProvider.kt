@@ -50,6 +50,16 @@ class SystemAiProvider @Inject constructor(
                 capabilityDetector.hasMlKitGenAiSupport()
     }
 
+    override suspend fun generateRawCompletion(prompt: String): String? {
+        val activeRuntime = runtime ?: return null
+        return try {
+            activeRuntime.runPrompt(prompt)
+        } catch (e: Exception) {
+            Log.e(TAG, "System AI raw completion failed", e)
+            null
+        }
+    }
+
     override suspend fun generateAnalysis(input: AnalysisInput): AnalysisResult {
         val startTime = System.currentTimeMillis()
         val activeRuntime = runtime

@@ -89,7 +89,7 @@ class CustomLocalModelProvider @Inject constructor(
      * Send a raw prompt to the local model and return the raw text response.
      * Returns null if no runtime is loaded or inference fails.
      */
-    suspend fun generateRawCompletion(prompt: String): String? {
+    override suspend fun generateRawCompletion(prompt: String): String? {
         val runtime = activeRuntime ?: return null
         return try {
             runtime.runPrompt(prompt)

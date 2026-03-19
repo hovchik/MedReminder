@@ -53,7 +53,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
      * Send a raw prompt and return the raw text response from the active cloud service.
      * Returns null if the API key is missing or the call fails.
      */
-    suspend fun generateRawCompletion(prompt: String): String? {
+    override suspend fun generateRawCompletion(prompt: String): String? {
         val key = apiKey
         if (key.isNullOrBlank()) {
             Log.w(TAG, "No API key configured for ${activeService.name}, cannot call cloud AI")

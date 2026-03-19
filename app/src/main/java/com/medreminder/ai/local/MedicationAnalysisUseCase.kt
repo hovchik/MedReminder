@@ -117,11 +117,12 @@ class MedicationAnalysisUseCase @Inject constructor(
         prompt: String,
         latencyMs: Long
     ): MedicationAnalysisResult {
-        // Try to get a raw AI completion from whichever provider is active
-        val rawJson: String? = when (provider) {
-            is CloudAiProvider -> provider.generateRawCompletion(prompt)
-            is CustomLocalModelProvider -> provider.generateRawCompletion(prompt)
-            else -> null
+        // Use the interface method — works for any provider (Cloud, Local, System AI)
+        val rawJson: String? = try {
+            provider.generateRawCompletion(prompt)
+        } catch (e: Exception) {
+            android.util.Log.e("MedicationAnalysis", "Provider ${provider.type.name} raw completion failed", e)
+            null
         }
 
         if (rawJson != null) {
