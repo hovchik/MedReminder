@@ -32,6 +32,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.medreminder.R
 import com.medreminder.domain.model.DoseLog
 import com.medreminder.domain.model.DoseStatus
+import com.medreminder.domain.model.Medication
+import com.medreminder.domain.model.Schedule
+import com.medreminder.domain.model.ScheduleFrequency
+import com.medreminder.domain.model.DurationType
 import com.medreminder.util.DateUtils
 import java.text.SimpleDateFormat
 import java.util.*
@@ -62,11 +66,24 @@ private enum class TimeSection(val labelRes: Int, val icon: androidx.compose.ui.
 @Composable
 fun HomeScreen(
     onAddMedication: () -> Unit,
-    onEditMedication: (Long) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val expandedGroups = remember { mutableStateMapOf<String, Boolean>() }
+    var selectedDose by remember { mutableStateOf<DoseLog?>(null) }
+
+    // Show bottom sheet with schedule details when a dose card is tapped
+    if (selectedDose != null) {
+        val dose = selectedDose!!
+        val schedule = viewModel.getScheduleForDose(dose)
+        val medication = viewModel.getMedicationForDose(dose)
+        DoseDetailDialog(
+            dose = dose,
+            schedule = schedule,
+            medication = medication,
+            onDismiss = { selectedDose = null }
+        )
+    }
 
     // Regenerate today's doses every time the screen becomes visible (e.g. after
     // editing a schedule and navigating back). LaunchedEffect(Unit) only runs on
@@ -99,12 +116,15 @@ fun HomeScreen(
             }
         }
 
-        // Progress card
+        // Summary card
         item {
-            TodayProgressCard(
+            TodaySummaryCard(
                 taken = uiState.takenCount,
                 total = uiState.totalCount,
-                rate = uiState.adherenceRate,
+                missed = uiState.missedCount,
+                skipped = uiState.skippedCount,
+                upcoming = uiState.upcomingCount,
+                nextDoseTime = uiState.nextDoseTime,
                 streak = uiState.currentStreak
             )
         }
@@ -152,24 +172,13 @@ fun HomeScreen(
             }
         }
 
-        // Section header with add button
+        // Section header
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    stringResource(R.string.today_medications),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                FilledTonalButton(onClick = onAddMedication) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.add))
-                }
-            }
+            Text(
+                stringResource(R.string.upcoming_medications),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
         }
 
         // Empty state
@@ -177,59 +186,38 @@ fun HomeScreen(
             item { EmptyStateCard(onAddMedication) }
         }
 
-        // Dose cards - grouped by user if multi-user, then by time section
+        // Dose cards - always grouped by user, then by time section
         val groups = uiState.userDoseGroups
-        val hasMultipleGroups = groups.size > 1
 
-        if (hasMultipleGroups) {
-            groups.forEach { group ->
-                val groupKey = group.userId?.toString() ?: "self"
-                val isExpanded = expandedGroups.getOrDefault(groupKey, true)
+        groups.forEach { group ->
+            val groupKey = group.userId?.toString() ?: "self"
+            val isExpanded = expandedGroups.getOrDefault(groupKey, true)
 
-                item(key = "header_$groupKey") {
-                    UserSectionHeader(
-                        userName = group.userName,
-                        isSelf = group.userId == null,
-                        takenCount = group.takenCount,
-                        totalCount = group.totalCount,
-                        expanded = isExpanded,
-                        onToggle = { expandedGroups[groupKey] = !isExpanded }
-                    )
-                }
-
-                if (isExpanded) {
-                    val timeSections = group.doses.groupBy { TimeSection.fromMillis(it.scheduledTime) }
-                    timeSections.forEach { (section, doses) ->
-                        item(key = "time_${groupKey}_${section.name}") {
-                            TimeSectionHeader(section = section, doseCount = doses.size)
-                        }
-                        items(doses, key = { it.id }) { dose ->
-                            DoseCard(
-                                dose = dose,
-                                onTaken = { viewModel.markDoseTaken(dose.id) },
-                                onCancel = { viewModel.markDoseSkipped(dose.id) },
-                                onSnooze = { viewModel.snoozeDose(dose) },
-                                onEdit = { onEditMedication(dose.medicationId) }
-                            )
-                        }
-                    }
-                }
+            item(key = "header_$groupKey") {
+                UserSectionHeader(
+                    userName = group.userName,
+                    isSelf = group.userId == null,
+                    doseCount = group.totalCount,
+                    expanded = isExpanded,
+                    onToggle = { expandedGroups[groupKey] = !isExpanded }
+                )
             }
-        } else if (uiState.todayDoses.isNotEmpty()) {
-            // Single user - group by time of day
-            val timeSections = uiState.todayDoses.groupBy { TimeSection.fromMillis(it.scheduledTime) }
-            timeSections.forEach { (section, doses) ->
-                item(key = "time_${section.name}") {
-                    TimeSectionHeader(section = section, doseCount = doses.size)
-                }
-                items(doses, key = { it.id }) { dose ->
-                    DoseCard(
-                        dose = dose,
-                        onTaken = { viewModel.markDoseTaken(dose.id) },
-                        onCancel = { viewModel.markDoseSkipped(dose.id) },
-                        onSnooze = { viewModel.snoozeDose(dose) },
-                        onEdit = { onEditMedication(dose.medicationId) }
-                    )
+
+            if (isExpanded) {
+                val timeSections = group.doses.groupBy { TimeSection.fromMillis(it.scheduledTime) }
+                timeSections.forEach { (section, doses) ->
+                    item(key = "time_${groupKey}_${section.name}") {
+                        TimeSectionHeader(section = section, doseCount = doses.size)
+                    }
+                    items(doses, key = { it.id }) { dose ->
+                        DoseCard(
+                            dose = dose,
+                            onClick = { selectedDose = dose },
+                            onTaken = { viewModel.markDoseTaken(dose.id) },
+                            onCancel = { viewModel.markDoseSkipped(dose.id) },
+                            onSnooze = { viewModel.snoozeDose(dose) }
+                        )
+                    }
                 }
             }
         }
@@ -306,19 +294,12 @@ private fun AllDoneCard() {
 fun UserSectionHeader(
     userName: String,
     isSelf: Boolean,
-    takenCount: Int,
-    totalCount: Int,
+    doseCount: Int,
     expanded: Boolean = true,
     onToggle: () -> Unit = {}
 ) {
     val accentColor = if (isSelf) MaterialTheme.colorScheme.primary
         else MaterialTheme.colorScheme.tertiary
-    val progress = if (totalCount > 0) takenCount.toFloat() / totalCount else 0f
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(600, easing = FastOutSlowInEasing),
-        label = "userProgress"
-    )
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = tween(300),
@@ -337,82 +318,78 @@ fun UserSectionHeader(
         ),
         shape = RoundedCornerShape(14.dp)
     ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(
-                                accentColor.copy(alpha = 0.15f),
-                                CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isSelf) Icons.Default.Person else Icons.Default.Face,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = accentColor
-                        )
-                    }
-                    Text(
-                        text = userName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 140.dp)
-                    )
-                }
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = accentColor.copy(alpha = 0.12f)
-                ) {
-                    Text(
-                        text = stringResource(R.string.taken_of_total_short, takenCount, totalCount),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = accentColor
-                    )
-                }
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowUp,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
+                Box(
                     modifier = Modifier
-                        .size(24.dp)
-                        .graphicsLayer { rotationZ = rotationAngle },
-                    tint = accentColor
+                        .size(36.dp)
+                        .background(
+                            accentColor.copy(alpha = 0.15f),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isSelf) Icons.Default.Person else Icons.Default.Face,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = accentColor
+                    )
+                }
+                Text(
+                    text = userName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-
-            // Per-user progress bar
-            Spacer(modifier = Modifier.height(10.dp))
-            LinearProgressIndicator(
-                progress = { animatedProgress },
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = accentColor.copy(alpha = 0.12f)
+            ) {
+                Text(
+                    text = stringResource(R.string.upcoming_count, doseCount),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accentColor
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowUp,
+                contentDescription = if (expanded) "Collapse" else "Expand",
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-                trackColor = accentColor.copy(alpha = 0.15f),
-                color = accentColor
+                    .size(24.dp)
+                    .graphicsLayer { rotationZ = rotationAngle },
+                tint = accentColor
             )
         }
     }
 }
 
 @Composable
-fun TodayProgressCard(taken: Int, total: Int, rate: Float, streak: Int) {
+fun TodaySummaryCard(
+    taken: Int,
+    total: Int,
+    missed: Int,
+    skipped: Int,
+    upcoming: Int,
+    nextDoseTime: Long?,
+    streak: Int
+) {
+    val rate = if (total > 0) taken.toFloat() / total * 100f else 0f
     val animatedRate by animateFloatAsState(
         targetValue = rate / 100f,
         animationSpec = tween(1000, easing = FastOutSlowInEasing),
@@ -427,6 +404,7 @@ fun TodayProgressCard(taken: Int, total: Int, rate: Float, streak: Int) {
         shape = RoundedCornerShape(20.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
+            // Top row: progress headline + streak badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -434,18 +412,18 @@ fun TodayProgressCard(taken: Int, total: Int, rate: Float, streak: Int) {
             ) {
                 Column {
                     Text(
-                        text = stringResource(R.string.taken_of_total, taken, total),
+                        text = stringResource(R.string.today_summary),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.percent_complete, rate.toInt()),
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                    Text(
-                        stringResource(R.string.medications_taken_today),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
                 }
-                // Streak badge
                 if (streak > 0) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -469,26 +447,104 @@ fun TodayProgressCard(taken: Int, total: Int, rate: Float, streak: Int) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Progress bar
             LinearProgressIndicator(
                 progress = { animatedRate },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(6.dp)),
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(5.dp)),
                 trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f),
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
+            // Stat pills row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                StatPill(
+                    label = stringResource(R.string.stat_taken),
+                    value = taken.toString(),
+                    color = Color(0xFF2ECC71),
+                    modifier = Modifier.weight(1f)
+                )
+                StatPill(
+                    label = stringResource(R.string.stat_upcoming),
+                    value = upcoming.toString(),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
+                StatPill(
+                    label = stringResource(R.string.stat_missed),
+                    value = missed.toString(),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.weight(1f)
+                )
+                StatPill(
+                    label = stringResource(R.string.stat_canceled),
+                    value = skipped.toString(),
+                    color = Color(0xFFF39C12),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Next dose info
+            if (nextDoseTime != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Schedule,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = stringResource(R.string.next_dose_at, DateUtils.formatTimeOnly(nextDoseTime)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatPill(
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = 0.12f)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
-                stringResource(R.string.percent_complete, rate.toInt()),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = color.copy(alpha = 0.8f),
+                maxLines = 1
             )
         }
     }
@@ -497,28 +553,27 @@ fun TodayProgressCard(taken: Int, total: Int, rate: Float, streak: Int) {
 @Composable
 fun DoseCard(
     dose: DoseLog,
+    onClick: () -> Unit,
     onTaken: () -> Unit,
     onCancel: () -> Unit,
-    onSnooze: () -> Unit,
-    onEdit: () -> Unit
+    onSnooze: () -> Unit
 ) {
-    val isDone = dose.status == DoseStatus.TAKEN || dose.status == DoseStatus.SKIPPED
-    val isMissed = dose.status == DoseStatus.MISSED
     val isSnoozed = dose.status == DoseStatus.SNOOZED
+    val isMissed = dose.status == DoseStatus.MISSED
     val isOverdue = dose.status == DoseStatus.PENDING &&
             dose.scheduledTime < System.currentTimeMillis()
     val pillColor = try { Color(dose.medicationColor.toColorInt()) } catch (_: Exception) { Color(0xFF4A90D9) }
 
     val containerColor = when {
-        isDone -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        isMissed -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+        isMissed -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
         isSnoozed -> Color(0xFFF39C12).copy(alpha = 0.08f)
         isOverdue -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
         else -> MaterialTheme.colorScheme.surface
     }
 
     val borderColor = when {
-        isOverdue && !isDone && !isMissed -> MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+        isMissed -> MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
+        isOverdue -> MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
         isSnoozed -> Color(0xFFF39C12).copy(alpha = 0.3f)
         else -> Color.Transparent
     }
@@ -526,10 +581,10 @@ fun DoseCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onEdit() },
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = containerColor),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDone) 0.dp else 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = if (borderColor != Color.Transparent)
             BorderStroke(1.dp, borderColor) else null
     ) {
@@ -543,19 +598,15 @@ fun DoseCard(
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            pillColor.copy(alpha = if (isDone) 0.3f else 0.15f),
+                            pillColor.copy(alpha = 0.15f),
                             CircleShape
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    when {
-                        dose.status == DoseStatus.TAKEN ->
-                            Icon(Icons.Default.Check, null, tint = pillColor, modifier = Modifier.size(26.dp))
-                        dose.status == DoseStatus.SKIPPED ->
-                            Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(26.dp))
-                        dose.status == DoseStatus.MISSED ->
+                    when (dose.status) {
+                        DoseStatus.MISSED ->
                             Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(26.dp))
-                        dose.status == DoseStatus.SNOOZED ->
+                        DoseStatus.SNOOZED ->
                             Icon(Icons.Default.Snooze, null, tint = Color(0xFFF39C12), modifier = Modifier.size(26.dp))
                         else ->
                             Text("\uD83D\uDC8A", fontSize = 22.sp)
@@ -595,13 +646,15 @@ fun DoseCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = DateUtils.formatTimeOnly(dose.scheduledTime),
+                            text = DateUtils.formatDateTime(dose.scheduledTime),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         // Contextual label
-                        if (isOverdue && !isDone && !isMissed) {
+                        if (isMissed) {
+                            StatusChip(text = stringResource(R.string.status_missed), color = MaterialTheme.colorScheme.error)
+                        } else if (isOverdue) {
                             StatusChip(text = stringResource(R.string.overdue), color = MaterialTheme.colorScheme.error)
                         } else if (isSnoozed && dose.snoozedUntil != null) {
                             StatusChip(
@@ -624,6 +677,19 @@ fun DoseCard(
                         } else if (dose.status != DoseStatus.PENDING) {
                             StatusChip(dose.status)
                         }
+                    }
+                }
+
+                // Action button for missed doses
+                if (isMissed) {
+                    FilledIconButton(
+                        onClick = onTaken,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier.size(42.dp)
+                    ) {
+                        Icon(Icons.Default.Check, stringResource(R.string.mark_taken), modifier = Modifier.size(22.dp))
                     }
                 }
 
@@ -661,18 +727,6 @@ fun DoseCard(
                     }
                 }
 
-                // Action button for missed doses - allow marking as taken
-                if (dose.status == DoseStatus.MISSED) {
-                    FilledIconButton(
-                        onClick = onTaken,
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                        modifier = Modifier.size(42.dp)
-                    ) {
-                        Icon(Icons.Default.Check, stringResource(R.string.mark_taken), modifier = Modifier.size(22.dp))
-                    }
-                }
             }
         }
     }
@@ -707,6 +761,213 @@ fun StatusChip(text: String, color: Color) {
 }
 
 @Composable
+private fun DoseDetailDialog(
+    dose: DoseLog,
+    schedule: Schedule?,
+    medication: Medication?,
+    onDismiss: () -> Unit
+) {
+    val pillColor = try { Color(dose.medicationColor.toColorInt()) } catch (_: Exception) { Color(0xFF4A90D9) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.close_label))
+            }
+        },
+        shape = RoundedCornerShape(24.dp),
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(pillColor.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("\uD83D\uDC8A", fontSize = 28.sp)
+            }
+        },
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = dose.medicationName,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                if (dose.medicationDosage.isNotBlank()) {
+                    Text(
+                        text = dose.medicationDosage,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Scheduled time
+                DetailRow(
+                    icon = Icons.Default.Schedule,
+                    label = stringResource(R.string.scheduled_time),
+                    value = DateUtils.formatTimeOnly(dose.scheduledTime)
+                )
+
+                // Frequency
+                if (schedule != null) {
+                    val freqText = when (schedule.frequency) {
+                        ScheduleFrequency.DAILY -> stringResource(R.string.freq_daily)
+                        ScheduleFrequency.SPECIFIC_DAYS -> {
+                            val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+                            schedule.daysOfWeek.mapNotNull { dayNames.getOrNull(it - Calendar.SUNDAY) }.joinToString(", ")
+                        }
+                        ScheduleFrequency.INTERVAL -> stringResource(R.string.every) + " ${schedule.intervalDays} " + stringResource(R.string.days)
+                        ScheduleFrequency.EVERY_X_HOURS -> stringResource(R.string.every) + " ${schedule.intervalHours} " + stringResource(R.string.hours)
+                        ScheduleFrequency.AS_NEEDED -> stringResource(R.string.freq_as_needed)
+                    }
+                    DetailRow(
+                        icon = Icons.Default.Repeat,
+                        label = stringResource(R.string.frequency_label),
+                        value = freqText
+                    )
+
+                    // Duration + days left
+                    val now = System.currentTimeMillis()
+                    val durationText: String
+                    val daysLeftText: String?
+
+                    when (schedule.durationType) {
+                        DurationType.ONGOING -> {
+                            durationText = stringResource(R.string.ongoing_lifetime)
+                            daysLeftText = null
+                        }
+                        DurationType.DAYS -> {
+                            durationText = "${schedule.durationValue} " + stringResource(R.string.days)
+                            val endMs = schedule.startDate + schedule.durationValue.toLong() * 24 * 60 * 60 * 1000
+                            val remaining = ((endMs - now) / (24 * 60 * 60 * 1000)).toInt()
+                            daysLeftText = if (remaining > 0) {
+                                stringResource(R.string.days_remaining, remaining)
+                            } else {
+                                stringResource(R.string.schedule_ended)
+                            }
+                        }
+                        DurationType.MONTHS -> {
+                            durationText = "${schedule.durationValue} " + stringResource(R.string.months_label)
+                            val endCal = Calendar.getInstance().apply {
+                                timeInMillis = schedule.startDate
+                                add(Calendar.MONTH, schedule.durationValue)
+                            }
+                            val remaining = ((endCal.timeInMillis - now) / (24 * 60 * 60 * 1000)).toInt()
+                            daysLeftText = if (remaining > 0) {
+                                stringResource(R.string.days_remaining, remaining)
+                            } else {
+                                stringResource(R.string.schedule_ended)
+                            }
+                        }
+                    }
+
+                    DetailRow(
+                        icon = Icons.Default.DateRange,
+                        label = stringResource(R.string.duration),
+                        value = durationText
+                    )
+
+                    if (daysLeftText != null) {
+                        DetailRow(
+                            icon = Icons.Default.Timelapse,
+                            label = stringResource(R.string.days_left_label),
+                            value = daysLeftText
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
+                // Medication form
+                if (medication != null) {
+                    DetailRow(
+                        icon = Icons.Default.MedicalServices,
+                        label = stringResource(R.string.form),
+                        value = medication.form.displayName
+                    )
+
+                    if (medication.instructions.isNotBlank()) {
+                        DetailRow(
+                            icon = Icons.Default.Info,
+                            label = stringResource(R.string.instructions_label),
+                            value = medication.instructions
+                        )
+                    }
+
+                    if (medication.notes.isNotBlank()) {
+                        DetailRow(
+                            icon = Icons.Default.Notes,
+                            label = stringResource(R.string.notes),
+                            value = medication.notes
+                        )
+                    }
+
+                    if (medication.currentStock > 0) {
+                        DetailRow(
+                            icon = Icons.Default.Inventory2,
+                            label = stringResource(R.string.current_stock),
+                            value = medication.currentStock.toString()
+                        )
+                    }
+                }
+
+                // Status
+                val statusText = when (dose.status) {
+                    DoseStatus.PENDING -> stringResource(R.string.status_pending)
+                    DoseStatus.MISSED -> stringResource(R.string.status_missed)
+                    DoseStatus.SNOOZED -> if (dose.snoozedUntil != null) {
+                        stringResource(R.string.snoozed_until, DateUtils.formatTimeOnly(dose.snoozedUntil))
+                    } else {
+                        stringResource(R.string.status_snoozed)
+                    }
+                    else -> dose.status.displayName
+                }
+                DetailRow(
+                    icon = Icons.Default.Flag,
+                    label = stringResource(R.string.status_label),
+                    value = statusText
+                )
+            }
+        }
+    )
+}
+
+@Composable
+private fun DetailRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String
+) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+    }
+}
+
+@Composable
 fun EmptyStateCard(onAdd: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -721,15 +982,15 @@ fun EmptyStateCard(onAdd: () -> Unit) {
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("\uD83D\uDC8A", fontSize = 48.sp)
+            Text("\u2705", fontSize = 48.sp)
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                stringResource(R.string.no_medications_scheduled),
+                stringResource(R.string.no_upcoming_doses),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                stringResource(R.string.add_first_medication),
+                stringResource(R.string.no_upcoming_doses_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

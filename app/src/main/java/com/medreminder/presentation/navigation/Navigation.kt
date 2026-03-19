@@ -30,6 +30,7 @@ import com.medreminder.presentation.screens.history.HistoryScreen
 import com.medreminder.presentation.screens.home.HomeScreen
 import com.medreminder.presentation.screens.ocr.OcrScannerScreen
 import com.medreminder.presentation.screens.onboarding.OnboardingScreen
+import com.medreminder.presentation.screens.schedules.SchedulesScreen
 import com.medreminder.ai.setupwizard.LocalAiSetupWizard
 import com.medreminder.presentation.screens.medanalysis.MedicationAnalysisScreen
 import com.medreminder.presentation.screens.settings.SettingsScreen
@@ -49,6 +50,7 @@ sealed class Screen(val route: String) {
         }
     }
     data object OcrScanner : Screen("ocr_scanner")
+    data object Schedules : Screen("schedules")
     data object Adherence : Screen("adherence")
     data object History : Screen("history")
     data object Caregiver : Screen("caregiver")
@@ -68,7 +70,7 @@ data class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Home, R.string.nav_today, Icons.Filled.Home, Icons.Outlined.Home),
-    BottomNavItem(Screen.Adherence, R.string.nav_stats, Icons.Filled.BarChart, Icons.Outlined.BarChart),
+    BottomNavItem(Screen.Schedules, R.string.nav_schedules, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
     BottomNavItem(Screen.History, R.string.nav_history, Icons.Filled.History, Icons.Outlined.History),
     BottomNavItem(Screen.Caregiver, R.string.nav_family, Icons.Filled.People, Icons.Outlined.People),
     BottomNavItem(Screen.Settings, R.string.nav_settings, Icons.Filled.Settings, Icons.Outlined.Settings)
@@ -145,10 +147,7 @@ fun MedReminderNavigation() {
             }
             composable(Screen.Home.route) {
                 HomeScreen(
-                    onAddMedication = { navController.navigate(Screen.AddMedication.route) },
-                    onEditMedication = { id ->
-                        navController.navigate(Screen.EditMedication.createRoute(id))
-                    }
+                    onAddMedication = { navController.navigate(Screen.AddMedication.route) }
                 )
             }
             composable(Screen.AddMedication.route) {
@@ -195,6 +194,14 @@ fun MedReminderNavigation() {
                     onMedicationScanned = { name, dosage ->
                         navController.popBackStack()
                         navController.navigate(Screen.AddMedicationFromScan.createRoute(name, dosage))
+                    }
+                )
+            }
+            composable(Screen.Schedules.route) {
+                SchedulesScreen(
+                    onAddMedication = { navController.navigate(Screen.AddMedication.route) },
+                    onEditMedication = { id ->
+                        navController.navigate(Screen.EditMedication.createRoute(id))
                     }
                 )
             }
