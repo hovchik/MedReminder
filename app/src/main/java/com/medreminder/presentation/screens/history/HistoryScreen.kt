@@ -60,7 +60,11 @@ class HistoryViewModel @Inject constructor(
             val start = DateUtils.daysAgo(_daysBack.value)
             val end = DateUtils.getEndOfDay()
             repository.getDoseLogsForDateRange(start, end).collect { list ->
-                _logs.value = list.sortedByDescending { it.scheduledTime }
+                // Only show completed doses: TAKEN, MISSED, and SKIPPED (canceled).
+                // PENDING and SNOOZED (upcoming) doses are shown on the Today screen.
+                _logs.value = list
+                    .filter { it.status == DoseStatus.TAKEN || it.status == DoseStatus.MISSED || it.status == DoseStatus.SKIPPED }
+                    .sortedByDescending { it.scheduledTime }
             }
         }
     }
@@ -76,6 +80,11 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
         // Header
         Column(modifier = Modifier.padding(16.dp)) {
             Text(stringResource(R.string.history), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(
+                stringResource(R.string.history_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(
@@ -143,8 +152,7 @@ fun HistoryItem(log: DoseLog, onMarkAsTaken: () -> Unit) {
         DoseStatus.TAKEN -> Icons.Default.CheckCircle to Color(0xFF2ECC71)
         DoseStatus.MISSED -> Icons.Default.Cancel to MaterialTheme.colorScheme.error
         DoseStatus.SKIPPED -> Icons.Default.RemoveCircle to Color(0xFFF39C12)
-        DoseStatus.SNOOZED -> Icons.Default.Snooze to Color(0xFFF39C12)
-        DoseStatus.PENDING -> Icons.Default.Schedule to MaterialTheme.colorScheme.onSurfaceVariant
+        else -> Icons.Default.Schedule to MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     Row(
@@ -163,7 +171,7 @@ fun HistoryItem(log: DoseLog, onMarkAsTaken: () -> Unit) {
         Column(horizontalAlignment = Alignment.End) {
             Text(DateUtils.formatTimeOnly(log.scheduledTime),
                 style = MaterialTheme.typography.bodyMedium)
-            if (log.status == DoseStatus.MISSED || log.status == DoseStatus.PENDING) {
+            if (log.status == DoseStatus.MISSED) {
                 TextButton(
                     onClick = onMarkAsTaken,
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
@@ -181,7 +189,6 @@ fun HistoryItem(log: DoseLog, onMarkAsTaken: () -> Unit) {
                     when (log.status) {
                         DoseStatus.TAKEN -> stringResource(R.string.status_taken)
                         DoseStatus.SKIPPED -> stringResource(R.string.status_skipped)
-                        DoseStatus.SNOOZED -> stringResource(R.string.status_snoozed)
                         else -> log.status.translatedName()
                     },
                     style = MaterialTheme.typography.labelSmall,

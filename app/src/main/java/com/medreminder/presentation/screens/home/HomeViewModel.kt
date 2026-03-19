@@ -87,15 +87,20 @@ class HomeViewModel @Inject constructor(
         val endOfDay = DateUtils.getEndOfDay()
 
         viewModelScope.launch {
-            repository.getTodayDoses(startOfDay, endOfDay).collect { doses ->
-                val taken = doses.count { it.status == DoseStatus.TAKEN }
-                val total = doses.size
+            repository.getTodayDoses(startOfDay, endOfDay).collect { allDoses ->
+                // Only show upcoming doses (PENDING and SNOOZED) on the Today screen.
+                // TAKEN, MISSED, and SKIPPED doses are shown on the History screen.
+                val upcomingDoses = allDoses.filter {
+                    it.status == DoseStatus.PENDING || it.status == DoseStatus.SNOOZED
+                }
+                val taken = allDoses.count { it.status == DoseStatus.TAKEN }
+                val total = allDoses.size
                 val rate = if (total > 0) taken.toFloat() / total * 100f else 0f
 
                 _uiState.update {
                     it.copy(
-                        todayDoses = sortDoses(doses),
-                        userDoseGroups = buildUserDoseGroups(doses),
+                        todayDoses = sortDoses(upcomingDoses),
+                        userDoseGroups = buildUserDoseGroups(upcomingDoses),
                         takenCount = taken,
                         totalCount = total,
                         adherenceRate = rate,

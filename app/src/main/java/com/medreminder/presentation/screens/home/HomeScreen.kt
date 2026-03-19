@@ -160,7 +160,7 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    stringResource(R.string.today_medications),
+                    stringResource(R.string.upcoming_medications),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -721,15 +721,15 @@ fun EmptyStateCard(onAdd: () -> Unit) {
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("\uD83D\uDC8A", fontSize = 48.sp)
+            Text("\u2705", fontSize = 48.sp)
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                stringResource(R.string.no_medications_scheduled),
+                stringResource(R.string.no_upcoming_doses),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                stringResource(R.string.add_first_medication),
+                stringResource(R.string.no_upcoming_doses_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

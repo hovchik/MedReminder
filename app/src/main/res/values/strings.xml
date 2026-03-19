@@ -3,6 +3,7 @@
 
     <!-- Navigation -->
     <string name="nav_today">Today</string>
+    <string name="nav_schedules">Schedules</string>
     <string name="nav_stats">Stats</string>
     <string name="nav_history">History</string>
     <string name="nav_family">Family</string>
@@ -15,6 +16,9 @@
     <string name="greeting_with_name">%1$s, %2$s</string>
     <string name="refill_needed">Refill needed</string>
     <string name="today_medications">Today\'s medications</string>
+    <string name="upcoming_medications">Upcoming medications</string>
+    <string name="no_upcoming_doses">No upcoming doses</string>
+    <string name="no_upcoming_doses_hint">All caught up! Completed doses appear in History.</string>
     <string name="my_medications_label">My Medications</string>
     <string name="persons_medications">%1$s\'s Medications</string>
     <string name="taken_of_total_short">%1$d of %2$d taken</string>
@@ -104,8 +108,16 @@
     <string name="current_streak">Current streak</string>
     <string name="daily_breakdown">Daily breakdown</string>
 
+    <!-- Schedules Screen -->
+    <string name="schedules_subtitle">Manage your medication schedules</string>
+    <string name="no_schedules_yet">No schedules yet</string>
+    <string name="no_schedules_hint">Add a medication to create your first schedule</string>
+    <string name="schedule_for_person">For %1$s</string>
+    <string name="months_label">months</string>
+
     <!-- History Screen -->
     <string name="history">History</string>
+    <string name="history_subtitle">Taken, missed, and canceled doses</string>
     <string name="seven_days">7 days</string>
     <string name="fourteen_days">14 days</string>
     <string name="thirty_days">30 days</string>
