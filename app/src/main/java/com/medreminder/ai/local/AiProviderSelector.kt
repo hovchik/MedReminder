@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.medreminder.ai.AiProvider
 import com.medreminder.ai.AiProviderType
 import com.medreminder.ai.modelmanager.LocalModelManager
+import com.medreminder.ai.modelmanager.ModelRecommendationEngine
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -25,7 +26,8 @@ class AiProviderSelector @Inject constructor(
     private val cloudProvider: CloudAiProvider,
     private val systemAiProvider: SystemAiProvider,
     private val customLocalProvider: CustomLocalModelProvider,
-    private val modelManager: LocalModelManager
+    private val modelManager: LocalModelManager,
+    private val modelCatalog: ModelRecommendationEngine
 ) {
     companion object {
         private const val TAG = "AiProviderSelector"
@@ -140,18 +142,36 @@ class AiProviderSelector @Inject constructor(
     /**
      * Ensure the persisted active model is loaded into the runtime.
      * If no active model is set but installed models exist, auto-select the first one.
+     * Models that are no longer in the catalog are automatically deselected and removed.
      */
     suspend fun ensureActiveModelLoaded() {
+        // Clean up any installed models that are no longer in the catalog
+        // (e.g. removed due to incompatibility with MediaPipe).
+        val validModelIds = modelCatalog.getFullModelCatalog().map { it.modelId }.toSet()
+        val installed = modelManager.getInstalledModelsSuspend()
+        for (model in installed) {
+            if (model.modelId !in validModelIds) {
+                Log.w(TAG, "ensureActiveModelLoaded: model '${model.modelId}' is no longer in catalog, removing")
+                modelManager.removeModel(model.modelId)
+            }
+        }
+
         var modelId = getActiveModelId().first()
+
+        // If active model was removed from catalog, deselect it
+        if (modelId != null && modelId !in validModelIds) {
+            Log.w(TAG, "ensureActiveModelLoaded: active model '$modelId' is no longer in catalog, deselecting")
+            setActiveModelId(null)
+            modelId = null
+        }
 
         // If no active model ID is persisted, auto-select the first installed model
         if (modelId == null) {
-            val installed = modelManager.getInstalledModelsSuspend()
-            if (installed.isNotEmpty()) {
-                modelId = installed.first().modelId
+            val validInstalled = modelManager.getInstalledModelsSuspend()
+            if (validInstalled.isNotEmpty()) {
+                modelId = validInstalled.first().modelId
                 Log.d(TAG, "ensureActiveModelLoaded: no active model set, auto-selecting '${modelId}'")
                 setActiveModelId(modelId)
-                // setActiveModelId already calls loadModel(), so we're done
                 return
             }
             Log.d(TAG, "ensureActiveModelLoaded: no active model and no installed models")
