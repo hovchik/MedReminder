@@ -39,7 +39,8 @@ class MediaPipeLlmRuntimeAdapter(
                 .build()
             val session = LlmInferenceSession.createFromOptions(inference, sessionOptions)
             try {
-                session.generateResponse(prompt)
+                session.addQueryChunk(prompt)
+                session.generateResponse()
             } catch (e: Exception) {
                 Log.e(TAG, "MediaPipe inference failed", e)
                 throw e
