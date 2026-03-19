@@ -96,14 +96,16 @@ interface DoseLogDao {
     suspend fun deleteLogsForMedication(medicationId: Long)
 
     /**
-     * Deletes only PENDING dose logs for a medication within a time window.
-     * Called when a medication's schedules are updated so stale pending entries
-     * (referencing old schedule IDs) are removed and regenerated fresh.
+     * Deletes PENDING and SNOOZED dose logs for a medication within a time window.
+     * Called when a medication's schedules are updated so stale entries
+     * (referencing old schedule times) are removed and regenerated fresh.
+     * SNOOZED doses must also be removed because their scheduledTime reflects
+     * the old schedule — keeping them would prevent new logs at the updated time.
      */
     @Query("""
         DELETE FROM dose_logs
         WHERE medicationId = :medicationId
-        AND status = 'pending'
+        AND status IN ('pending', 'snoozed')
         AND scheduledTime BETWEEN :startTime AND :endTime
     """)
     suspend fun deletePendingLogsForMedication(medicationId: Long, startTime: Long, endTime: Long)
