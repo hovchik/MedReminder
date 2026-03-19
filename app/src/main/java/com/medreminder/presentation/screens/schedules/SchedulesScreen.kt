@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,22 +38,36 @@ fun SchedulesScreen(
     viewModel: SchedulesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val expandedGroups = remember { mutableStateMapOf<String, Boolean>() }
+    val totalMeds = uiState.userGroups.sumOf { it.medications.size }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Header
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+    Scaffold(
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onAddMedication,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Column {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.add_medication),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header
+            item {
+                Column(modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)) {
                     Text(
                         text = stringResource(R.string.schedules),
                         style = MaterialTheme.typography.headlineMedium,
@@ -64,66 +79,159 @@ fun SchedulesScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                FilledTonalButton(onClick = onAddMedication) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.add))
-                }
             }
-        }
 
-        // Empty state
-        if (uiState.medications.isEmpty() && !uiState.isLoading) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+            // Empty state
+            if (totalMeds == 0 && !uiState.isLoading) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text("\uD83D\uDCC5", fontSize = 48.sp)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            stringResource(R.string.no_schedules_yet),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            stringResource(R.string.no_schedules_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = onAddMedication, shape = RoundedCornerShape(12.dp)) {
-                            Icon(Icons.Default.Add, null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.add_medication))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("\uD83D\uDCC5", fontSize = 48.sp)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                stringResource(R.string.no_schedules_yet),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                stringResource(R.string.no_schedules_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
             }
-        }
 
-        // Medication schedule cards
-        items(uiState.medications, key = { it.id }) { medication ->
-            MedicationScheduleCard(
-                medication = medication,
-                onEdit = { onEditMedication(medication.id) },
-                onToggleSchedule = { scheduleId, enabled ->
-                    viewModel.toggleScheduleEnabled(medication.id, scheduleId, enabled)
+            // Grouped by user
+            uiState.userGroups.forEach { group ->
+                val groupKey = group.userId?.toString() ?: "self"
+                val isExpanded = expandedGroups.getOrDefault(groupKey, true)
+
+                item(key = "header_$groupKey") {
+                    ScheduleUserHeader(
+                        userName = group.userName,
+                        isSelf = group.userId == null,
+                        medicationCount = group.medications.size,
+                        expanded = isExpanded,
+                        onToggle = { expandedGroups[groupKey] = !isExpanded }
+                    )
                 }
+
+                if (isExpanded) {
+                    items(group.medications, key = { it.id }) { medication ->
+                        MedicationScheduleCard(
+                            medication = medication,
+                            onEdit = { onEditMedication(medication.id) },
+                            onToggleSchedule = { scheduleId, enabled ->
+                                viewModel.toggleScheduleEnabled(medication.id, scheduleId, enabled)
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Bottom spacer for FAB
+            item { Spacer(modifier = Modifier.height(72.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun ScheduleUserHeader(
+    userName: String,
+    isSelf: Boolean,
+    medicationCount: Int,
+    expanded: Boolean,
+    onToggle: () -> Unit
+) {
+    val accentColor = if (isSelf) MaterialTheme.colorScheme.primary
+    else MaterialTheme.colorScheme.tertiary
+
+    val rotationAngle by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(300),
+        label = "chevron"
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() },
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelf)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+            else
+                MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
+        ),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(accentColor.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isSelf) Icons.Default.Person else Icons.Default.Face,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = accentColor
+                    )
+                }
+                Text(
+                    text = userName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = accentColor.copy(alpha = 0.12f)
+            ) {
+                Text(
+                    text = stringResource(R.string.medications_count_label, medicationCount),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accentColor
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowUp,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                modifier = Modifier
+                    .size(24.dp)
+                    .graphicsLayer { rotationZ = rotationAngle },
+                tint = accentColor
             )
         }
-
-        // Bottom spacer
-        item { Spacer(modifier = Modifier.height(8.dp)) }
     }
 }
 
@@ -174,13 +282,6 @@ private fun MedicationScheduleCard(
                             text = "${medication.dosage} ${medication.dosageUnit}".trim(),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (medication.assignedToName.isNotBlank()) {
-                        Text(
-                            text = stringResource(R.string.schedule_for_person, medication.assignedToName),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.tertiary
                         )
                     }
                 }

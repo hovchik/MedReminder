@@ -45,6 +45,11 @@
     <string name="time_section_evening">Evening</string>
     <string name="time_section_night">Night</string>
     <string name="next_dose_in">Next in %1$s</string>
+    <string name="schedule_details">Schedule details</string>
+    <string name="scheduled_time">Scheduled time</string>
+    <string name="frequency_label">Frequency</string>
+    <string name="instructions_label">Instructions</string>
+    <string name="status_label">Status</string>
     <string name="snoozed_until">Snoozed until %1$s</string>
     <string name="all_done_title">All done for today!</string>
     <string name="all_done_subtitle">Great job staying on track</string>
@@ -117,6 +122,7 @@
 
     <!-- Schedules Screen -->
     <string name="schedules_subtitle">Manage your medication schedules</string>
+    <string name="medications_count_label">%1$d meds</string>
     <string name="no_schedules_yet">No schedules yet</string>
     <string name="no_schedules_hint">Add a medication to create your first schedule</string>
     <string name="schedule_for_person">For %1$s</string>

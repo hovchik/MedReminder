@@ -169,6 +169,15 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun getScheduleForDose(dose: DoseLog): Schedule? {
+        val meds = _uiState.value.medications
+        return meds.flatMap { it.schedules }.find { it.id == dose.scheduleId }
+    }
+
+    fun getMedicationForDose(dose: DoseLog): Medication? {
+        return _uiState.value.medications.find { it.id == dose.medicationId }
+    }
+
     fun markDoseTaken(logId: Long) {
         viewModelScope.launch {
             repository.markDoseTaken(logId)

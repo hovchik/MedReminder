@@ -32,6 +32,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.medreminder.R
 import com.medreminder.domain.model.DoseLog
 import com.medreminder.domain.model.DoseStatus
+import com.medreminder.domain.model.Medication
+import com.medreminder.domain.model.Schedule
+import com.medreminder.domain.model.ScheduleFrequency
+import com.medreminder.domain.model.DurationType
 import com.medreminder.util.DateUtils
 import java.text.SimpleDateFormat
 import java.util.*
@@ -66,6 +70,20 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val expandedGroups = remember { mutableStateMapOf<String, Boolean>() }
+    var selectedDose by remember { mutableStateOf<DoseLog?>(null) }
+
+    // Show bottom sheet with schedule details when a dose card is tapped
+    if (selectedDose != null) {
+        val dose = selectedDose!!
+        val schedule = viewModel.getScheduleForDose(dose)
+        val medication = viewModel.getMedicationForDose(dose)
+        DoseDetailSheet(
+            dose = dose,
+            schedule = schedule,
+            medication = medication,
+            onDismiss = { selectedDose = null }
+        )
+    }
 
     // Regenerate today's doses every time the screen becomes visible (e.g. after
     // editing a schedule and navigating back). LaunchedEffect(Unit) only runs on
@@ -205,6 +223,7 @@ fun HomeScreen(
                     items(doses, key = { it.id }) { dose ->
                         DoseCard(
                             dose = dose,
+                            onClick = { selectedDose = dose },
                             onTaken = { viewModel.markDoseTaken(dose.id) },
                             onCancel = { viewModel.markDoseSkipped(dose.id) },
                             onSnooze = { viewModel.snoozeDose(dose) }
@@ -545,6 +564,7 @@ private fun StatPill(
 @Composable
 fun DoseCard(
     dose: DoseLog,
+    onClick: () -> Unit,
     onTaken: () -> Unit,
     onCancel: () -> Unit,
     onSnooze: () -> Unit
@@ -567,7 +587,9 @@ fun DoseCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = containerColor),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -726,6 +748,185 @@ fun StatusChip(text: String, color: Color) {
             color = color,
             fontWeight = FontWeight.SemiBold
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DoseDetailSheet(
+    dose: DoseLog,
+    schedule: Schedule?,
+    medication: Medication?,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState()
+    val pillColor = try { Color(dose.medicationColor.toColorInt()) } catch (_: Exception) { Color(0xFF4A90D9) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .background(pillColor.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("\uD83D\uDC8A", fontSize = 26.sp)
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = dose.medicationName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (dose.medicationDosage.isNotBlank()) {
+                        Text(
+                            text = dose.medicationDosage,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider()
+
+            // Schedule info
+            Text(
+                text = stringResource(R.string.schedule_details),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            // Scheduled time
+            DetailRow(
+                icon = Icons.Default.Schedule,
+                label = stringResource(R.string.scheduled_time),
+                value = DateUtils.formatTimeOnly(dose.scheduledTime)
+            )
+
+            // Frequency
+            if (schedule != null) {
+                val freqText = when (schedule.frequency) {
+                    ScheduleFrequency.DAILY -> stringResource(R.string.freq_daily)
+                    ScheduleFrequency.SPECIFIC_DAYS -> {
+                        val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+                        schedule.daysOfWeek.mapNotNull { dayNames.getOrNull(it - Calendar.SUNDAY) }.joinToString(", ")
+                    }
+                    ScheduleFrequency.INTERVAL -> stringResource(R.string.every) + " ${schedule.intervalDays} " + stringResource(R.string.days)
+                    ScheduleFrequency.EVERY_X_HOURS -> stringResource(R.string.every) + " ${schedule.intervalHours} " + stringResource(R.string.hours)
+                    ScheduleFrequency.AS_NEEDED -> stringResource(R.string.freq_as_needed)
+                }
+                DetailRow(
+                    icon = Icons.Default.Repeat,
+                    label = stringResource(R.string.frequency_label),
+                    value = freqText
+                )
+
+                // Duration
+                val durationText = when (schedule.durationType) {
+                    DurationType.ONGOING -> stringResource(R.string.ongoing_lifetime)
+                    DurationType.DAYS -> "${schedule.durationValue} " + stringResource(R.string.days)
+                    DurationType.MONTHS -> "${schedule.durationValue} " + stringResource(R.string.months_label)
+                }
+                DetailRow(
+                    icon = Icons.Default.DateRange,
+                    label = stringResource(R.string.duration),
+                    value = durationText
+                )
+            }
+
+            // Medication form
+            if (medication != null) {
+                DetailRow(
+                    icon = Icons.Default.MedicalServices,
+                    label = stringResource(R.string.form),
+                    value = medication.form.displayName
+                )
+
+                if (medication.instructions.isNotBlank()) {
+                    DetailRow(
+                        icon = Icons.Default.Info,
+                        label = stringResource(R.string.instructions_label),
+                        value = medication.instructions
+                    )
+                }
+
+                if (medication.notes.isNotBlank()) {
+                    DetailRow(
+                        icon = Icons.Default.Notes,
+                        label = stringResource(R.string.notes),
+                        value = medication.notes
+                    )
+                }
+
+                if (medication.currentStock > 0) {
+                    DetailRow(
+                        icon = Icons.Default.Inventory2,
+                        label = stringResource(R.string.current_stock),
+                        value = medication.currentStock.toString()
+                    )
+                }
+            }
+
+            // Status
+            val statusText = when (dose.status) {
+                DoseStatus.PENDING -> stringResource(R.string.status_pending)
+                DoseStatus.SNOOZED -> if (dose.snoozedUntil != null) {
+                    stringResource(R.string.snoozed_until, DateUtils.formatTimeOnly(dose.snoozedUntil))
+                } else {
+                    stringResource(R.string.status_snoozed)
+                }
+                else -> dose.status.displayName
+            }
+            DetailRow(
+                icon = Icons.Default.Flag,
+                label = stringResource(R.string.status_label),
+                value = statusText
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String
+) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
     }
 }
 
