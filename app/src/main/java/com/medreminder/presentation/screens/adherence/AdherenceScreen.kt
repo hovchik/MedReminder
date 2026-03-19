@@ -70,9 +70,6 @@ class AdherenceViewModel @Inject constructor(
 
     init {
         loadStats()
-        // Auto-trigger AI analyses on screen load
-        runDailyAnalysis()
-        runWeeklyAnalysis()
     }
 
     fun setPeriod(p: String) {

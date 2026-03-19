@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -67,7 +68,15 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val expandedGroups = remember { mutableStateMapOf<String, Boolean>() }
 
-    LaunchedEffect(Unit) { viewModel.generateTodayDoses() }
+    // Regenerate today's doses every time the screen becomes visible (e.g. after
+    // editing a schedule and navigating back). LaunchedEffect(Unit) only runs on
+    // first composition; lifecycle-aware observation ensures we also run on resume.
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            viewModel.generateTodayDoses()
+        }
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
