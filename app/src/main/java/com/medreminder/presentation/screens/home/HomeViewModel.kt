@@ -92,10 +92,11 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             repository.getTodayDoses(startOfDay, endOfDay).collect { allDoses ->
-                // Only show upcoming doses (PENDING and SNOOZED) on the Today screen.
-                // TAKEN, MISSED, and SKIPPED doses are shown on the History screen.
-                val upcomingDoses = allDoses.filter {
-                    it.status == DoseStatus.PENDING || it.status == DoseStatus.SNOOZED
+                // Show all not-yet-executed doses on the Today screen:
+                // PENDING, SNOOZED, and MISSED (still actionable).
+                // Only TAKEN and SKIPPED are fully executed → History screen.
+                val unexecutedDoses = allDoses.filter {
+                    it.status == DoseStatus.PENDING || it.status == DoseStatus.SNOOZED || it.status == DoseStatus.MISSED
                 }
                 val taken = allDoses.count { it.status == DoseStatus.TAKEN }
                 val missed = allDoses.count { it.status == DoseStatus.MISSED }
@@ -104,20 +105,20 @@ class HomeViewModel @Inject constructor(
                 val rate = if (total > 0) taken.toFloat() / total * 100f else 0f
 
                 val now = System.currentTimeMillis()
-                val nextDose = upcomingDoses
+                val nextDose = unexecutedDoses
                     .filter { it.status == DoseStatus.PENDING && it.scheduledTime > now }
                     .minByOrNull { it.scheduledTime }
                     ?.scheduledTime
 
                 _uiState.update {
                     it.copy(
-                        todayDoses = sortDoses(upcomingDoses),
-                        userDoseGroups = buildUserDoseGroups(upcomingDoses),
+                        todayDoses = sortDoses(unexecutedDoses),
+                        userDoseGroups = buildUserDoseGroups(unexecutedDoses),
                         takenCount = taken,
                         totalCount = total,
                         missedCount = missed,
                         skippedCount = skipped,
-                        upcomingCount = upcomingDoses.size,
+                        upcomingCount = unexecutedDoses.size,
                         nextDoseTime = nextDose,
                         adherenceRate = rate,
                         isLoading = false

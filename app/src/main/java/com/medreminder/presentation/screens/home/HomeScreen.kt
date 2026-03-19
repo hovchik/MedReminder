@@ -77,7 +77,7 @@ fun HomeScreen(
         val dose = selectedDose!!
         val schedule = viewModel.getScheduleForDose(dose)
         val medication = viewModel.getMedicationForDose(dose)
-        DoseDetailSheet(
+        DoseDetailDialog(
             dose = dose,
             schedule = schedule,
             medication = medication,
@@ -570,17 +570,20 @@ fun DoseCard(
     onSnooze: () -> Unit
 ) {
     val isSnoozed = dose.status == DoseStatus.SNOOZED
+    val isMissed = dose.status == DoseStatus.MISSED
     val isOverdue = dose.status == DoseStatus.PENDING &&
             dose.scheduledTime < System.currentTimeMillis()
     val pillColor = try { Color(dose.medicationColor.toColorInt()) } catch (_: Exception) { Color(0xFF4A90D9) }
 
     val containerColor = when {
+        isMissed -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
         isSnoozed -> Color(0xFFF39C12).copy(alpha = 0.08f)
         isOverdue -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
         else -> MaterialTheme.colorScheme.surface
     }
 
     val borderColor = when {
+        isMissed -> MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
         isOverdue -> MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
         isSnoozed -> Color(0xFFF39C12).copy(alpha = 0.3f)
         else -> Color.Transparent
@@ -612,6 +615,8 @@ fun DoseCard(
                     contentAlignment = Alignment.Center
                 ) {
                     when (dose.status) {
+                        DoseStatus.MISSED ->
+                            Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(26.dp))
                         DoseStatus.SNOOZED ->
                             Icon(Icons.Default.Snooze, null, tint = Color(0xFFF39C12), modifier = Modifier.size(26.dp))
                         else ->
@@ -658,7 +663,9 @@ fun DoseCard(
                         )
 
                         // Contextual label
-                        if (isOverdue) {
+                        if (isMissed) {
+                            StatusChip(text = stringResource(R.string.status_missed), color = MaterialTheme.colorScheme.error)
+                        } else if (isOverdue) {
                             StatusChip(text = stringResource(R.string.overdue), color = MaterialTheme.colorScheme.error)
                         } else if (isSnoozed && dose.snoozedUntil != null) {
                             StatusChip(
@@ -681,6 +688,19 @@ fun DoseCard(
                         } else if (dose.status != DoseStatus.PENDING) {
                             StatusChip(dose.status)
                         }
+                    }
+                }
+
+                // Action button for missed doses
+                if (isMissed) {
+                    FilledIconButton(
+                        onClick = onTaken,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier.size(42.dp)
+                    ) {
+                        Icon(Icons.Default.Check, stringResource(R.string.mark_taken), modifier = Modifier.size(22.dp))
                     }
                 }
 
@@ -751,153 +771,181 @@ fun StatusChip(text: String, color: Color) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DoseDetailSheet(
+private fun DoseDetailDialog(
     dose: DoseLog,
     schedule: Schedule?,
     medication: Medication?,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState()
     val pillColor = try { Color(dose.medicationColor.toColorInt()) } catch (_: Exception) { Color(0xFF4A90D9) }
 
-    ModalBottomSheet(
+    AlertDialog(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Header
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .background(pillColor.copy(alpha = 0.15f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("\uD83D\uDC8A", fontSize = 26.sp)
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.close_label))
+            }
+        },
+        shape = RoundedCornerShape(24.dp),
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(pillColor.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("\uD83D\uDC8A", fontSize = 28.sp)
+            }
+        },
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = dose.medicationName,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                if (dose.medicationDosage.isNotBlank()) {
                     Text(
-                        text = dose.medicationName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        text = dose.medicationDosage,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (dose.medicationDosage.isNotBlank()) {
-                        Text(
-                            text = dose.medicationDosage,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Scheduled time
+                DetailRow(
+                    icon = Icons.Default.Schedule,
+                    label = stringResource(R.string.scheduled_time),
+                    value = DateUtils.formatTimeOnly(dose.scheduledTime)
+                )
+
+                // Frequency
+                if (schedule != null) {
+                    val freqText = when (schedule.frequency) {
+                        ScheduleFrequency.DAILY -> stringResource(R.string.freq_daily)
+                        ScheduleFrequency.SPECIFIC_DAYS -> {
+                            val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+                            schedule.daysOfWeek.mapNotNull { dayNames.getOrNull(it - Calendar.SUNDAY) }.joinToString(", ")
+                        }
+                        ScheduleFrequency.INTERVAL -> stringResource(R.string.every) + " ${schedule.intervalDays} " + stringResource(R.string.days)
+                        ScheduleFrequency.EVERY_X_HOURS -> stringResource(R.string.every) + " ${schedule.intervalHours} " + stringResource(R.string.hours)
+                        ScheduleFrequency.AS_NEEDED -> stringResource(R.string.freq_as_needed)
+                    }
+                    DetailRow(
+                        icon = Icons.Default.Repeat,
+                        label = stringResource(R.string.frequency_label),
+                        value = freqText
+                    )
+
+                    // Duration + days left
+                    val now = System.currentTimeMillis()
+                    val durationText: String
+                    val daysLeftText: String?
+
+                    when (schedule.durationType) {
+                        DurationType.ONGOING -> {
+                            durationText = stringResource(R.string.ongoing_lifetime)
+                            daysLeftText = null
+                        }
+                        DurationType.DAYS -> {
+                            durationText = "${schedule.durationValue} " + stringResource(R.string.days)
+                            val endMs = schedule.startDate + schedule.durationValue.toLong() * 24 * 60 * 60 * 1000
+                            val remaining = ((endMs - now) / (24 * 60 * 60 * 1000)).toInt()
+                            daysLeftText = if (remaining > 0) {
+                                stringResource(R.string.days_remaining, remaining)
+                            } else {
+                                stringResource(R.string.schedule_ended)
+                            }
+                        }
+                        DurationType.MONTHS -> {
+                            durationText = "${schedule.durationValue} " + stringResource(R.string.months_label)
+                            val endCal = Calendar.getInstance().apply {
+                                timeInMillis = schedule.startDate
+                                add(Calendar.MONTH, schedule.durationValue)
+                            }
+                            val remaining = ((endCal.timeInMillis - now) / (24 * 60 * 60 * 1000)).toInt()
+                            daysLeftText = if (remaining > 0) {
+                                stringResource(R.string.days_remaining, remaining)
+                            } else {
+                                stringResource(R.string.schedule_ended)
+                            }
+                        }
+                    }
+
+                    DetailRow(
+                        icon = Icons.Default.DateRange,
+                        label = stringResource(R.string.duration),
+                        value = durationText
+                    )
+
+                    if (daysLeftText != null) {
+                        DetailRow(
+                            icon = Icons.Default.Timelapse,
+                            label = stringResource(R.string.days_left_label),
+                            value = daysLeftText
                         )
                     }
                 }
-            }
 
-            HorizontalDivider()
+                HorizontalDivider()
 
-            // Schedule info
-            Text(
-                text = stringResource(R.string.schedule_details),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+                // Medication form
+                if (medication != null) {
+                    DetailRow(
+                        icon = Icons.Default.MedicalServices,
+                        label = stringResource(R.string.form),
+                        value = medication.form.displayName
+                    )
 
-            // Scheduled time
-            DetailRow(
-                icon = Icons.Default.Schedule,
-                label = stringResource(R.string.scheduled_time),
-                value = DateUtils.formatTimeOnly(dose.scheduledTime)
-            )
-
-            // Frequency
-            if (schedule != null) {
-                val freqText = when (schedule.frequency) {
-                    ScheduleFrequency.DAILY -> stringResource(R.string.freq_daily)
-                    ScheduleFrequency.SPECIFIC_DAYS -> {
-                        val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-                        schedule.daysOfWeek.mapNotNull { dayNames.getOrNull(it - Calendar.SUNDAY) }.joinToString(", ")
+                    if (medication.instructions.isNotBlank()) {
+                        DetailRow(
+                            icon = Icons.Default.Info,
+                            label = stringResource(R.string.instructions_label),
+                            value = medication.instructions
+                        )
                     }
-                    ScheduleFrequency.INTERVAL -> stringResource(R.string.every) + " ${schedule.intervalDays} " + stringResource(R.string.days)
-                    ScheduleFrequency.EVERY_X_HOURS -> stringResource(R.string.every) + " ${schedule.intervalHours} " + stringResource(R.string.hours)
-                    ScheduleFrequency.AS_NEEDED -> stringResource(R.string.freq_as_needed)
+
+                    if (medication.notes.isNotBlank()) {
+                        DetailRow(
+                            icon = Icons.Default.Notes,
+                            label = stringResource(R.string.notes),
+                            value = medication.notes
+                        )
+                    }
+
+                    if (medication.currentStock > 0) {
+                        DetailRow(
+                            icon = Icons.Default.Inventory2,
+                            label = stringResource(R.string.current_stock),
+                            value = medication.currentStock.toString()
+                        )
+                    }
+                }
+
+                // Status
+                val statusText = when (dose.status) {
+                    DoseStatus.PENDING -> stringResource(R.string.status_pending)
+                    DoseStatus.MISSED -> stringResource(R.string.status_missed)
+                    DoseStatus.SNOOZED -> if (dose.snoozedUntil != null) {
+                        stringResource(R.string.snoozed_until, DateUtils.formatTimeOnly(dose.snoozedUntil))
+                    } else {
+                        stringResource(R.string.status_snoozed)
+                    }
+                    else -> dose.status.displayName
                 }
                 DetailRow(
-                    icon = Icons.Default.Repeat,
-                    label = stringResource(R.string.frequency_label),
-                    value = freqText
-                )
-
-                // Duration
-                val durationText = when (schedule.durationType) {
-                    DurationType.ONGOING -> stringResource(R.string.ongoing_lifetime)
-                    DurationType.DAYS -> "${schedule.durationValue} " + stringResource(R.string.days)
-                    DurationType.MONTHS -> "${schedule.durationValue} " + stringResource(R.string.months_label)
-                }
-                DetailRow(
-                    icon = Icons.Default.DateRange,
-                    label = stringResource(R.string.duration),
-                    value = durationText
+                    icon = Icons.Default.Flag,
+                    label = stringResource(R.string.status_label),
+                    value = statusText
                 )
             }
-
-            // Medication form
-            if (medication != null) {
-                DetailRow(
-                    icon = Icons.Default.MedicalServices,
-                    label = stringResource(R.string.form),
-                    value = medication.form.displayName
-                )
-
-                if (medication.instructions.isNotBlank()) {
-                    DetailRow(
-                        icon = Icons.Default.Info,
-                        label = stringResource(R.string.instructions_label),
-                        value = medication.instructions
-                    )
-                }
-
-                if (medication.notes.isNotBlank()) {
-                    DetailRow(
-                        icon = Icons.Default.Notes,
-                        label = stringResource(R.string.notes),
-                        value = medication.notes
-                    )
-                }
-
-                if (medication.currentStock > 0) {
-                    DetailRow(
-                        icon = Icons.Default.Inventory2,
-                        label = stringResource(R.string.current_stock),
-                        value = medication.currentStock.toString()
-                    )
-                }
-            }
-
-            // Status
-            val statusText = when (dose.status) {
-                DoseStatus.PENDING -> stringResource(R.string.status_pending)
-                DoseStatus.SNOOZED -> if (dose.snoozedUntil != null) {
-                    stringResource(R.string.snoozed_until, DateUtils.formatTimeOnly(dose.snoozedUntil))
-                } else {
-                    stringResource(R.string.status_snoozed)
-                }
-                else -> dose.status.displayName
-            }
-            DetailRow(
-                icon = Icons.Default.Flag,
-                label = stringResource(R.string.status_label),
-                value = statusText
-            )
         }
-    }
+    )
 }
 
 @Composable

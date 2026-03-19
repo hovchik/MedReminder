@@ -50,6 +50,10 @@
     <string name="frequency_label">Frequency</string>
     <string name="instructions_label">Instructions</string>
     <string name="status_label">Status</string>
+    <string name="days_left_label">Days left</string>
+    <string name="days_remaining">%1$d days remaining</string>
+    <string name="schedule_ended">Schedule ended</string>
+    <string name="close_label">Close</string>
     <string name="snoozed_until">Snoozed until %1$s</string>
     <string name="all_done_title">All done for today!</string>
     <string name="all_done_subtitle">Great job staying on track</string>
