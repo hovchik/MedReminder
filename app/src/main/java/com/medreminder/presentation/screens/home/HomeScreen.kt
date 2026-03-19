@@ -172,24 +172,13 @@ fun HomeScreen(
             }
         }
 
-        // Section header with add button
+        // Section header
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    stringResource(R.string.upcoming_medications),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                FilledTonalButton(onClick = onAddMedication) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.add))
-                }
-            }
+            Text(
+                stringResource(R.string.upcoming_medications),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
         }
 
         // Empty state
@@ -657,7 +646,7 @@ fun DoseCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = DateUtils.formatTimeOnly(dose.scheduledTime),
+                            text = DateUtils.formatDateTime(dose.scheduledTime),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

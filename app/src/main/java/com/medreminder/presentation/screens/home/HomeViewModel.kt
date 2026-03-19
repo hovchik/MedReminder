@@ -88,10 +88,10 @@ class HomeViewModel @Inject constructor(
 
     private fun loadTodayData() {
         val startOfDay = DateUtils.getStartOfDay()
-        val endOfDay = DateUtils.getEndOfDay()
+        val upcomingEnd = System.currentTimeMillis() + 6 * 60 * 60 * 1000 // now + 6 hours
 
         viewModelScope.launch {
-            repository.getTodayDoses(startOfDay, endOfDay).collect { allDoses ->
+            repository.getTodayDoses(startOfDay, upcomingEnd).collect { allDoses ->
                 // Show all not-yet-executed doses on the Today screen:
                 // PENDING, SNOOZED, and MISSED (still actionable).
                 // Only TAKEN and SKIPPED are fully executed → History screen.
@@ -211,12 +211,12 @@ class HomeViewModel @Inject constructor(
     fun generateTodayDoses() {
         viewModelScope.launch {
             val startOfDay = DateUtils.getStartOfDay()
-            val endOfDay = DateUtils.getEndOfDay()
+            val upcomingEnd = System.currentTimeMillis() + 6 * 60 * 60 * 1000 // now + 6 hours
             val schedules = repository.getAllActiveSchedules()
 
             for (schedule in schedules) {
                 if (schedule.frequency == ScheduleFrequency.AS_NEEDED) continue
-                if (!isScheduledForToday(schedule)) continue
+                if (!isScheduledForDay(schedule, Calendar.getInstance())) continue
 
                 if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS && schedule.intervalHours > 0) {
                     val cal = Calendar.getInstance().apply {
@@ -225,7 +225,7 @@ class HomeViewModel @Inject constructor(
                         set(Calendar.SECOND, 0)
                         set(Calendar.MILLISECOND, 0)
                     }
-                    while (cal.timeInMillis <= endOfDay) {
+                    while (cal.timeInMillis <= upcomingEnd) {
                         if (cal.timeInMillis >= startOfDay) {
                             val alreadyExists = repository.doseLogExistsForWindow(
                                 schedule.id, cal.timeInMillis - 60000, cal.timeInMillis + 60000
@@ -245,41 +245,78 @@ class HomeViewModel @Inject constructor(
                         cal.add(Calendar.HOUR_OF_DAY, schedule.intervalHours)
                     }
                 } else {
-                    val exists = repository.doseLogExistsForWindow(schedule.id, startOfDay, endOfDay)
-                    if (!exists) {
-                        val cal = Calendar.getInstance().apply {
-                            set(Calendar.HOUR_OF_DAY, schedule.timeHour)
-                            set(Calendar.MINUTE, schedule.timeMinute)
-                            set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0)
-                        }
-                        repository.createDoseLog(
-                            DoseLog(
-                                medicationId = schedule.medicationId,
-                                scheduleId = schedule.id,
-                                scheduledTime = cal.timeInMillis,
-                                status = if (cal.timeInMillis < System.currentTimeMillis() - 3600000)
-                                    DoseStatus.MISSED else DoseStatus.PENDING
+                    val doseTime = Calendar.getInstance().apply {
+                        set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                        set(Calendar.MINUTE, schedule.timeMinute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    if (doseTime.timeInMillis <= upcomingEnd) {
+                        val dayStart = DateUtils.getStartOfDay(doseTime.timeInMillis)
+                        val dayEnd = DateUtils.getEndOfDay(doseTime.timeInMillis)
+                        val exists = repository.doseLogExistsForWindow(schedule.id, dayStart, dayEnd)
+                        if (!exists) {
+                            repository.createDoseLog(
+                                DoseLog(
+                                    medicationId = schedule.medicationId,
+                                    scheduleId = schedule.id,
+                                    scheduledTime = doseTime.timeInMillis,
+                                    status = if (doseTime.timeInMillis < System.currentTimeMillis() - 3600000)
+                                        DoseStatus.MISSED else DoseStatus.PENDING
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
+
+            // Also generate doses for tomorrow if the +6h window crosses midnight
+            val tomorrowCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }
+            if (upcomingEnd > DateUtils.getStartOfDay(tomorrowCal.timeInMillis)) {
+                for (schedule in schedules) {
+                    if (schedule.frequency == ScheduleFrequency.AS_NEEDED) continue
+                    if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS) continue // already handled above
+                    if (!isScheduledForDay(schedule, tomorrowCal)) continue
+
+                    val doseTime = Calendar.getInstance().apply {
+                        timeInMillis = tomorrowCal.timeInMillis
+                        set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                        set(Calendar.MINUTE, schedule.timeMinute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    if (doseTime.timeInMillis <= upcomingEnd) {
+                        val dayStart = DateUtils.getStartOfDay(doseTime.timeInMillis)
+                        val dayEnd = DateUtils.getEndOfDay(doseTime.timeInMillis)
+                        val exists = repository.doseLogExistsForWindow(schedule.id, dayStart, dayEnd)
+                        if (!exists) {
+                            repository.createDoseLog(
+                                DoseLog(
+                                    medicationId = schedule.medicationId,
+                                    scheduleId = schedule.id,
+                                    scheduledTime = doseTime.timeInMillis,
+                                    status = DoseStatus.PENDING
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
             // Reschedule alarms
             alarmScheduler.scheduleAllAlarms()
         }
     }
 
-    private fun isScheduledForToday(schedule: Schedule): Boolean {
-        val today = Calendar.getInstance()
+    private fun isScheduledForDay(schedule: Schedule, day: Calendar): Boolean {
         return when (schedule.frequency) {
             ScheduleFrequency.DAILY -> true
             ScheduleFrequency.SPECIFIC_DAYS -> {
-                today.get(Calendar.DAY_OF_WEEK) in schedule.daysOfWeek
+                day.get(Calendar.DAY_OF_WEEK) in schedule.daysOfWeek
             }
             ScheduleFrequency.INTERVAL -> {
                 if (schedule.intervalDays <= 0) return false
-                val daysSinceStart = ((today.timeInMillis - schedule.startDate) /
+                val daysSinceStart = ((day.timeInMillis - schedule.startDate) /
                         (24 * 60 * 60 * 1000)).toInt()
                 daysSinceStart >= 0 && daysSinceStart % schedule.intervalDays == 0
             }
