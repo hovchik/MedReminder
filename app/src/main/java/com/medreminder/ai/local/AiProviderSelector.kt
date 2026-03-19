@@ -147,6 +147,9 @@ class AiProviderSelector @Inject constructor(
 
     suspend fun selectProvider(): AiProvider {
         val userChoice = getSelectedProviderType().first()
+        if (userChoice == AiProviderType.SYSTEM_AI || userChoice == AiProviderType.AUTO) {
+            ensureSystemAiInitialized()
+        }
         if (userChoice == AiProviderType.CUSTOM_LOCAL || userChoice == AiProviderType.AUTO) {
             ensureActiveModelLoaded()
         }
@@ -154,6 +157,12 @@ class AiProviderSelector @Inject constructor(
             ensureCloudProviderConfigured()
         }
         return resolveProvider(userChoice)
+    }
+
+    private fun ensureSystemAiInitialized() {
+        if (!systemAiProvider.isAvailable() && systemAiProvider.hasDeviceCapability()) {
+            systemAiProvider.initialize()
+        }
     }
 
     fun resolveProvider(requestedType: AiProviderType): AiProvider {
@@ -202,7 +211,7 @@ class AiProviderSelector @Inject constructor(
     }
 
     fun getAllProviders(): List<ProviderInfo> {
-        val systemAiSubtitle = if (systemAiProvider.isAvailable()) {
+        val systemAiSubtitle = if (systemAiProvider.isAvailable() || systemAiProvider.hasDeviceCapability()) {
             "Uses device built-in AI engine."
         } else {
             "System AI unavailable — will use rule-based analysis."
