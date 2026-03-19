@@ -30,6 +30,10 @@ data class HomeUiState(
     val medications: List<Medication> = emptyList(),
     val takenCount: Int = 0,
     val totalCount: Int = 0,
+    val missedCount: Int = 0,
+    val skippedCount: Int = 0,
+    val upcomingCount: Int = 0,
+    val nextDoseTime: Long? = null,
     val adherenceRate: Float = 0f,
     val currentStreak: Int = 0,
     val refillAlerts: List<Medication> = emptyList(),
@@ -94,8 +98,16 @@ class HomeViewModel @Inject constructor(
                     it.status == DoseStatus.PENDING || it.status == DoseStatus.SNOOZED
                 }
                 val taken = allDoses.count { it.status == DoseStatus.TAKEN }
+                val missed = allDoses.count { it.status == DoseStatus.MISSED }
+                val skipped = allDoses.count { it.status == DoseStatus.SKIPPED }
                 val total = allDoses.size
                 val rate = if (total > 0) taken.toFloat() / total * 100f else 0f
+
+                val now = System.currentTimeMillis()
+                val nextDose = upcomingDoses
+                    .filter { it.status == DoseStatus.PENDING && it.scheduledTime > now }
+                    .minByOrNull { it.scheduledTime }
+                    ?.scheduledTime
 
                 _uiState.update {
                     it.copy(
@@ -103,6 +115,10 @@ class HomeViewModel @Inject constructor(
                         userDoseGroups = buildUserDoseGroups(upcomingDoses),
                         takenCount = taken,
                         totalCount = total,
+                        missedCount = missed,
+                        skippedCount = skipped,
+                        upcomingCount = upcomingDoses.size,
+                        nextDoseTime = nextDose,
                         adherenceRate = rate,
                         isLoading = false
                     )

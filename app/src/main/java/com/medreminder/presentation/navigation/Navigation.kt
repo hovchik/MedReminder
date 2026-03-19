@@ -147,10 +147,7 @@ fun MedReminderNavigation() {
             }
             composable(Screen.Home.route) {
                 HomeScreen(
-                    onAddMedication = { navController.navigate(Screen.AddMedication.route) },
-                    onEditMedication = { id ->
-                        navController.navigate(Screen.EditMedication.createRoute(id))
-                    }
+                    onAddMedication = { navController.navigate(Screen.AddMedication.route) }
                 )
             }
             composable(Screen.AddMedication.route) {
