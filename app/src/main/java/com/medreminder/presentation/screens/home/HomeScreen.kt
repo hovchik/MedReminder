@@ -71,7 +71,7 @@ fun HomeScreen(
     // Regenerate today's doses every time the screen becomes visible (e.g. after
     // editing a schedule and navigating back). LaunchedEffect(Unit) only runs on
     // first composition; lifecycle-aware observation ensures we also run on resume.
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
             viewModel.generateTodayDoses()
