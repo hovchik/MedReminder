@@ -32,6 +32,7 @@ import com.medreminder.presentation.screens.ocr.OcrScannerScreen
 import com.medreminder.presentation.screens.onboarding.OnboardingScreen
 import com.medreminder.presentation.screens.schedules.SchedulesScreen
 import com.medreminder.ai.setupwizard.LocalAiSetupWizard
+import com.medreminder.presentation.screens.insights.AiInsightsScreen
 import com.medreminder.presentation.screens.medanalysis.MedicationAnalysisScreen
 import com.medreminder.presentation.screens.settings.SettingsScreen
 
@@ -56,6 +57,7 @@ sealed class Screen(val route: String) {
     data object Caregiver : Screen("caregiver")
     data object Settings : Screen("settings")
     data object LocalAiSetup : Screen("local_ai_setup")
+    data object AiInsights : Screen("ai_insights")
     data object MedicationAnalysis : Screen("medication_analysis/{medicationId}") {
         fun createRoute(medicationId: Long) = "medication_analysis/$medicationId"
     }
@@ -147,7 +149,8 @@ fun MedReminderNavigation() {
             }
             composable(Screen.Home.route) {
                 HomeScreen(
-                    onAddMedication = { navController.navigate(Screen.AddMedication.route) }
+                    onAddMedication = { navController.navigate(Screen.AddMedication.route) },
+                    onNavigateToInsights = { navController.navigate(Screen.AiInsights.route) }
                 )
             }
             composable(Screen.AddMedication.route) {
@@ -206,6 +209,11 @@ fun MedReminderNavigation() {
                 )
             }
             composable(Screen.Adherence.route) { AdherenceScreen() }
+            composable(Screen.AiInsights.route) {
+                AiInsightsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
             composable(Screen.History.route) { HistoryScreen() }
             composable(Screen.Caregiver.route) { CaregiverScreen() }
             composable(Screen.Settings.route) {

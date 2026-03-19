@@ -247,6 +247,12 @@
     <string name="confirm">Confirm</string>
 
     <!-- AI Analysis -->
+    <string name="ai_insights_title">AI Insights</string>
+    <string name="ai_insights_home_subtitle">Get daily and weekly AI-powered analysis</string>
+    <string name="daily_insight_subtitle">Analysis of today\'s medication adherence</string>
+    <string name="weekly_insight_subtitle">7-day trends and patterns</string>
+    <string name="today_adherence">Today</string>
+    <string name="week_adherence">This Week</string>
     <string name="ai_daily_insight">AI Daily Insight</string>
     <string name="ai_weekly_insight">AI Weekly Insight</string>
     <string name="analyzing">Analyzing your data…</string>
