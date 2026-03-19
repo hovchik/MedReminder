@@ -110,12 +110,14 @@ interface DoseLogDao {
     """)
     suspend fun deletePendingLogsForMedication(medicationId: Long, startTime: Long, endTime: Long)
 
-    // For generating pending doses check
+    // For generating pending doses check – ignore SKIPPED (cancelled) logs so that
+    // a fresh PENDING log is created even if the user previously cancelled the dose.
     @Query("""
         SELECT EXISTS(
             SELECT 1 FROM dose_logs
             WHERE scheduleId = :scheduleId
             AND scheduledTime BETWEEN :windowStart AND :windowEnd
+            AND status != 'skipped'
         )
     """)
     suspend fun doseLogExistsForWindow(scheduleId: Long, windowStart: Long, windowEnd: Long): Boolean
