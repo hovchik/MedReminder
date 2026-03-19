@@ -62,6 +62,20 @@ class CustomLocalModelProvider @Inject constructor(
         activeRuntime = null
     }
 
+    /**
+     * Send a raw prompt to the local model and return the raw text response.
+     * Returns null if no runtime is loaded or inference fails.
+     */
+    suspend fun generateRawCompletion(prompt: String): String? {
+        val runtime = activeRuntime ?: return null
+        return try {
+            runtime.runPrompt(prompt)
+        } catch (e: Exception) {
+            Log.e(TAG, "Local model raw completion failed", e)
+            null
+        }
+    }
+
     override suspend fun generateAnalysis(input: AnalysisInput): AnalysisResult {
         val startTime = System.currentTimeMillis()
         val runtime = activeRuntime

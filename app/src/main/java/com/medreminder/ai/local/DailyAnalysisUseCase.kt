@@ -147,7 +147,12 @@ class DailyAnalysisUseCase @Inject constructor(
         return try {
             provider.generateAnalysis(input)
         } catch (e: Exception) {
-            android.util.Log.w("DailyAnalysis", "Provider failed, falling back to rule-based", e)
+            android.util.Log.e(
+                "DailyAnalysis",
+                "Provider ${provider.type.name} (${provider.displayName}) failed, " +
+                    "falling back to rule-based: ${e.message}",
+                e
+            )
             ruleBasedProvider.generateAnalysis(input)
         }
     }
