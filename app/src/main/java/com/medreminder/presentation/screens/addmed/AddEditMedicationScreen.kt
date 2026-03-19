@@ -12,10 +12,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
@@ -576,12 +579,10 @@ fun ScheduleCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.every), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedTextField(
-                        value = schedule.intervalDays.toString(),
-                        onValueChange = { it.toIntOrNull()?.let(onIntervalChange) },
-                        modifier = Modifier.width(72.dp),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp)
+                    NumericTextField(
+                        value = schedule.intervalDays,
+                        onValueCommit = onIntervalChange,
+                        modifier = Modifier.width(72.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.days), style = MaterialTheme.typography.bodyMedium)
@@ -593,12 +594,10 @@ fun ScheduleCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.every), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedTextField(
-                        value = schedule.intervalHours.toString(),
-                        onValueChange = { it.toIntOrNull()?.let(onIntervalHoursChange) },
-                        modifier = Modifier.width(72.dp),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp)
+                    NumericTextField(
+                        value = schedule.intervalHours,
+                        onValueCommit = onIntervalHoursChange,
+                        modifier = Modifier.width(72.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.hours), style = MaterialTheme.typography.bodyMedium)
@@ -608,12 +607,11 @@ fun ScheduleCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.tolerance), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedTextField(
-                        value = schedule.toleranceMinutes.toString(),
-                        onValueChange = { it.toIntOrNull()?.let(onToleranceChange) },
+                    NumericTextField(
+                        value = schedule.toleranceMinutes,
+                        onValueCommit = onToleranceChange,
                         modifier = Modifier.width(72.dp),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp)
+                        defaultValue = 10
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.minutes), style = MaterialTheme.typography.bodyMedium)
@@ -645,12 +643,10 @@ fun ScheduleCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.number_of_days), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedTextField(
-                        value = schedule.durationValue.toString(),
-                        onValueChange = { it.toIntOrNull()?.let(onDurationValueChange) },
-                        modifier = Modifier.width(80.dp),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp)
+                    NumericTextField(
+                        value = schedule.durationValue,
+                        onValueCommit = onDurationValueChange,
+                        modifier = Modifier.width(80.dp)
                     )
                 }
             }
@@ -659,15 +655,46 @@ fun ScheduleCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.number_of_months), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedTextField(
-                        value = schedule.durationValue.toString(),
-                        onValueChange = { it.toIntOrNull()?.let(onDurationValueChange) },
-                        modifier = Modifier.width(80.dp),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp)
+                    NumericTextField(
+                        value = schedule.durationValue,
+                        onValueCommit = onDurationValueChange,
+                        modifier = Modifier.width(80.dp)
                     )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun NumericTextField(
+    value: Int,
+    onValueCommit: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    defaultValue: Int = 1
+) {
+    var text by remember(value) { mutableStateOf(value.toString()) }
+    var hasFocus by remember { mutableStateOf(false) }
+
+    OutlinedTextField(
+        value = text,
+        onValueChange = { newText ->
+            if (newText.isEmpty() || newText.all { it.isDigit() }) {
+                text = newText
+                newText.toIntOrNull()?.let(onValueCommit)
+            }
+        },
+        modifier = modifier.onFocusChanged { focusState ->
+            if (hasFocus && !focusState.isFocused) {
+                if (text.isEmpty() || text.toIntOrNull() == null) {
+                    text = defaultValue.toString()
+                    onValueCommit(defaultValue)
+                }
+            }
+            hasFocus = focusState.isFocused
+        },
+        singleLine = true,
+        shape = RoundedCornerShape(8.dp),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+    )
 }
