@@ -37,7 +37,7 @@
     <string name="overdue">Просрочено</string>
 
     <string name="status_taken">Принято</string>
-    <string name="status_skipped">Пропущено</string>
+    <string name="status_skipped">Отменено</string>
     <string name="status_missed">Не принято</string>
     <string name="status_snoozed">Отложено</string>
     <string name="status_pending">Ожидает</string>
@@ -187,6 +187,8 @@
     <string name="medications_count">%1$d Препаратов</string>
     <string name="i_took_all">Я принял все</string>
     <string name="skip_all">Пропустить все</string>
+    <string name="cancel_all">Отменить все</string>
+    <string name="schedule_cancelled">Расписание отменено</string>
     <string name="time_to_take_meds_count">Время принять %1$d препаратов</string>
     <string name="scan_medication">Сканировать лекарство</string>
     <string name="scan_instruction">Наведите камеру на этикетку лекарства или рецепт</string>

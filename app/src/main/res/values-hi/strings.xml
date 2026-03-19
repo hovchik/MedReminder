@@ -42,7 +42,7 @@
 
     <!-- Dose Status -->
     <string name="status_taken">ली गई</string>
-    <string name="status_skipped">छोड़ी गई</string>
+    <string name="status_skipped">रद्द</string>
     <string name="status_missed">छूट गई</string>
     <string name="status_snoozed">स्नूज़ की गई</string>
     <string name="status_pending">बाकी</string>
@@ -287,6 +287,8 @@
     <string name="medications_count">%1$d दवाइयाँ</string>
     <string name="i_took_all">सब ले ली</string>
     <string name="skip_all">सब छोड़ें</string>
+    <string name="cancel_all">सब रद्द करें</string>
+    <string name="schedule_cancelled">शेड्यूल रद्द किया गया</string>
     <string name="time_to_take_meds_count">%1$d दवाइयाँ लेने का समय</string>
 
     <!-- OCR Scanner -->

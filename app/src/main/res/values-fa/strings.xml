@@ -37,7 +37,7 @@
     <string name="overdue">عقب افتاده</string>
 
     <string name="status_taken">مصرف شده</string>
-    <string name="status_skipped">رد شده</string>
+    <string name="status_skipped">لغو شده</string>
     <string name="status_missed">فراموش شده</string>
     <string name="status_snoozed">به تعویق افتاده</string>
     <string name="status_pending">در انتظار</string>
@@ -187,6 +187,8 @@
     <string name="medications_count">%1$d دارو</string>
     <string name="i_took_all">همه را مصرف کردم</string>
     <string name="skip_all">رد شدن از همه</string>
+    <string name="cancel_all">لغو همه</string>
+    <string name="schedule_cancelled">برنامه لغو شد</string>
     <string name="time_to_take_meds_count">وقت مصرف %1$d دارو</string>
     <string name="scan_medication">اسکن دارو</string>
     <string name="scan_instruction">دوربین را به سمت برچسب دارو بگیرید</string>

@@ -42,7 +42,7 @@
 
     <!-- Dose Status -->
     <string name="status_taken">服用済み</string>
-    <string name="status_skipped">スキップ</string>
+    <string name="status_skipped">キャンセル済み</string>
     <string name="status_missed">未服用</string>
     <string name="status_snoozed">スヌーズ中</string>
     <string name="status_pending">待機中</string>
@@ -287,6 +287,8 @@
     <string name="medications_count">%1$d種類のお薬</string>
     <string name="i_took_all">すべて服用しました</string>
     <string name="skip_all">すべてスキップ</string>
+    <string name="cancel_all">すべてキャンセル</string>
+    <string name="schedule_cancelled">スケジュールがキャンセルされました</string>
     <string name="time_to_take_meds_count">%1$d種類のお薬の服用時間です</string>
 
     <!-- OCR Scanner -->

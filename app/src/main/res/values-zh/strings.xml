@@ -37,7 +37,7 @@
     <string name="overdue">已逾期</string>
 
     <string name="status_taken">已服用</string>
-    <string name="status_skipped">已跳过</string>
+    <string name="status_skipped">已取消</string>
     <string name="status_missed">已错过</string>
     <string name="status_snoozed">已推迟</string>
     <string name="status_pending">待服用</string>
@@ -187,6 +187,8 @@
     <string name="medications_count">%1$d 种药物</string>
     <string name="i_took_all">我已全部服用</string>
     <string name="skip_all">全部跳过</string>
+    <string name="cancel_all">全部取消</string>
+    <string name="schedule_cancelled">计划已取消</string>
     <string name="time_to_take_meds_count">该服用 %1$d 种药物了</string>
     <string name="scan_medication">扫描药物</string>
     <string name="scan_instruction">将相机对准药物标签或处方</string>

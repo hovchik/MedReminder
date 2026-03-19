@@ -105,14 +105,14 @@ class FullScreenAlarmActivity : ComponentActivity() {
                     medicationDosage = medications.first().dosage,
                     onTaken = { handleTakenAll() },
                     onSnooze = { handleSnoozeAll() },
-                    onSkip = { handleSkipAll() }
+                    onCancel = { handleCancelAll() }
                 )
             } else {
                 CombinedAlarmScreen(
                     medications = medications,
                     onTakenAll = { handleTakenAll() },
                     onSnoozeAll = { handleSnoozeAll() },
-                    onSkipAll = { handleSkipAll() }
+                    onCancelAll = { handleCancelAll() }
                 )
             }
         }
@@ -239,7 +239,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
         }
     }
 
-    private fun handleSkipAll() {
+    private fun handleCancelAll() {
         stopAlarm()
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -275,7 +275,7 @@ fun AlarmScreen(
     medicationDosage: String,
     onTaken: () -> Unit,
     onSnooze: () -> Unit,
-    onSkip: () -> Unit
+    onCancel: () -> Unit
 ) {
     val pulseAnim = rememberInfiniteTransition(label = "pulse")
     val scale by pulseAnim.animateFloat(
@@ -401,7 +401,7 @@ fun AlarmScreen(
                 }
 
                 OutlinedButton(
-                    onClick = onSkip,
+                    onClick = onCancel,
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
@@ -412,7 +412,7 @@ fun AlarmScreen(
                 ) {
                     Icon(Icons.Default.Close, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.skip), fontSize = 16.sp)
+                    Text(stringResource(R.string.cancel), fontSize = 16.sp)
                 }
             }
         }
@@ -424,7 +424,7 @@ fun CombinedAlarmScreen(
     medications: List<AlarmMedication>,
     onTakenAll: () -> Unit,
     onSnoozeAll: () -> Unit,
-    onSkipAll: () -> Unit
+    onCancelAll: () -> Unit
 ) {
     val pulseAnim = rememberInfiniteTransition(label = "pulse")
     val scale by pulseAnim.animateFloat(
@@ -552,7 +552,7 @@ fun CombinedAlarmScreen(
                 }
 
                 OutlinedButton(
-                    onClick = onSkipAll,
+                    onClick = onCancelAll,
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
@@ -563,7 +563,7 @@ fun CombinedAlarmScreen(
                 ) {
                     Icon(Icons.Default.Close, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.skip_all), fontSize = 16.sp)
+                    Text(stringResource(R.string.cancel_all), fontSize = 16.sp)
                 }
             }
         }

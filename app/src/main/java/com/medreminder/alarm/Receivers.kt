@@ -132,6 +132,43 @@ class TakenReceiver : BroadcastReceiver() {
     }
 }
 
+class CancelReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val doseLogIds = intent.getLongArrayExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS)
+
+        // Fallback to legacy single-medication extras
+        val legacyDoseLogId = intent.getLongExtra(AlarmScheduler.EXTRA_DOSE_LOG_ID, -1)
+
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val db = AppDatabase.getInstance(context)
+                val nm = context.getSystemService(NotificationManager::class.java)
+
+                if (doseLogIds != null) {
+                    for (i in doseLogIds.indices) {
+                        db.doseLogDao().updateDoseStatus(doseLogIds[i], "skipped")
+                        nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogIds[i].toInt())
+                    }
+                    nm.cancel(AlarmReceiver.COMBINED_NOTIFICATION_ID)
+                } else if (legacyDoseLogId > 0) {
+                    db.doseLogDao().updateDoseStatus(legacyDoseLogId, "skipped")
+                    nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + legacyDoseLogId.toInt())
+                }
+
+                withContext(Dispatchers.Main) {
+                    FullScreenAlarmActivity.finishIfShowing()
+                    Toast.makeText(context, context.getString(R.string.schedule_cancelled), Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e("CancelReceiver", "Error", e)
+            } finally {
+                pendingResult.finish()
+            }
+        }
+    }
+}
+
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED ||

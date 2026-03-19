@@ -37,7 +37,7 @@
     <string name="overdue">Atrasado</string>
 
     <string name="status_taken">Tomado</string>
-    <string name="status_skipped">Omitido</string>
+    <string name="status_skipped">Cancelado</string>
     <string name="status_missed">Perdido</string>
     <string name="status_snoozed">Pospuesto</string>
     <string name="status_pending">Pendiente</string>
@@ -187,6 +187,8 @@
     <string name="medications_count">%1$d Medicamentos</string>
     <string name="i_took_all">Tomé todos</string>
     <string name="skip_all">Omitir todos</string>
+    <string name="cancel_all">Cancelar todos</string>
+    <string name="schedule_cancelled">Horario cancelado</string>
     <string name="time_to_take_meds_count">Hora de tomar %1$d medicamentos</string>
     <string name="scan_medication">Escanear medicamento</string>
     <string name="scan_instruction">Apunta la cámara a la etiqueta del medicamento o receta</string>
