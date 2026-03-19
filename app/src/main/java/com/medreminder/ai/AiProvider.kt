@@ -20,6 +20,10 @@ data class AnalysisInput(
     val bestMedication: String? = null,
     val userName: String = "",
     val userAge: Int = 0,
+    /** The specific person this analysis is for (self or a family member). */
+    val targetUserName: String = "",
+    val targetUserAge: Int = 0,
+    val isSelfAnalysis: Boolean = true,
     val hasCaregivers: Boolean = false,
     val caregiverCount: Int = 0,
     val familyMemberCount: Int = 0,

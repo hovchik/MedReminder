@@ -22,15 +22,46 @@ class WeeklyReportUseCase @Inject constructor(
     private val scheduleDao: ScheduleDao,
     private val userPreferencesManager: UserPreferencesManager
 ) {
+    /**
+     * Analyze all medications (original behaviour, kept for backward compatibility).
+     */
     suspend fun analyze(): AnalysisResult {
+        val userName = userPreferencesManager.userName.first()
+        val userAge = userPreferencesManager.userAge.first()
+        return analyzeForUser(
+            assignedToId = null,
+            targetName = userName,
+            targetAge = userAge,
+            isSelf = true
+        )
+    }
+
+    /**
+     * Analyze medications for a specific user over the past 7 days.
+     * @param assignedToId null = primary user (self), non-null = family member ID
+     * @param targetName display name of the person being analyzed
+     * @param targetAge age of the person being analyzed
+     * @param isSelf true if this is the primary user
+     */
+    suspend fun analyzeForUser(
+        assignedToId: Long?,
+        targetName: String,
+        targetAge: Int,
+        isSelf: Boolean
+    ): AnalysisResult {
         val provider = providerSelector.selectProvider()
 
         val now = System.currentTimeMillis()
         val startOfWeek = DateUtils.daysAgo(7)
 
-        val medications = repository.getActiveMedications().first()
-        val adherenceStats = repository.getAdherenceStats(startOfWeek, now)
-        val streak = repository.getCurrentStreak()
+        val allMedications = repository.getActiveMedications().first()
+        // Filter medications to those belonging to this user
+        val medications = allMedications.filter { med ->
+            if (isSelf) med.assignedToId == null || med.assignedToId == 0L
+            else med.assignedToId == assignedToId
+        }
+
+        val medicationIds = medications.map { it.id }.toSet()
 
         val medicationSummaries = medications.map { med ->
             val schedules = med.schedules
@@ -62,12 +93,20 @@ class WeeklyReportUseCase @Inject constructor(
             )
         }
 
+        // Compute aggregated stats from per-user medications
+        val totalTaken = medicationSummaries.sumOf { it.takenCount }
+        val totalMissed = medicationSummaries.sumOf { it.missedCount }
+        val totalSkipped = medicationSummaries.sumOf { it.skippedCount }
+        val totalSnoozed = medicationSummaries.sumOf { it.snoozedCount }
+        val totalDoses = totalTaken + totalMissed + totalSkipped
+        val adherenceRate = if (totalDoses > 0) totalTaken.toFloat() / totalDoses * 100f else 0f
+
+        val adherenceStats = repository.getAdherenceStats(startOfWeek, now)
         val weeklyBreakdown = adherenceStats.weeklyData.map { day ->
             DayBreakdown(dayName = day.dayName, taken = day.taken, total = day.total, rate = day.rate)
         }
 
-        val totalSnoozed = doseLogDao.getTotalSnoozedCount(startOfWeek, now) ?: 0
-        val avgDelayMs = doseLogDao.getAverageDelayMs(startOfWeek, now)
+        val streak = repository.getCurrentStreak()
         val timeOfDay = buildTimeOfDayBreakdown(startOfWeek, now)
         val caregivers = repository.getActiveCaregivers().first()
         val familyMembers = repository.getActiveFamilyMembers().first()
@@ -78,28 +117,31 @@ class WeeklyReportUseCase @Inject constructor(
             it.takenCount + it.missedCount + it.skippedCount > 0
         }.sortedBy { it.adherenceRate }
 
-        // Build last 7 days of dose events (most recent 50)
-        val recentEvents = buildDoseEvents(startOfWeek, now)
+        // Build last 7 days of dose events filtered to this user's medications
+        val recentEvents = buildDoseEvents(startOfWeek, now, medicationIds)
 
         val input = AnalysisInput(
             medications = medicationSummaries,
-            adherenceRate = adherenceStats.adherenceRate,
-            totalDoses = adherenceStats.totalDoses,
-            takenDoses = adherenceStats.takenDoses,
-            missedDoses = adherenceStats.missedDoses,
-            skippedDoses = adherenceStats.skippedDoses,
+            adherenceRate = adherenceRate,
+            totalDoses = totalDoses,
+            takenDoses = totalTaken,
+            missedDoses = totalMissed,
+            skippedDoses = totalSkipped,
             currentStreak = streak,
             longestStreak = adherenceStats.longestStreak,
             periodDays = 7,
             weeklyBreakdown = weeklyBreakdown,
             analysisType = AnalysisType.WEEKLY,
             totalSnoozedCount = totalSnoozed,
-            averageDelayMinutes = if (avgDelayMs != null && avgDelayMs > 0) avgDelayMs / 60000f else 0f,
+            averageDelayMinutes = 0f,
             timeOfDayBreakdown = timeOfDay,
             worstMedication = sortedByAdherence.firstOrNull()?.name,
             bestMedication = sortedByAdherence.lastOrNull()?.name,
             userName = userName,
             userAge = userAge,
+            targetUserName = targetName,
+            targetUserAge = targetAge,
+            isSelfAnalysis = isSelf,
             hasCaregivers = caregivers.isNotEmpty(),
             caregiverCount = caregivers.size,
             familyMemberCount = familyMembers.size,
@@ -109,21 +151,24 @@ class WeeklyReportUseCase @Inject constructor(
         return provider.generateAnalysis(input)
     }
 
-    private suspend fun buildDoseEvents(start: Long, end: Long): List<DoseEvent> {
+    private suspend fun buildDoseEvents(start: Long, end: Long, medicationIds: Set<Long>): List<DoseEvent> {
         val logs = doseLogDao.getLogsForDateRangeSync(start, end)
         val timeFormat = SimpleDateFormat("EEE h:mm a", Locale.getDefault())
-        return logs.filter { it.status != "pending" }.takeLast(50).map { log ->
-            val med = medicationDao.getMedicationById(log.medicationId)
-            val delayMs = if (log.actionTime != null && log.actionTime > log.scheduledTime)
-                log.actionTime - log.scheduledTime else 0L
-            DoseEvent(
-                medicationName = med?.name ?: "Unknown",
-                scheduledTime = timeFormat.format(Date(log.scheduledTime)),
-                status = log.status,
-                delayMinutes = (delayMs / 60000).toInt(),
-                snoozeCount = log.snoozeCount
-            )
-        }
+        return logs
+            .filter { it.status != "pending" && it.medicationId in medicationIds }
+            .takeLast(50)
+            .map { log ->
+                val med = medicationDao.getMedicationById(log.medicationId)
+                val delayMs = if (log.actionTime != null && log.actionTime > log.scheduledTime)
+                    log.actionTime - log.scheduledTime else 0L
+                DoseEvent(
+                    medicationName = med?.name ?: "Unknown",
+                    scheduledTime = timeFormat.format(Date(log.scheduledTime)),
+                    status = log.status,
+                    delayMinutes = (delayMs / 60000).toInt(),
+                    snoozeCount = log.snoozeCount
+                )
+            }
     }
 
     private suspend fun buildTimeOfDayBreakdown(start: Long, end: Long): TimeOfDayBreakdown {

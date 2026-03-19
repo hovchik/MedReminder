@@ -253,6 +253,7 @@
     <string name="weekly_insight_subtitle">7-day trends and patterns</string>
     <string name="today_adherence">Today</string>
     <string name="week_adherence">This Week</string>
+    <string name="insights_for_user">Insights for %1$s</string>
     <string name="ai_daily_insight">AI Daily Insight</string>
     <string name="ai_weekly_insight">AI Weekly Insight</string>
     <string name="analyzing">Analyzing your data…</string>
@@ -284,6 +285,10 @@
     <string name="ai_engine">AI Engine</string>
     <string name="ai_provider">AI Provider</string>
     <string name="select_ai_provider">Select AI Provider</string>
+    <string name="ai_step_1">Step 1</string>
+    <string name="ai_step_2">Step 2</string>
+    <string name="ai_select_provider_step">Select your AI provider</string>
+    <string name="ai_configure_step">Configure provider</string>
     <string name="ai_auto_desc">Auto (recommended) - best available AI</string>
     <string name="ai_system_desc">System AI - uses device built-in AI</string>
     <string name="ai_local_desc">Local model - runs downloaded AI model</string>

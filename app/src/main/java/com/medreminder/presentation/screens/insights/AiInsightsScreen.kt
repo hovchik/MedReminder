@@ -13,12 +13,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -31,7 +31,9 @@ import com.medreminder.ai.AnalysisResult
 import com.medreminder.ai.RiskLevel
 import com.medreminder.ai.local.DailyAnalysisUseCase
 import com.medreminder.ai.local.WeeklyReportUseCase
+import com.medreminder.data.preferences.UserPreferencesManager
 import com.medreminder.domain.model.AdherenceStats
+import com.medreminder.domain.model.FamilyMember
 import com.medreminder.domain.repository.MedicationRepository
 import com.medreminder.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,30 +41,37 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** Represents a user (self or family member) in the insights screen. */
+data class InsightUser(
+    val id: Long?, // null = self
+    val name: String,
+    val age: Int,
+    val isSelf: Boolean
+)
+
+/** Per-user analysis state. */
+data class UserInsightState(
+    val dailyReport: AnalysisResult? = null,
+    val isDailyAnalyzing: Boolean = false,
+    val dailyError: String? = null,
+    val weeklyReport: AnalysisResult? = null,
+    val isWeeklyAnalyzing: Boolean = false,
+    val weeklyError: String? = null
+)
+
 @HiltViewModel
 class AiInsightsViewModel @Inject constructor(
     private val repository: MedicationRepository,
     private val dailyAnalysisUseCase: DailyAnalysisUseCase,
-    private val weeklyReportUseCase: WeeklyReportUseCase
+    private val weeklyReportUseCase: WeeklyReportUseCase,
+    private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
-    private val _dailyReport = MutableStateFlow<AnalysisResult?>(null)
-    val dailyReport: StateFlow<AnalysisResult?> = _dailyReport.asStateFlow()
+    private val _users = MutableStateFlow<List<InsightUser>>(emptyList())
+    val users: StateFlow<List<InsightUser>> = _users.asStateFlow()
 
-    private val _isDailyAnalyzing = MutableStateFlow(false)
-    val isDailyAnalyzing: StateFlow<Boolean> = _isDailyAnalyzing.asStateFlow()
-
-    private val _dailyError = MutableStateFlow<String?>(null)
-    val dailyError: StateFlow<String?> = _dailyError.asStateFlow()
-
-    private val _weeklyReport = MutableStateFlow<AnalysisResult?>(null)
-    val weeklyReport: StateFlow<AnalysisResult?> = _weeklyReport.asStateFlow()
-
-    private val _isWeeklyAnalyzing = MutableStateFlow(false)
-    val isWeeklyAnalyzing: StateFlow<Boolean> = _isWeeklyAnalyzing.asStateFlow()
-
-    private val _weeklyError = MutableStateFlow<String?>(null)
-    val weeklyError: StateFlow<String?> = _weeklyError.asStateFlow()
+    private val _userStates = MutableStateFlow<Map<Long?, UserInsightState>>(emptyMap())
+    val userStates: StateFlow<Map<Long?, UserInsightState>> = _userStates.asStateFlow()
 
     private val _todayStats = MutableStateFlow(AdherenceStats())
     val todayStats: StateFlow<AdherenceStats> = _todayStats.asStateFlow()
@@ -71,40 +80,93 @@ class AiInsightsViewModel @Inject constructor(
     val weekStats: StateFlow<AdherenceStats> = _weekStats.asStateFlow()
 
     init {
-        loadStats()
+        loadUsersAndStats()
     }
 
-    fun runDailyAnalysis() {
-        viewModelScope.launch {
-            _isDailyAnalyzing.value = true
-            _dailyError.value = null
-            try {
-                _dailyReport.value = dailyAnalysisUseCase.analyze()
-            } catch (e: Exception) {
-                _dailyError.value = e.message ?: "Daily analysis failed"
-            }
-            _isDailyAnalyzing.value = false
-        }
-    }
-
-    fun runWeeklyAnalysis() {
-        viewModelScope.launch {
-            _isWeeklyAnalyzing.value = true
-            _weeklyError.value = null
-            try {
-                _weeklyReport.value = weeklyReportUseCase.analyze()
-            } catch (e: Exception) {
-                _weeklyError.value = e.message ?: "Weekly analysis failed"
-            }
-            _isWeeklyAnalyzing.value = false
-        }
-    }
-
-    private fun loadStats() {
+    private fun loadUsersAndStats() {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
             _todayStats.value = repository.getAdherenceStats(DateUtils.getStartOfDay(), now)
             _weekStats.value = repository.getAdherenceStats(DateUtils.daysAgo(7), now)
+
+            val userName = userPreferencesManager.userName.first()
+            val userAge = userPreferencesManager.userAge.first()
+            val familyMembers = repository.getActiveFamilyMembers().first()
+
+            val userList = mutableListOf(
+                InsightUser(
+                    id = null,
+                    name = userName.ifBlank { "Me" },
+                    age = userAge,
+                    isSelf = true
+                )
+            )
+            familyMembers.forEach { member ->
+                userList.add(
+                    InsightUser(
+                        id = member.id,
+                        name = member.name,
+                        age = member.age,
+                        isSelf = false
+                    )
+                )
+            }
+            _users.value = userList
+
+            // Initialize state map for all users
+            val stateMap = userList.associate { it.id to UserInsightState() }
+            _userStates.value = stateMap
+        }
+    }
+
+    fun runDailyAnalysis(user: InsightUser) {
+        viewModelScope.launch {
+            updateState(user.id) { it.copy(isDailyAnalyzing = true, dailyError = null) }
+            try {
+                val result = dailyAnalysisUseCase.analyzeForUser(
+                    assignedToId = user.id,
+                    targetName = user.name,
+                    targetAge = user.age,
+                    isSelf = user.isSelf
+                )
+                updateState(user.id) { it.copy(dailyReport = result, isDailyAnalyzing = false) }
+            } catch (e: Exception) {
+                updateState(user.id) {
+                    it.copy(
+                        dailyError = e.message ?: "Daily analysis failed",
+                        isDailyAnalyzing = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun runWeeklyAnalysis(user: InsightUser) {
+        viewModelScope.launch {
+            updateState(user.id) { it.copy(isWeeklyAnalyzing = true, weeklyError = null) }
+            try {
+                val result = weeklyReportUseCase.analyzeForUser(
+                    assignedToId = user.id,
+                    targetName = user.name,
+                    targetAge = user.age,
+                    isSelf = user.isSelf
+                )
+                updateState(user.id) { it.copy(weeklyReport = result, isWeeklyAnalyzing = false) }
+            } catch (e: Exception) {
+                updateState(user.id) {
+                    it.copy(
+                        weeklyError = e.message ?: "Weekly analysis failed",
+                        isWeeklyAnalyzing = false
+                    )
+                }
+            }
+        }
+    }
+
+    private fun updateState(userId: Long?, transform: (UserInsightState) -> UserInsightState) {
+        _userStates.update { map ->
+            val current = map[userId] ?: UserInsightState()
+            map + (userId to transform(current))
         }
     }
 }
@@ -115,14 +177,18 @@ fun AiInsightsScreen(
     onNavigateBack: () -> Unit,
     viewModel: AiInsightsViewModel = hiltViewModel()
 ) {
-    val dailyReport by viewModel.dailyReport.collectAsStateWithLifecycle()
-    val isDailyAnalyzing by viewModel.isDailyAnalyzing.collectAsStateWithLifecycle()
-    val dailyError by viewModel.dailyError.collectAsStateWithLifecycle()
-    val weeklyReport by viewModel.weeklyReport.collectAsStateWithLifecycle()
-    val isWeeklyAnalyzing by viewModel.isWeeklyAnalyzing.collectAsStateWithLifecycle()
-    val weeklyError by viewModel.weeklyError.collectAsStateWithLifecycle()
+    val users by viewModel.users.collectAsStateWithLifecycle()
+    val userStates by viewModel.userStates.collectAsStateWithLifecycle()
     val todayStats by viewModel.todayStats.collectAsStateWithLifecycle()
     val weekStats by viewModel.weekStats.collectAsStateWithLifecycle()
+
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    // Clamp tab index if users list changes
+    val clampedIndex = selectedTabIndex.coerceIn(0, (users.size - 1).coerceAtLeast(0))
+    if (clampedIndex != selectedTabIndex) selectedTabIndex = clampedIndex
+
+    val selectedUser = users.getOrNull(selectedTabIndex)
+    val selectedState = selectedUser?.let { userStates[it.id] } ?: UserInsightState()
 
     Scaffold(
         topBar = {
@@ -154,62 +220,128 @@ fun AiInsightsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Quick stats overview
-            QuickStatsRow(todayStats = todayStats, weekStats = weekStats)
-
-            // Privacy note
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // User tabs - only show if there are family members
+            if (users.size > 1) {
+                ScrollableTabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    edgePadding = 16.dp,
+                    divider = {}
                 ) {
-                    Icon(
-                        Icons.Default.Shield,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        stringResource(R.string.ai_insights_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    users.forEachIndexed { index, user ->
+                        Tab(
+                            selected = selectedTabIndex == index,
+                            onClick = { selectedTabIndex = index },
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        if (user.isSelf) Icons.Default.Person else Icons.Default.Face,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        user.name,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        )
+                    }
                 }
             }
 
-            // Daily Insight Section
-            InsightSection(
-                title = stringResource(R.string.ai_daily_insight),
-                subtitle = stringResource(R.string.daily_insight_subtitle),
-                icon = Icons.Default.Today,
-                iconTint = Color(0xFF4A90D9),
-                analysis = dailyReport,
-                isAnalyzing = isDailyAnalyzing,
-                error = dailyError,
-                onRunAnalysis = { viewModel.runDailyAnalysis() }
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Quick stats overview
+                QuickStatsRow(todayStats = todayStats, weekStats = weekStats)
 
-            // Weekly Insight Section
-            InsightSection(
-                title = stringResource(R.string.ai_weekly_insight),
-                subtitle = stringResource(R.string.weekly_insight_subtitle),
-                icon = Icons.Default.DateRange,
-                iconTint = Color(0xFF9B59B6),
-                analysis = weeklyReport,
-                isAnalyzing = isWeeklyAnalyzing,
-                error = weeklyError,
-                onRunAnalysis = { viewModel.runWeeklyAnalysis() }
-            )
+                // Privacy note
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Shield,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            stringResource(R.string.ai_insights_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                // Per-user header if family member selected
+                if (selectedUser != null && !selectedUser.isSelf) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Face,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                stringResource(R.string.insights_for_user, selectedUser.name),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
+                if (selectedUser != null) {
+                    // Daily Insight Section
+                    InsightSection(
+                        title = stringResource(R.string.ai_daily_insight),
+                        subtitle = stringResource(R.string.daily_insight_subtitle),
+                        icon = Icons.Default.Today,
+                        iconTint = Color(0xFF4A90D9),
+                        analysis = selectedState.dailyReport,
+                        isAnalyzing = selectedState.isDailyAnalyzing,
+                        error = selectedState.dailyError,
+                        onRunAnalysis = { viewModel.runDailyAnalysis(selectedUser) }
+                    )
+
+                    // Weekly Insight Section
+                    InsightSection(
+                        title = stringResource(R.string.ai_weekly_insight),
+                        subtitle = stringResource(R.string.weekly_insight_subtitle),
+                        icon = Icons.Default.DateRange,
+                        iconTint = Color(0xFF9B59B6),
+                        analysis = selectedState.weeklyReport,
+                        isAnalyzing = selectedState.isWeeklyAnalyzing,
+                        error = selectedState.weeklyError,
+                        onRunAnalysis = { viewModel.runWeeklyAnalysis(selectedUser) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
     }
 }
@@ -351,7 +483,6 @@ private fun InsightSection(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             if (isAnalyzing) {
-                // Loading state
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -371,7 +502,6 @@ private fun InsightSection(
                     )
                 }
             } else if (error != null) {
-                // Error state
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.errorContainer
