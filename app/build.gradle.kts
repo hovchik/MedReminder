@@ -100,7 +100,7 @@ dependencies {
     implementation("com.google.mediapipe:tasks-genai:0.10.27")
 
     // LiteRT-LM (on-device AI for .litertlm models — successor to MediaPipe GenAI)
-    implementation("com.google.ai.edge.litertlm:litertlm-android:0.7.0")
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.8.0")
 
     // Tesseract OCR for Armenian, Russian, Farsi scripts
     implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
