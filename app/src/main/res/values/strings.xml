@@ -304,6 +304,7 @@
     <string name="provider_cloud">Cloud</string>
     <string name="provider_on_device">On-Device</string>
     <string name="provider_local">Local</string>
+    <string name="provider_rule_based">Rule-Based</string>
     <string name="provider_auto">Auto</string>
 
     <!-- Risk Level Labels -->

@@ -12,7 +12,7 @@ import javax.inject.Singleton
 @Singleton
 class RuleBasedAiProvider @Inject constructor() : AiProvider {
 
-    override val type = AiProviderType.SYSTEM_AI
+    override val type = AiProviderType.RULE_BASED
     override val displayName = "Rule-Based Analysis"
 
     override fun isAvailable(): Boolean = true
@@ -30,7 +30,7 @@ class RuleBasedAiProvider @Inject constructor() : AiProvider {
             insights = insights,
             recommendations = recommendations,
             riskLevel = riskLevel,
-            providerUsed = AiProviderType.SYSTEM_AI,
+            providerUsed = AiProviderType.RULE_BASED,
             latencyMs = System.currentTimeMillis() - startTime
         )
     }

@@ -99,6 +99,7 @@ enum class AiProviderType {
     CLOUD,
     SYSTEM_AI,
     CUSTOM_LOCAL,
+    RULE_BASED,
     AUTO
 }
 

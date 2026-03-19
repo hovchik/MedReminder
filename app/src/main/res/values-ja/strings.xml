@@ -423,6 +423,7 @@
     <string name="provider_cloud">クラウド</string>
     <string name="provider_on_device">オンデバイス</string>
     <string name="provider_local">ローカル</string>
+    <string name="provider_rule_based">Rule-Based</string>
     <string name="provider_auto">自動</string>
     <string name="risk_low">低</string>
     <string name="risk_moderate">中</string>

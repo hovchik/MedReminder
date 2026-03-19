@@ -410,6 +410,7 @@
     <string name="provider_cloud">ابری</string>
     <string name="provider_on_device">روی دستگاه</string>
     <string name="provider_local">محلی</string>
+    <string name="provider_rule_based">Rule-Based</string>
     <string name="provider_auto">خودکار</string>
     <string name="risk_low">کم</string>
     <string name="risk_moderate">متوسط</string>

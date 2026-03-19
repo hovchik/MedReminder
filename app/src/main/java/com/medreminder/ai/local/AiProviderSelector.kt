@@ -213,6 +213,7 @@ class AiProviderSelector @Inject constructor(
                     ruleBasedProvider
                 }
             }
+            AiProviderType.RULE_BASED -> ruleBasedProvider
             AiProviderType.AUTO -> selectBestAvailable()
         }
     }

@@ -409,6 +409,7 @@
     <string name="provider_cloud">云端</string>
     <string name="provider_on_device">设备端</string>
     <string name="provider_local">本地</string>
+    <string name="provider_rule_based">Rule-Based</string>
     <string name="provider_auto">自动</string>
     <string name="risk_low">低</string>
     <string name="risk_moderate">中等</string>
