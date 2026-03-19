@@ -66,6 +66,7 @@ private enum class TimeSection(val labelRes: Int, val icon: androidx.compose.ui.
 @Composable
 fun HomeScreen(
     onAddMedication: () -> Unit,
+    onNavigateToInsights: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -127,6 +128,51 @@ fun HomeScreen(
                 nextDoseTime = uiState.nextDoseTime,
                 streak = uiState.currentStreak
             )
+        }
+
+        // AI Insights entry card
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToInsights() },
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Psychology,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.ai_insights_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            stringResource(R.string.ai_insights_home_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
 
         // All done celebration
