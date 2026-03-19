@@ -24,7 +24,25 @@ class MedicationAnalysisUseCase @Inject constructor(
     private val medicationDao: MedicationDao,
     private val userPreferencesManager: UserPreferencesManager
 ) {
+    private data class CachedAnalysis(
+        val result: MedicationAnalysisResult,
+        val timestamp: Long
+    )
+
+    private val cache = mutableMapOf<Long, CachedAnalysis>()
+
+    /** Returns a cached result if still valid (within 1 hour), or null. */
+    fun getCachedResult(medicationId: Long): MedicationAnalysisResult? {
+        val cached = cache[medicationId] ?: return null
+        if (System.currentTimeMillis() - cached.timestamp > 3_600_000L) {
+            cache.remove(medicationId)
+            return null
+        }
+        return cached.result
+    }
+
     suspend fun analyze(medicationId: Long): MedicationAnalysisResult {
+        getCachedResult(medicationId)?.let { return it }
         val provider = providerSelector.selectProvider()
 
         val now = System.currentTimeMillis()
@@ -88,7 +106,9 @@ class MedicationAnalysisUseCase @Inject constructor(
         val startTime = System.currentTimeMillis()
 
         // Generate the medication-specific result
-        return generateMedicationResult(input, provider, prompt, System.currentTimeMillis() - startTime)
+        val result = generateMedicationResult(input, provider, prompt, System.currentTimeMillis() - startTime)
+        cache[medicationId] = CachedAnalysis(result, System.currentTimeMillis())
+        return result
     }
 
     private suspend fun generateMedicationResult(

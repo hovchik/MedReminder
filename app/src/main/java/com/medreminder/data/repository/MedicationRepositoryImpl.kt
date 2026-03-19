@@ -58,6 +58,7 @@ class MedicationRepositoryImpl @Inject constructor(
     override suspend fun updateMedication(medication: Medication, schedules: List<Schedule>) {
         val todayStart = DateUtils.getStartOfDay()
         val todayEnd = DateUtils.getEndOfDay()
+        val now = System.currentTimeMillis()
         database.withTransaction {
             medicationDao.updateMedication(
                 medication.toEntity().copy(updatedAt = System.currentTimeMillis())
@@ -92,6 +93,81 @@ class MedicationRepositoryImpl @Inject constructor(
             // schedule's hour/minute, not the schedule ID, so a time change needs
             // the old pending log removed and a fresh one created).
             doseLogDao.deletePendingLogsForMedication(medication.id, todayStart, todayEnd)
+
+            // Immediately regenerate today's pending dose logs for the updated
+            // schedules within this transaction so the Today screen reflects the
+            // changes as soon as the user navigates back.
+            val updatedSchedules = scheduleDao.getActiveSchedulesForMedication(medication.id)
+            for (entity in updatedSchedules) {
+                val schedule = entity.toDomain()
+                if (schedule.frequency == ScheduleFrequency.AS_NEEDED) continue
+                if (!isScheduledForToday(schedule)) continue
+
+                if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS && schedule.intervalHours > 0) {
+                    val cal = Calendar.getInstance().apply {
+                        set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                        set(Calendar.MINUTE, schedule.timeMinute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    while (cal.timeInMillis <= todayEnd) {
+                        if (cal.timeInMillis >= todayStart) {
+                            val exists = doseLogDao.doseLogExistsForWindow(
+                                schedule.id, cal.timeInMillis - 60000, cal.timeInMillis + 60000
+                            )
+                            if (!exists) {
+                                doseLogDao.insertDoseLog(
+                                    DoseLog(
+                                        medicationId = medication.id,
+                                        scheduleId = schedule.id,
+                                        scheduledTime = cal.timeInMillis,
+                                        status = if (cal.timeInMillis < now - 3600000)
+                                            DoseStatus.MISSED else DoseStatus.PENDING
+                                    ).toEntity()
+                                )
+                            }
+                        }
+                        cal.add(Calendar.HOUR_OF_DAY, schedule.intervalHours)
+                    }
+                } else {
+                    val exists = doseLogDao.doseLogExistsForWindow(schedule.id, todayStart, todayEnd)
+                    if (!exists) {
+                        val cal = Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                            set(Calendar.MINUTE, schedule.timeMinute)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        doseLogDao.insertDoseLog(
+                            DoseLog(
+                                medicationId = medication.id,
+                                scheduleId = schedule.id,
+                                scheduledTime = cal.timeInMillis,
+                                status = if (cal.timeInMillis < now - 3600000)
+                                    DoseStatus.MISSED else DoseStatus.PENDING
+                            ).toEntity()
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun isScheduledForToday(schedule: Schedule): Boolean {
+        val today = Calendar.getInstance()
+        return when (schedule.frequency) {
+            ScheduleFrequency.DAILY -> true
+            ScheduleFrequency.SPECIFIC_DAYS -> {
+                today.get(Calendar.DAY_OF_WEEK) in schedule.daysOfWeek
+            }
+            ScheduleFrequency.INTERVAL -> {
+                if (schedule.intervalDays <= 0) return false
+                val daysSinceStart = ((today.timeInMillis - schedule.startDate) /
+                        (24 * 60 * 60 * 1000)).toInt()
+                daysSinceStart >= 0 && daysSinceStart % schedule.intervalDays == 0
+            }
+            ScheduleFrequency.EVERY_X_HOURS -> true
+            ScheduleFrequency.AS_NEEDED -> false
         }
     }
 

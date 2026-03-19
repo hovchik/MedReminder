@@ -54,7 +54,16 @@ class MedicationAnalysisViewModel @Inject constructor(
 
     init {
         loadMedication()
-        runAnalysis()
+        loadCachedOrRun()
+    }
+
+    private fun loadCachedOrRun() {
+        val cached = analysisUseCase.getCachedResult(medicationId)
+        if (cached != null) {
+            _analysisResult.value = cached
+        } else {
+            runAnalysis()
+        }
     }
 
     private fun loadMedication() {
