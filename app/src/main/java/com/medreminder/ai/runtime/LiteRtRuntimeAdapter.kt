@@ -2,19 +2,18 @@ package com.medreminder.ai.runtime
 
 import android.content.Context
 import android.util.Log
-import com.google.ai.edge.litertlm.Backend
-import com.google.ai.edge.litertlm.Engine
-import com.google.ai.edge.litertlm.EngineConfig
+import com.google.mediapipe.tasks.genai.llminference.LlmInference
+import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Runtime adapter for LiteRT-LM model files (.litertlm).
- * Uses the LiteRT-LM Engine API which natively supports the .litertlm bundle format.
+ * Runtime adapter for LiteRT model files (.tflite, .litertlm).
+ * Uses MediaPipe LLM Inference API which supports both .task and .tflite formats.
  *
- * NOTE: .litertlm is an evolution of .task — it is NOT a raw TFLite flatbuffer.
- * MediaPipe's LlmInference cannot parse it; this adapter uses the dedicated
- * LiteRT-LM SDK instead.
+ * NOTE: .litertlm bundles require the LiteRT-LM SDK (com.google.ai.edge.litertlm)
+ * which needs Kotlin 2.2+. Until the project upgrades Kotlin, only .task models
+ * should be used. This adapter is kept for forward compatibility.
  */
 class LiteRtRuntimeAdapter(
     private val context: Context,
@@ -23,53 +22,55 @@ class LiteRtRuntimeAdapter(
 
     companion object {
         private const val TAG = "LiteRtRuntime"
+        private const val MAX_TOKENS = 1024
+        private const val MAX_TOP_K = 64
+        private const val TOP_K = 40
+        private const val TEMPERATURE = 0.7f
     }
 
-    private var engine: Engine? = null
+    private var llmInference: LlmInference? = null
 
     override suspend fun runPrompt(prompt: String): String {
         if (!isLoaded()) warmup()
 
-        val eng = engine
-            ?: throw IllegalStateException("LiteRT-LM engine not loaded")
+        val inference = llmInference
+            ?: throw IllegalStateException("LiteRT engine not loaded")
 
         return withContext(Dispatchers.Default) {
-            val conversation = eng.createConversation()
+            val sessionOptions = LlmInferenceSession.LlmInferenceSessionOptions.builder()
+                .setTopK(TOP_K)
+                .setTemperature(TEMPERATURE)
+                .build()
+            val session = LlmInferenceSession.createFromOptions(inference, sessionOptions)
             try {
-                val response = conversation.sendMessage(prompt)
-                response.toString()
+                session.addQueryChunk(prompt)
+                session.generateResponse()
             } catch (e: Exception) {
-                Log.e(TAG, "LiteRT-LM inference failed", e)
+                Log.e(TAG, "LiteRT inference failed", e)
                 throw e
             } finally {
-                try {
-                    conversation.close()
-                } catch (e: Exception) {
-                    Log.w(TAG, "Error closing LiteRT-LM conversation", e)
-                }
+                session.close()
             }
         }
     }
 
     override fun supportsStructuredJson(): Boolean = true
 
-    override fun isLoaded(): Boolean = engine != null
+    override fun isLoaded(): Boolean = llmInference != null
 
     override suspend fun warmup() {
         withContext(Dispatchers.IO) {
             try {
-                val config = EngineConfig(
-                    modelPath = modelPath,
-                    backend = Backend.CPU,
-                    cacheDir = context.cacheDir.absolutePath
-                )
-                val eng = Engine(config)
-                eng.initialize()
-                engine = eng
-                Log.d(TAG, "LiteRT-LM engine loaded from: $modelPath")
+                val options = LlmInference.LlmInferenceOptions.builder()
+                    .setModelPath(modelPath)
+                    .setMaxTokens(MAX_TOKENS)
+                    .setMaxTopK(MAX_TOP_K)
+                    .build()
+                llmInference = LlmInference.createFromOptions(context, options)
+                Log.d(TAG, "LiteRT model loaded from: $modelPath")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to load LiteRT-LM engine from: $modelPath", e)
-                engine = null
+                Log.e(TAG, "Failed to load LiteRT model from: $modelPath", e)
+                llmInference = null
                 throw e
             }
         }
@@ -77,10 +78,10 @@ class LiteRtRuntimeAdapter(
 
     override fun release() {
         try {
-            engine?.close()
+            llmInference?.close()
         } catch (e: Exception) {
-            Log.w(TAG, "Error closing LiteRT-LM engine", e)
+            Log.w(TAG, "Error closing LiteRT engine", e)
         }
-        engine = null
+        llmInference = null
     }
 }
