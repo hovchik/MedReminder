@@ -44,16 +44,13 @@ class CustomLocalModelProvider @Inject constructor(
         activeRuntime = null
 
         activeRuntime = try {
-            val runtime = when (model.runtimeType) {
+            when (model.runtimeType) {
                 RuntimeType.LITE_RT -> LiteRtRuntimeAdapter(context, model.localPath)
                 RuntimeType.MEDIA_PIPE -> MediaPipeLlmRuntimeAdapter(context, model.localPath)
                 RuntimeType.SYSTEM_AI -> null // Handled by SystemAiProvider
             }
-            // Eagerly warm up the model so isLoaded() returns true
-            runtime?.warmup()
-            runtime
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to create/load runtime for model $modelId", e)
+            Log.e(TAG, "Failed to create runtime for model $modelId", e)
             null
         }
 

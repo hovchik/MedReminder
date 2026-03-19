@@ -140,7 +140,9 @@ class AiProviderSelector @Inject constructor(
      */
     suspend fun ensureActiveModelLoaded() {
         val modelId = getActiveModelId().first() ?: return
-        if (customLocalProvider.getActiveRuntime()?.isLoaded() != true) {
+        // Only create the adapter if none exists yet; actual model loading
+        // happens lazily on first runPrompt() call inside the adapter.
+        if (customLocalProvider.getActiveRuntime() == null) {
             customLocalProvider.loadModel(modelId)
         }
     }
