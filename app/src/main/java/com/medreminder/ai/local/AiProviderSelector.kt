@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.medreminder.ai.AiProvider
 import com.medreminder.ai.AiProviderType
 import com.medreminder.ai.modelmanager.LocalModelManager
+import com.medreminder.ai.modelmanager.ModelRecommendationEngine
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -25,8 +26,8 @@ class AiProviderSelector @Inject constructor(
     private val cloudProvider: CloudAiProvider,
     private val systemAiProvider: SystemAiProvider,
     private val customLocalProvider: CustomLocalModelProvider,
-    private val ruleBasedProvider: RuleBasedAiProvider,
-    private val modelManager: LocalModelManager
+    private val modelManager: LocalModelManager,
+    private val modelCatalog: ModelRecommendationEngine
 ) {
     companion object {
         private const val TAG = "AiProviderSelector"
@@ -40,7 +41,7 @@ class AiProviderSelector @Inject constructor(
 
     fun getSelectedProviderType(): Flow<AiProviderType> =
         context.aiPrefsDataStore.data.map { prefs ->
-            val value = prefs[KEY_SELECTED_PROVIDER] ?: AiProviderType.SYSTEM_AI.name
+            val value = prefs[KEY_SELECTED_PROVIDER] ?: AiProviderType.AUTO.name
             try {
                 AiProviderType.valueOf(value)
             } catch (_: Exception) {
@@ -141,18 +142,36 @@ class AiProviderSelector @Inject constructor(
     /**
      * Ensure the persisted active model is loaded into the runtime.
      * If no active model is set but installed models exist, auto-select the first one.
+     * Models that are no longer in the catalog are automatically deselected and removed.
      */
     suspend fun ensureActiveModelLoaded() {
+        // Clean up any installed models that are no longer in the catalog
+        // (e.g. removed due to incompatibility with MediaPipe).
+        val validModelIds = modelCatalog.getFullModelCatalog().map { it.modelId }.toSet()
+        val installed = modelManager.getInstalledModelsSuspend()
+        for (model in installed) {
+            if (model.modelId !in validModelIds) {
+                Log.w(TAG, "ensureActiveModelLoaded: model '${model.modelId}' is no longer in catalog, removing")
+                modelManager.removeModel(model.modelId)
+            }
+        }
+
         var modelId = getActiveModelId().first()
+
+        // If active model was removed from catalog, deselect it
+        if (modelId != null && modelId !in validModelIds) {
+            Log.w(TAG, "ensureActiveModelLoaded: active model '$modelId' is no longer in catalog, deselecting")
+            setActiveModelId(null)
+            modelId = null
+        }
 
         // If no active model ID is persisted, auto-select the first installed model
         if (modelId == null) {
-            val installed = modelManager.getInstalledModelsSuspend()
-            if (installed.isNotEmpty()) {
-                modelId = installed.first().modelId
+            val validInstalled = modelManager.getInstalledModelsSuspend()
+            if (validInstalled.isNotEmpty()) {
+                modelId = validInstalled.first().modelId
                 Log.d(TAG, "ensureActiveModelLoaded: no active model set, auto-selecting '${modelId}'")
                 setActiveModelId(modelId)
-                // setActiveModelId already calls loadModel(), so we're done
                 return
             }
             Log.d(TAG, "ensureActiveModelLoaded: no active model and no installed models")
@@ -198,19 +217,18 @@ class AiProviderSelector @Inject constructor(
             AiProviderType.SYSTEM_AI -> {
                 if (systemAiProvider.isAvailable()) systemAiProvider
                 else if (customLocalProvider.isAvailable()) {
-                    // System AI unavailable — prefer installed local model over rule-based
                     Log.d(TAG, "resolveProvider: SYSTEM_AI unavailable, using CUSTOM_LOCAL")
                     customLocalProvider
                 } else {
-                    Log.d(TAG, "resolveProvider: SYSTEM_AI unavailable and no local model, using rule-based")
-                    ruleBasedProvider
+                    Log.w(TAG, "resolveProvider: SYSTEM_AI unavailable and no local model, using CLOUD")
+                    cloudProvider
                 }
             }
             AiProviderType.CUSTOM_LOCAL -> {
                 if (customLocalProvider.isAvailable()) customLocalProvider
                 else {
-                    Log.w(TAG, "resolveProvider: CUSTOM_LOCAL selected but not available, using rule-based")
-                    ruleBasedProvider
+                    Log.w(TAG, "resolveProvider: CUSTOM_LOCAL selected but not available, falling back to AUTO")
+                    selectBestAvailable()
                 }
             }
             AiProviderType.AUTO -> selectBestAvailable()
@@ -218,12 +236,11 @@ class AiProviderSelector @Inject constructor(
     }
 
     private fun selectBestAvailable(): AiProvider {
-        // Priority: system AI > custom local > cloud > rule-based
+        // Priority: system AI > custom local > cloud
         return when {
             systemAiProvider.isAvailable() -> systemAiProvider
             customLocalProvider.isAvailable() -> customLocalProvider
-            cloudProvider.isAvailable() -> cloudProvider
-            else -> ruleBasedProvider
+            else -> cloudProvider
         }
     }
 
@@ -233,17 +250,15 @@ class AiProviderSelector @Inject constructor(
 
     fun getActiveProviderInfo(selectedType: AiProviderType = AiProviderType.AUTO): ProviderInfo {
         val provider = getActiveProvider(selectedType)
-        val isRuleBased = provider is RuleBasedAiProvider
         return ProviderInfo(
             type = provider.type,
-            displayName = if (isRuleBased) "Rule-Based Analysis" else provider.displayName,
+            displayName = provider.displayName,
             isAvailable = provider.isAvailable(),
             isLocal = provider.type != AiProviderType.CLOUD,
-            privacyNote = when {
-                isRuleBased -> "Using rule-based analysis. All data stays on your device."
-                provider.type != AiProviderType.CLOUD ->
-                    "All analysis is performed locally on your device. No data is sent to external servers."
-                else -> "Analysis data is sent to cloud servers for processing."
+            privacyNote = if (provider.type != AiProviderType.CLOUD) {
+                "All analysis is performed locally on your device. No data is sent to external servers."
+            } else {
+                "Analysis data is sent to cloud servers for processing."
             }
         )
     }
@@ -252,13 +267,13 @@ class AiProviderSelector @Inject constructor(
         val systemAiSubtitle = if (systemAiProvider.isAvailable() || systemAiProvider.hasDeviceCapability()) {
             "Uses device built-in AI engine."
         } else {
-            "System AI unavailable — will use rule-based analysis."
+            "System AI unavailable on this device."
         }
         return listOf(
             ProviderInfo(
                 type = AiProviderType.SYSTEM_AI,
                 displayName = systemAiProvider.displayName,
-                isAvailable = true, // Always selectable; falls back to rule-based
+                isAvailable = true, // Always selectable; falls back to cloud/local
                 isLocal = true,
                 privacyNote = systemAiSubtitle
             ),

@@ -9,7 +9,11 @@ import kotlinx.coroutines.withContext
 
 /**
  * Runtime adapter for LiteRT model files (.tflite, .litertlm).
- * Uses MediaPipe LLM Inference API which supports both .task and .litertlm formats.
+ * Uses MediaPipe LLM Inference API which supports both .task and .tflite formats.
+ *
+ * NOTE: .litertlm bundles require the LiteRT-LM SDK (com.google.ai.edge.litertlm)
+ * which needs Kotlin 2.2+. Until the project upgrades Kotlin, only .task models
+ * should be used. This adapter is kept for forward compatibility.
  */
 class LiteRtRuntimeAdapter(
     private val context: Context,

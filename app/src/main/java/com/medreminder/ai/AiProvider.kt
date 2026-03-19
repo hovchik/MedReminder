@@ -107,6 +107,13 @@ interface AiProvider {
     val displayName: String
     suspend fun generateAnalysis(input: AnalysisInput): AnalysisResult
     fun isAvailable(): Boolean
+
+    /**
+     * Send a raw prompt to the provider and return the raw text response.
+     * Used for medication-specific deep analysis where a custom prompt is built.
+     * Returns null if the provider cannot handle raw completions.
+     */
+    suspend fun generateRawCompletion(prompt: String): String? = null
 }
 
 // --- Medication-specific AI analysis ---

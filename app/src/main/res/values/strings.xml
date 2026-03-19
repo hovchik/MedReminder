@@ -286,7 +286,7 @@
     <string name="ai_provider">AI Provider</string>
     <string name="select_ai_provider">Select AI Provider</string>
     <string name="ai_auto_desc">Auto - best available AI</string>
-    <string name="ai_system_desc">System AI - on-device or rule-based</string>
+    <string name="ai_system_desc">System AI - on-device AI engine</string>
     <string name="ai_local_desc">Local AI - runs downloaded AI model</string>
     <string name="ai_cloud_desc">Cloud AI - advanced cloud analysis</string>
     <string name="active_provider">Active: %1$s</string>
