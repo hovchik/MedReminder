@@ -96,7 +96,7 @@ class AlarmScheduler @Inject constructor(
 
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            scheduleId.toInt(),
+            (scheduleId and 0x7FFFFFFF).toInt(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -131,7 +131,7 @@ class AlarmScheduler @Inject constructor(
     fun cancelAlarm(scheduleId: Long) {
         val intent = Intent(context, AlarmReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
-            context, scheduleId.toInt(), intent,
+            context, (scheduleId and 0x7FFFFFFF).toInt(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarmManager.cancel(pendingIntent)
@@ -162,7 +162,7 @@ class AlarmScheduler @Inject constructor(
             putExtra(EXTRA_DOSE_LOG_ID, doseLogId)
         }
 
-        val requestCode = (scheduleId * 1000 + System.currentTimeMillis() % 1000).toInt()
+        val requestCode = ((scheduleId * 1000 + System.currentTimeMillis() % 1000) and 0x7FFFFFFF).toInt()
         val pendingIntent = PendingIntent.getBroadcast(
             context, requestCode, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
