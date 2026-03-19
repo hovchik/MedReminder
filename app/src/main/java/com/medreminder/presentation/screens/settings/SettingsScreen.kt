@@ -87,7 +87,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     val selectedProviderType: StateFlow<AiProviderType> = providerSelector.getSelectedProviderType()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiProviderType.AUTO)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AiProviderType.SYSTEM_AI)
 
     val installedModels = modelManager.getInstalledModelsFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -488,127 +488,10 @@ fun SettingsScreen(
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(vertical = 4.dp))
 
-        // Step 1 — Select AI Provider (always prominent)
+        // Active provider info — always shown at the top
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-            )
-        ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    ) {
-                        Text(
-                            stringResource(R.string.ai_step_1),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        stringResource(R.string.ai_select_provider_step),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                SettingsItem(
-                    icon = Icons.Default.Psychology,
-                    title = stringResource(R.string.ai_provider),
-                    subtitle = when (selectedProvider) {
-                        AiProviderType.AUTO -> stringResource(R.string.ai_auto_desc)
-                        AiProviderType.SYSTEM_AI -> stringResource(R.string.ai_system_desc)
-                        AiProviderType.CUSTOM_LOCAL -> stringResource(R.string.ai_local_desc)
-                        AiProviderType.CLOUD -> stringResource(R.string.ai_cloud_desc)
-                    },
-                    onClick = { showAiProviderDialog = true }
-                )
-            }
-        }
-
-        // Step 2 — Configure provider (context-dependent)
-        val showCloudSettings = selectedProvider == AiProviderType.CLOUD ||
-            activeProviderInfo.type == AiProviderType.CLOUD
-        val showLocalModelSettings = installedModels.isNotEmpty()
-
-        if (showCloudSettings || showLocalModelSettings) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                )
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.secondary
-                        ) {
-                            Text(
-                                stringResource(R.string.ai_step_2),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondary
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            stringResource(R.string.ai_configure_step),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    if (showCloudSettings) {
-                        SettingsItem(
-                            icon = Icons.Default.Cloud,
-                            title = stringResource(R.string.cloud_ai_service),
-                            subtitle = selectedCloudService.displayName,
-                            onClick = { showCloudServiceDialog = true }
-                        )
-
-                        SettingsItem(
-                            icon = Icons.Default.VpnKey,
-                            title = stringResource(R.string.api_key),
-                            subtitle = if (!currentApiKey.isNullOrBlank()) {
-                                stringResource(R.string.api_key_configured)
-                            } else {
-                                stringResource(R.string.api_key_not_set)
-                            },
-                            onClick = { showApiKeyDialog = true }
-                        )
-                    }
-
-                    if (showLocalModelSettings) {
-                        val activeModelName = installedModels.find { it.modelId == activeModelId }?.displayName
-                        SettingsItem(
-                            icon = Icons.Default.Memory,
-                            title = stringResource(R.string.active_local_model),
-                            subtitle = if (isLoadingModel) {
-                                stringResource(R.string.loading_model)
-                            } else if (activeModelName != null) {
-                                activeModelName
-                            } else {
-                                stringResource(R.string.no_model_selected)
-                            },
-                            onClick = { showModelPickerDialog = true }
-                        )
-                    }
-                }
-            }
-        }
-
-        // Active provider info
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (activeProviderInfo.isLocal)
                     MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
@@ -636,22 +519,71 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (installedModels.isNotEmpty()) {
-                    Text(
-                        stringResource(R.string.installed_models_count, installedModels.size),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
 
+        // AI Provider selection
         SettingsItem(
-            icon = Icons.Default.Tune,
-            title = stringResource(R.string.setup_local_ai),
-            subtitle = stringResource(R.string.setup_local_ai_subtitle),
-            onClick = onNavigateToAiSetup
+            icon = Icons.Default.Psychology,
+            title = stringResource(R.string.ai_provider),
+            subtitle = when (selectedProvider) {
+                AiProviderType.AUTO -> stringResource(R.string.ai_auto_desc)
+                AiProviderType.SYSTEM_AI -> stringResource(R.string.ai_system_desc)
+                AiProviderType.CUSTOM_LOCAL -> stringResource(R.string.ai_local_desc)
+                AiProviderType.CLOUD -> stringResource(R.string.ai_cloud_desc)
+            },
+            onClick = { showAiProviderDialog = true }
         )
+
+        // Provider-specific options
+        when (selectedProvider) {
+            AiProviderType.CLOUD -> {
+                // Cloud: show service selector + API key
+                SettingsItem(
+                    icon = Icons.Default.Cloud,
+                    title = stringResource(R.string.cloud_ai_service),
+                    subtitle = selectedCloudService.displayName,
+                    onClick = { showCloudServiceDialog = true }
+                )
+                SettingsItem(
+                    icon = Icons.Default.VpnKey,
+                    title = stringResource(R.string.api_key),
+                    subtitle = if (!currentApiKey.isNullOrBlank()) {
+                        stringResource(R.string.api_key_configured)
+                    } else {
+                        stringResource(R.string.api_key_not_set)
+                    },
+                    onClick = { showApiKeyDialog = true }
+                )
+            }
+            AiProviderType.CUSTOM_LOCAL -> {
+                // Local AI: show active model picker + setup wizard
+                if (installedModels.isNotEmpty()) {
+                    val activeModelName = installedModels.find { it.modelId == activeModelId }?.displayName
+                    SettingsItem(
+                        icon = Icons.Default.Memory,
+                        title = stringResource(R.string.active_local_model),
+                        subtitle = if (isLoadingModel) {
+                            stringResource(R.string.loading_model)
+                        } else if (activeModelName != null) {
+                            activeModelName
+                        } else {
+                            stringResource(R.string.no_model_selected)
+                        },
+                        onClick = { showModelPickerDialog = true }
+                    )
+                }
+                SettingsItem(
+                    icon = Icons.Default.Tune,
+                    title = stringResource(R.string.setup_local_ai),
+                    subtitle = stringResource(R.string.setup_local_ai_subtitle),
+                    onClick = onNavigateToAiSetup
+                )
+            }
+            else -> {
+                // System AI / AUTO: no extra configuration needed
+            }
+        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 

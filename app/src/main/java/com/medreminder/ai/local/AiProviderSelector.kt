@@ -22,7 +22,8 @@ class AiProviderSelector @Inject constructor(
     @ApplicationContext private val context: Context,
     private val cloudProvider: CloudAiProvider,
     private val systemAiProvider: SystemAiProvider,
-    private val customLocalProvider: CustomLocalModelProvider
+    private val customLocalProvider: CustomLocalModelProvider,
+    private val ruleBasedProvider: RuleBasedAiProvider
 ) {
     companion object {
         private val KEY_SELECTED_PROVIDER = stringPreferencesKey("selected_ai_provider")
@@ -35,7 +36,7 @@ class AiProviderSelector @Inject constructor(
 
     fun getSelectedProviderType(): Flow<AiProviderType> =
         context.aiPrefsDataStore.data.map { prefs ->
-            val value = prefs[KEY_SELECTED_PROVIDER] ?: AiProviderType.AUTO.name
+            val value = prefs[KEY_SELECTED_PROVIDER] ?: AiProviderType.SYSTEM_AI.name
             try {
                 AiProviderType.valueOf(value)
             } catch (_: Exception) {
@@ -160,7 +161,7 @@ class AiProviderSelector @Inject constructor(
             AiProviderType.CLOUD -> cloudProvider
             AiProviderType.SYSTEM_AI -> {
                 if (systemAiProvider.isAvailable()) systemAiProvider
-                else cloudProvider // fallback
+                else ruleBasedProvider // fallback to rule-based when System AI is unavailable
             }
             AiProviderType.CUSTOM_LOCAL -> {
                 if (customLocalProvider.isAvailable()) customLocalProvider
@@ -185,34 +186,34 @@ class AiProviderSelector @Inject constructor(
 
     fun getActiveProviderInfo(selectedType: AiProviderType = AiProviderType.AUTO): ProviderInfo {
         val provider = getActiveProvider(selectedType)
+        val isRuleBased = provider is RuleBasedAiProvider
         return ProviderInfo(
             type = provider.type,
-            displayName = provider.displayName,
+            displayName = if (isRuleBased) "Rule-Based Analysis" else provider.displayName,
             isAvailable = provider.isAvailable(),
             isLocal = provider.type != AiProviderType.CLOUD,
-            privacyNote = if (provider.type != AiProviderType.CLOUD) {
-                "All analysis is performed locally on your device. No data is sent to external servers."
-            } else {
-                "Analysis data is sent to cloud servers for processing."
+            privacyNote = when {
+                isRuleBased -> "Using rule-based analysis. All data stays on your device."
+                provider.type != AiProviderType.CLOUD ->
+                    "All analysis is performed locally on your device. No data is sent to external servers."
+                else -> "Analysis data is sent to cloud servers for processing."
             }
         )
     }
 
     fun getAllProviders(): List<ProviderInfo> {
+        val systemAiSubtitle = if (systemAiProvider.isAvailable()) {
+            "Uses device built-in AI engine."
+        } else {
+            "System AI unavailable — will use rule-based analysis."
+        }
         return listOf(
-            ProviderInfo(
-                type = AiProviderType.AUTO,
-                displayName = "Auto (Recommended)",
-                isAvailable = true,
-                isLocal = false,
-                privacyNote = "Automatically selects the best available AI engine."
-            ),
             ProviderInfo(
                 type = AiProviderType.SYSTEM_AI,
                 displayName = systemAiProvider.displayName,
-                isAvailable = systemAiProvider.isAvailable(),
+                isAvailable = true, // Always selectable; falls back to rule-based
                 isLocal = true,
-                privacyNote = "All analysis is performed locally on your device. No data is sent to external servers."
+                privacyNote = systemAiSubtitle
             ),
             ProviderInfo(
                 type = AiProviderType.CUSTOM_LOCAL,
