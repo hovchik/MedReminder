@@ -423,7 +423,6 @@
     <string name="provider_cloud">क्लाउड</string>
     <string name="provider_on_device">डिवाइस पर</string>
     <string name="provider_local">स्थानीय</string>
-    <string name="provider_rule_based">Rule-Based</string>
     <string name="provider_auto">स्वचालित</string>
     <string name="risk_low">कम</string>
     <string name="risk_moderate">मध्यम</string>

@@ -531,7 +531,6 @@ fun SettingsScreen(
                 AiProviderType.SYSTEM_AI -> stringResource(R.string.ai_system_desc)
                 AiProviderType.CUSTOM_LOCAL -> stringResource(R.string.ai_local_desc)
                 AiProviderType.CLOUD -> stringResource(R.string.ai_cloud_desc)
-                AiProviderType.RULE_BASED -> stringResource(R.string.provider_rule_based)
             },
             onClick = { showAiProviderDialog = true }
         )

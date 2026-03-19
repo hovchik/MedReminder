@@ -194,7 +194,6 @@ fun MedicationAnalysisScreen(
                     AiProviderType.CLOUD -> stringResource(R.string.provider_cloud)
                     AiProviderType.SYSTEM_AI -> stringResource(R.string.provider_on_device)
                     AiProviderType.CUSTOM_LOCAL -> stringResource(R.string.provider_local)
-                    AiProviderType.RULE_BASED -> stringResource(R.string.provider_rule_based)
                     AiProviderType.AUTO -> stringResource(R.string.provider_auto)
                 }
                 if (result.latencyMs > 0) {

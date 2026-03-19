@@ -409,7 +409,6 @@
     <string name="provider_cloud">Nube</string>
     <string name="provider_on_device">En dispositivo</string>
     <string name="provider_local">Local</string>
-    <string name="provider_rule_based">Basado en reglas</string>
     <string name="provider_auto">Auto</string>
     <string name="risk_low">Bajo</string>
     <string name="risk_moderate">Moderado</string>
