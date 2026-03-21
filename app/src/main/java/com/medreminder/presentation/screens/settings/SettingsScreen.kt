@@ -40,6 +40,7 @@ import com.medreminder.R
 import com.medreminder.ai.AiProviderType
 import com.medreminder.ai.local.AiProviderSelector
 import com.medreminder.ai.local.CloudAiService
+import com.medreminder.ai.local.GeminiModel
 import com.medreminder.ai.local.LocalAiModel
 import com.medreminder.ai.local.ProviderInfo
 import com.medreminder.ai.modelmanager.LocalModelManager
@@ -142,6 +143,15 @@ class SettingsViewModel @Inject constructor(
     fun setApiKey(service: CloudAiService, apiKey: String) {
         viewModelScope.launch {
             providerSelector.setApiKeyForService(service, apiKey)
+        }
+    }
+
+    val selectedGeminiModel: StateFlow<GeminiModel> = providerSelector.getSelectedGeminiModel()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), GeminiModel.GEMINI_2_5_FLASH)
+
+    fun setGeminiModel(model: GeminiModel) {
+        viewModelScope.launch {
+            providerSelector.setSelectedGeminiModel(model)
         }
     }
 
@@ -316,6 +326,7 @@ fun SettingsScreen(
     val activeModelId by viewModel.activeModelId.collectAsStateWithLifecycle()
     val isLoadingModel by viewModel.isLoadingModel.collectAsStateWithLifecycle()
     val selectedCloudService by viewModel.selectedCloudService.collectAsStateWithLifecycle()
+    val selectedGeminiModel by viewModel.selectedGeminiModel.collectAsStateWithLifecycle()
     val currentApiKey by viewModel.getApiKeyForService(selectedCloudService)
         .collectAsStateWithLifecycle(initialValue = null)
     val activeProviderInfo = remember(selectedProvider, currentApiKey, installedModels) {
@@ -325,6 +336,7 @@ fun SettingsScreen(
     var showAiProviderDialog by remember { mutableStateOf(false) }
     var showModelPickerDialog by remember { mutableStateOf(false) }
     var showCloudServiceDialog by remember { mutableStateOf(false) }
+    var showGeminiModelDialog by remember { mutableStateOf(false) }
     var showApiKeyDialog by remember { mutableStateOf(false) }
 
     val userName by viewModel.userName.collectAsStateWithLifecycle()
@@ -415,6 +427,17 @@ fun SettingsScreen(
             onSelectService = { service ->
                 showCloudServiceDialog = false
                 viewModel.setCloudService(service)
+            }
+        )
+    }
+
+    if (showGeminiModelDialog) {
+        GeminiModelDialog(
+            currentModel = selectedGeminiModel,
+            onDismiss = { showGeminiModelDialog = false },
+            onSelectModel = { model ->
+                showGeminiModelDialog = false
+                viewModel.setGeminiModel(model)
             }
         )
     }
@@ -538,13 +561,21 @@ fun SettingsScreen(
         // Provider-specific options
         when (selectedProvider) {
             AiProviderType.CLOUD -> {
-                // Cloud: show service selector + API key
+                // Cloud: show service selector + model picker (Gemini) + API key
                 SettingsItem(
                     icon = Icons.Default.Cloud,
                     title = stringResource(R.string.cloud_ai_service),
                     subtitle = selectedCloudService.displayName,
                     onClick = { showCloudServiceDialog = true }
                 )
+                if (selectedCloudService == CloudAiService.GEMINI) {
+                    SettingsItem(
+                        icon = Icons.Default.Memory,
+                        title = stringResource(R.string.gemini_model),
+                        subtitle = selectedGeminiModel.displayName,
+                        onClick = { showGeminiModelDialog = true }
+                    )
+                }
                 SettingsItem(
                     icon = Icons.Default.VpnKey,
                     title = stringResource(R.string.api_key),
@@ -1325,6 +1356,67 @@ fun CloudServiceDialog(
                                         CloudAiService.CHATGPT -> stringResource(R.string.chatgpt_desc)
                                         CloudAiService.DEEPSEEK -> stringResource(R.string.deepseek_desc)
                                         CloudAiService.GEMINI -> stringResource(R.string.gemini_desc)
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    )
+}
+
+@Composable
+fun GeminiModelDialog(
+    currentModel: GeminiModel,
+    onDismiss: () -> Unit,
+    onSelectModel: (GeminiModel) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.select_gemini_model)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                GeminiModel.entries.forEach { model ->
+                    val isSelected = currentModel == model
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelectModel(model) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    model.displayName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    when (model) {
+                                        GeminiModel.GEMINI_2_5_FLASH -> stringResource(R.string.gemini_flash_desc)
+                                        GeminiModel.GEMINI_2_5_PRO -> stringResource(R.string.gemini_pro_desc)
+                                        GeminiModel.GEMMA_3_27B -> stringResource(R.string.gemma_3_desc)
                                     },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant

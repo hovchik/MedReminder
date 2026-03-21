@@ -38,6 +38,7 @@ class AiProviderSelector @Inject constructor(
         private val KEY_API_KEY_CHATGPT = stringPreferencesKey("api_key_chatgpt")
         private val KEY_API_KEY_DEEPSEEK = stringPreferencesKey("api_key_deepseek")
         private val KEY_API_KEY_GEMINI = stringPreferencesKey("api_key_gemini")
+        private val KEY_GEMINI_MODEL = stringPreferencesKey("gemini_model")
     }
 
     fun getSelectedProviderType(): Flow<AiProviderType> =
@@ -130,6 +131,25 @@ class AiProviderSelector @Inject constructor(
         }
     }
 
+    // --- Gemini model selection ---
+
+    fun getSelectedGeminiModel(): Flow<GeminiModel> =
+        context.aiPrefsDataStore.data.map { prefs ->
+            val value = prefs[KEY_GEMINI_MODEL] ?: GeminiModel.GEMINI_2_5_FLASH.name
+            try {
+                GeminiModel.valueOf(value)
+            } catch (_: Exception) {
+                GeminiModel.GEMINI_2_5_FLASH
+            }
+        }
+
+    suspend fun setSelectedGeminiModel(model: GeminiModel) {
+        context.aiPrefsDataStore.edit { prefs ->
+            prefs[KEY_GEMINI_MODEL] = model.name
+        }
+        cloudProvider.setGeminiModel(model)
+    }
+
     /**
      * Ensure the cloud provider is configured with the persisted service and API key.
      * Call this on app startup.
@@ -140,6 +160,9 @@ class AiProviderSelector @Inject constructor(
         // Always sync — clear key if none is stored for this service
         val key = getApiKeyForService(service).first()
         cloudProvider.setApiKey(key ?: "")
+        // Sync Gemini model
+        val geminiModel = getSelectedGeminiModel().first()
+        cloudProvider.setGeminiModel(geminiModel)
     }
 
     /**
