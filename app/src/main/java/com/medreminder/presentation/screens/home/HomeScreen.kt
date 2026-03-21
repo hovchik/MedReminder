@@ -123,7 +123,7 @@ fun HomeScreen(
             }
 
             override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                if (available.y > 0 && source == NestedScrollSource.UserInput) {
+                if (available.y > 0 && source == NestedScrollSource.Drag) {
                     pullRefreshOffset.floatValue += available.y
                     return Offset(0f, available.y)
                 }
