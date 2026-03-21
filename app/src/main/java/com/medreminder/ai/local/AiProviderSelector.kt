@@ -192,13 +192,10 @@ class AiProviderSelector @Inject constructor(
         val userChoice = getSelectedProviderType().first()
         Log.d(TAG, "selectProvider: userChoice=$userChoice")
 
-        // Always try to ensure the local model is loaded if one is installed,
-        // because SYSTEM_AI and AUTO also fall back to CUSTOM_LOCAL.
+        // Always ensure all providers are configured so fallbacks work correctly
         ensureSystemAiInitialized()
         ensureActiveModelLoaded()
-        if (userChoice == AiProviderType.CLOUD || userChoice == AiProviderType.AUTO) {
-            ensureCloudProviderConfigured()
-        }
+        ensureCloudProviderConfigured()
 
         val provider = resolveProvider(userChoice)
         Log.d(TAG, "selectProvider: resolved to ${provider.type.name} (${provider.displayName})")
@@ -216,19 +213,16 @@ class AiProviderSelector @Inject constructor(
             AiProviderType.CLOUD -> cloudProvider
             AiProviderType.SYSTEM_AI -> {
                 if (systemAiProvider.isAvailable()) systemAiProvider
-                else if (customLocalProvider.isAvailable()) {
-                    Log.d(TAG, "resolveProvider: SYSTEM_AI unavailable, using CUSTOM_LOCAL")
-                    customLocalProvider
-                } else {
-                    Log.w(TAG, "resolveProvider: SYSTEM_AI unavailable and no local model, using CLOUD")
+                else {
+                    Log.w(TAG, "resolveProvider: SYSTEM_AI unavailable, falling back to CLOUD")
                     cloudProvider
                 }
             }
             AiProviderType.CUSTOM_LOCAL -> {
                 if (customLocalProvider.isAvailable()) customLocalProvider
                 else {
-                    Log.w(TAG, "resolveProvider: CUSTOM_LOCAL selected but not available, falling back to AUTO")
-                    selectBestAvailable()
+                    Log.w(TAG, "resolveProvider: CUSTOM_LOCAL unavailable, falling back to CLOUD")
+                    cloudProvider
                 }
             }
             AiProviderType.AUTO -> selectBestAvailable()
