@@ -49,10 +49,73 @@ class MedicationRepositoryImpl @Inject constructor(
         }
 
     override suspend fun addMedication(medication: Medication, schedules: List<Schedule>): Long {
-        val medId = medicationDao.insertMedication(medication.toEntity())
-        val scheduleEntities = schedules.map { it.copy(medicationId = medId).toEntity() }
-        scheduleDao.insertSchedules(scheduleEntities)
-        return medId
+        val todayStart = DateUtils.getStartOfDay()
+        val todayEnd = DateUtils.getEndOfDay()
+        val now = System.currentTimeMillis()
+
+        return database.withTransaction {
+            val medId = medicationDao.insertMedication(medication.toEntity())
+            val scheduleEntities = schedules.map { it.copy(medicationId = medId).toEntity() }
+            scheduleDao.insertSchedules(scheduleEntities)
+
+            // Immediately generate today's pending dose logs so the Today screen
+            // shows the new medication's doses as soon as the user navigates back.
+            val insertedSchedules = scheduleDao.getActiveSchedulesForMedication(medId)
+            for (entity in insertedSchedules) {
+                val schedule = entity.toDomain()
+                if (schedule.frequency == ScheduleFrequency.AS_NEEDED) continue
+                if (!isScheduledForToday(schedule)) continue
+
+                if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS && schedule.intervalHours > 0) {
+                    val cal = Calendar.getInstance().apply {
+                        set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                        set(Calendar.MINUTE, schedule.timeMinute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    while (cal.timeInMillis <= todayEnd) {
+                        if (cal.timeInMillis >= todayStart) {
+                            val exists = doseLogDao.doseLogExistsForWindow(
+                                schedule.id, cal.timeInMillis - 60000, cal.timeInMillis + 60000
+                            )
+                            if (!exists) {
+                                doseLogDao.insertDoseLog(
+                                    DoseLog(
+                                        medicationId = medId,
+                                        scheduleId = schedule.id,
+                                        scheduledTime = cal.timeInMillis,
+                                        status = if (cal.timeInMillis < now - 3600000)
+                                            DoseStatus.MISSED else DoseStatus.PENDING
+                                    ).toEntity()
+                                )
+                            }
+                        }
+                        cal.add(Calendar.HOUR_OF_DAY, schedule.intervalHours)
+                    }
+                } else {
+                    val exists = doseLogDao.doseLogExistsForWindow(schedule.id, todayStart, todayEnd)
+                    if (!exists) {
+                        val cal = Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                            set(Calendar.MINUTE, schedule.timeMinute)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        doseLogDao.insertDoseLog(
+                            DoseLog(
+                                medicationId = medId,
+                                scheduleId = schedule.id,
+                                scheduledTime = cal.timeInMillis,
+                                status = if (cal.timeInMillis < now - 3600000)
+                                    DoseStatus.MISSED else DoseStatus.PENDING
+                            ).toEntity()
+                        )
+                    }
+                }
+            }
+
+            medId
+        }
     }
 
     override suspend fun updateMedication(medication: Medication, schedules: List<Schedule>) {
