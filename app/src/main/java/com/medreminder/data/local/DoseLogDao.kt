@@ -131,7 +131,7 @@ interface DoseLogDao {
         DELETE FROM dose_logs
         WHERE status IN ('pending', 'snoozed')
         AND scheduledTime BETWEEN :startTime AND :endTime
-        AND scheduleId NOT IN (SELECT id FROM schedules WHERE isActive = 1)
+        AND scheduleId NOT IN (SELECT id FROM schedules WHERE isEnabled = 1)
     """)
     suspend fun deleteOrphanPendingLogs(startTime: Long, endTime: Long)
 
