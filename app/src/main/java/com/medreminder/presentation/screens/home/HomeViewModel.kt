@@ -1,10 +1,13 @@
 package com.medreminder.presentation.screens.home
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.medreminder.R
 import com.medreminder.alarm.AlarmScheduler
+import com.medreminder.alarm.CaregiverNotificationHelper
+import com.medreminder.data.local.AppDatabase
 import com.medreminder.data.preferences.UserPreferencesManager
 import com.medreminder.domain.model.*
 import com.medreminder.domain.repository.MedicationRepository
@@ -45,12 +48,20 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     private val repository: MedicationRepository,
     private val alarmScheduler: AlarmScheduler,
+    private val database: AppDatabase,
     private val userPreferencesManager: UserPreferencesManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
+    companion object {
+        private const val TAG = "HomeViewModel"
+    }
+
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    // Trigger to restart the today-data Flow with fresh time bounds
+    private val refreshTrigger = MutableStateFlow(0)
 
     init {
         loadTodayData()
@@ -87,13 +98,16 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun loadTodayData() {
-        val startOfDay = DateUtils.getStartOfDay()
-        val endOfDay = DateUtils.getEndOfDay()
-        val sixHoursAhead = System.currentTimeMillis() + 6 * 60 * 60 * 1000
-        val upcomingEnd = maxOf(endOfDay, sixHoursAhead) // all of today + up to 6h into tomorrow
-
         viewModelScope.launch {
-            repository.getTodayDoses(startOfDay, upcomingEnd).collect { allDoses ->
+            // Restart the Flow with fresh time bounds each time refreshTrigger is updated
+            // (e.g. after generateTodayDoses on screen resume or schedule edits)
+            refreshTrigger.flatMapLatest {
+                val startOfDay = DateUtils.getStartOfDay()
+                val endOfDay = DateUtils.getEndOfDay()
+                val sixHoursAhead = System.currentTimeMillis() + 6 * 60 * 60 * 1000
+                val upcomingEnd = maxOf(endOfDay, sixHoursAhead)
+                repository.getTodayDoses(startOfDay, upcomingEnd)
+            }.collect { allDoses ->
                 // Show all not-yet-executed doses on the Today screen:
                 // PENDING, SNOOZED, and MISSED (still actionable).
                 // Only TAKEN and SKIPPED are fully executed → History screen.
@@ -183,7 +197,21 @@ class HomeViewModel @Inject constructor(
 
     fun markDoseTaken(logId: Long) {
         viewModelScope.launch {
+            val doseLog = repository.getDoseLogById(logId)
             repository.markDoseTaken(logId)
+            // Send SMS/call to caregivers if conditions are met
+            if (doseLog != null) {
+                val med = repository.getMedicationById(doseLog.medicationId)
+                Log.d(TAG, "markDoseTaken: logId=$logId, medId=${doseLog.medicationId}, " +
+                        "medFound=${med != null}, notifyCaregivers=${med?.notifyCaregivers}")
+                if (med != null) {
+                    CaregiverNotificationHelper.notifyCaregiversOnTaken(
+                        context, database, med.id, med.name
+                    )
+                }
+            } else {
+                Log.w(TAG, "markDoseTaken: doseLog not found for logId=$logId")
+            }
             loadStreak()
         }
     }
@@ -309,6 +337,10 @@ class HomeViewModel @Inject constructor(
 
             // Reschedule alarms
             alarmScheduler.scheduleAllAlarms()
+
+            // Trigger a refresh of the today-data Flow with fresh time bounds
+            // so the UI picks up any dose logs created or changed by schedule edits
+            refreshTrigger.value++
         }
     }
 

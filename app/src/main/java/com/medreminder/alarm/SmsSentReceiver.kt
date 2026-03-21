@@ -73,24 +73,7 @@ class SmsSentReceiver : BroadcastReceiver() {
         caregiverName: String,
         medicationName: String
     ) {
-        // Always attempt an automatic call first
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
-            try {
-                val callIntent = Intent(Intent.ACTION_CALL).apply {
-                    data = Uri.parse("tel:$phone")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(callIntent)
-                Log.d(TAG, "Automatic call initiated to $phone from notification fallback")
-                return // Call started successfully, no need for notification
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to initiate automatic call to $phone", e)
-            }
-        }
-
-        // Only show notification if automatic call is not possible
+        // Show notification so user can manually tap to call
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

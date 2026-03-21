@@ -72,6 +72,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private var medications: List<AlarmMedication> = emptyList()
+    private var isProcessing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -203,6 +204,8 @@ class FullScreenAlarmActivity : ComponentActivity() {
     }
 
     private fun handleTakenAll() {
+        if (isProcessing) return
+        isProcessing = true
         stopAlarm()
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -210,9 +213,15 @@ class FullScreenAlarmActivity : ComponentActivity() {
                 for (med in medications) {
                     db.doseLogDao().updateDoseStatus(med.doseLogId, "taken")
                     db.medicationDao().decrementStock(med.medicationId)
-                    CaregiverNotificationHelper.notifyCaregiversOnTaken(
-                        applicationContext, db, med.medicationId, med.name
-                    )
+                }
+                // Send caregiver notifications after all DB operations complete
+                for (med in medications) {
+                    try {
+                        val db2 = AppDatabase.getInstance(this@FullScreenAlarmActivity)
+                        CaregiverNotificationHelper.notifyCaregiversOnTaken(
+                            applicationContext, db2, med.medicationId, med.name
+                        )
+                    } catch (e: Exception) { e.printStackTrace() }
                 }
             } catch (e: Exception) { e.printStackTrace() }
             withContext(Dispatchers.Main) { finish() }
@@ -220,6 +229,8 @@ class FullScreenAlarmActivity : ComponentActivity() {
     }
 
     private fun handleSnoozeAll() {
+        if (isProcessing) return
+        isProcessing = true
         stopAlarm()
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -240,6 +251,8 @@ class FullScreenAlarmActivity : ComponentActivity() {
     }
 
     private fun handleCancelAll() {
+        if (isProcessing) return
+        isProcessing = true
         stopAlarm()
         CoroutineScope(Dispatchers.IO).launch {
             try {

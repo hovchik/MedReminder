@@ -43,8 +43,16 @@ object CaregiverNotificationHelper {
         medicationName: String,
         isMissed: Boolean
     ) {
-        val medication = db.medicationDao().getMedicationById(medicationId) ?: return
-        if (!medication.notifyCaregivers) return
+        Log.d(TAG, "notifyCaregivers: medId=$medicationId, name=$medicationName, isMissed=$isMissed")
+        val medication = db.medicationDao().getMedicationById(medicationId)
+        if (medication == null) {
+            Log.w(TAG, "notifyCaregivers: medication not found for id=$medicationId")
+            return
+        }
+        if (!medication.notifyCaregivers) {
+            Log.d(TAG, "notifyCaregivers: notifyCaregivers=false for '$medicationName', skipping")
+            return
+        }
 
         val caregivers = if (isMissed) {
             db.caregiverDao().getCaregiversForMissedAlert()
@@ -52,6 +60,7 @@ object CaregiverNotificationHelper {
             db.caregiverDao().getCaregiversForTakenAlert()
         }
 
+        Log.d(TAG, "notifyCaregivers: found ${caregivers.size} caregivers (isMissed=$isMissed)")
         if (caregivers.isEmpty()) return
 
         var message = if (isMissed) {
@@ -60,18 +69,23 @@ object CaregiverNotificationHelper {
             "MedReminder: $medicationName dose was taken."
         }
 
-        // For emergency medications that are missed, append location
-        if (medication.isEmergency && isMissed) {
+        // For emergency medications, append location for both taken and missed
+        if (medication.isEmergency) {
             val locationText = getLastKnownLocation(context)
             if (locationText != null) {
-                message += " EMERGENCY - Location: $locationText"
-            } else {
+                message += if (isMissed) {
+                    " EMERGENCY - Location: $locationText"
+                } else {
+                    " Location: $locationText"
+                }
+            } else if (isMissed) {
                 message += " EMERGENCY - Location unavailable."
             }
         }
 
         for (caregiver in caregivers) {
             val domain = caregiver.toDomain()
+            Log.d(TAG, "notifyCaregivers: caregiver='${domain.name}', phone='${domain.phone}', email='${domain.email}'")
             if (domain.phone.isNotBlank()) {
                 sendSms(context, domain.phone, message, domain.name, medicationName)
             }
@@ -100,10 +114,10 @@ object CaregiverNotificationHelper {
             val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
             val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                 ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                ?: locationManager.getLastKnownLocation(LocationManager.FUSED_PROVIDER)
 
             if (location != null) {
-                val mapsUrl = "https://maps.google.com/?q=${location.latitude},${location.longitude}"
-                mapsUrl
+                "https://maps.google.com/?q=${location.latitude},${location.longitude}"
             } else {
                 null
             }
@@ -129,10 +143,15 @@ object CaregiverNotificationHelper {
         }
         try {
             @Suppress("DEPRECATION")
-            val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val smsManager: SmsManager? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 context.getSystemService(SmsManager::class.java)
             } else {
                 SmsManager.getDefault()
+            }
+            if (smsManager == null) {
+                Log.e(TAG, "SmsManager unavailable, falling back to call for $phone")
+                makeCallFallback(context, phone)
+                return
             }
             val parts = smsManager.divideMessage(message)
 
