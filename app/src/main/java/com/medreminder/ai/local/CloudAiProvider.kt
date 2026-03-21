@@ -21,6 +21,12 @@ enum class CloudAiService(val displayName: String) {
     GEMINI("Gemini")
 }
 
+enum class GeminiModel(val displayName: String, val modelId: String, val supportsThinking: Boolean) {
+    GEMINI_2_5_FLASH("Gemini 2.5 Flash", "gemini-2.5-flash", true),
+    GEMINI_2_5_PRO("Gemini 2.5 Pro", "gemini-2.5-pro", true),
+    GEMMA_3_27B("Gemma 3 27B", "gemma-3-27b-it", false)
+}
+
 @Singleton
 class CloudAiProvider @Inject constructor() : AiProvider {
 
@@ -29,6 +35,9 @@ class CloudAiProvider @Inject constructor() : AiProvider {
         get() = "Cloud AI (${activeService.displayName})"
 
     var activeService: CloudAiService = CloudAiService.CLAUDE
+        private set
+
+    var activeGeminiModel: GeminiModel = GeminiModel.GEMINI_2_5_FLASH
         private set
 
     private var apiKey: String? = null
@@ -40,6 +49,10 @@ class CloudAiProvider @Inject constructor() : AiProvider {
 
     fun setService(service: CloudAiService) {
         this.activeService = service
+    }
+
+    fun setGeminiModel(model: GeminiModel) {
+        this.activeGeminiModel = model
     }
 
     fun setApiKey(key: String) {
@@ -273,7 +286,8 @@ class CloudAiProvider @Inject constructor() : AiProvider {
     }
 
     private fun callGeminiApi(apiKey: String, prompt: String): String {
-        val url = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey")
+        val model = activeGeminiModel
+        val url = URL("https://generativelanguage.googleapis.com/v1beta/models/${model.modelId}:generateContent?key=$apiKey")
         val body = JSONObject().apply {
             put("contents", org.json.JSONArray().apply {
                 put(JSONObject().apply {
@@ -286,9 +300,11 @@ class CloudAiProvider @Inject constructor() : AiProvider {
             })
             put("generationConfig", JSONObject().apply {
                 put("maxOutputTokens", 2048)
-                put("thinkingConfig", JSONObject().apply {
-                    put("thinkingBudget", 0)
-                })
+                if (model.supportsThinking) {
+                    put("thinkingConfig", JSONObject().apply {
+                        put("thinkingBudget", 0)
+                    })
+                }
             })
         }
 

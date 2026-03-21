@@ -408,6 +408,11 @@
     <string name="chatgpt_desc">OpenAI ChatGPT — versatile AI assistant</string>
     <string name="deepseek_desc">DeepSeek — efficient and cost-effective</string>
     <string name="gemini_desc">Google Gemini — multimodal AI by Google</string>
+    <string name="gemini_model">Gemini model</string>
+    <string name="select_gemini_model">Select Gemini model</string>
+    <string name="gemini_flash_desc">Fast and efficient — best for everyday use</string>
+    <string name="gemini_pro_desc">Most capable — advanced reasoning and analysis</string>
+    <string name="gemma_3_desc">Open model by Google — 27B parameters</string>
 
     <!-- Alarm Screen -->
     <string name="time_to_take">Time to take</string>
