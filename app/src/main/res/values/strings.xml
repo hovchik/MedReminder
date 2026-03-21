@@ -149,6 +149,7 @@
     <string name="no_caregivers_yet">No caregivers added yet</string>
     <string name="add_family_members">Add family members who should be notified</string>
     <string name="add_caregiver">Add caregiver</string>
+    <string name="edit_caregiver">Edit caregiver</string>
     <string name="name">Name</string>
     <string name="phone">Phone</string>
     <string name="email">Email</string>
@@ -165,6 +166,7 @@
     <string name="family">Family</string>
     <string name="caregivers">Caregivers</string>
     <string name="add_family_member">Add family member</string>
+    <string name="edit_family_member">Edit family member</string>
     <string name="no_family_members_yet">No family members added yet</string>
     <string name="add_family_members_hint">Add parents, children, or other family members to schedule medications for them</string>
     <string name="family_info">Add family members to schedule and track medications for them.</string>

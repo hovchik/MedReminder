@@ -71,19 +71,37 @@ fun CaregiverScreen(viewModel: CaregiverViewModel = hiltViewModel()) {
     val familyMembers by viewModel.familyMembers.collectAsStateWithLifecycle()
     var showAddCaregiverDialog by remember { mutableStateOf(false) }
     var showAddFamilyMemberDialog by remember { mutableStateOf(false) }
+    var editingCaregiver by remember { mutableStateOf<Caregiver?>(null) }
+    var editingFamilyMember by remember { mutableStateOf<FamilyMember?>(null) }
     var selectedTab by remember { mutableIntStateOf(0) }
 
     if (showAddCaregiverDialog) {
         AddCaregiverDialog(
             onDismiss = { showAddCaregiverDialog = false },
-            onAdd = { viewModel.addCaregiver(it); showAddCaregiverDialog = false }
+            onSave = { viewModel.addCaregiver(it); showAddCaregiverDialog = false }
+        )
+    }
+
+    if (editingCaregiver != null) {
+        AddCaregiverDialog(
+            existing = editingCaregiver,
+            onDismiss = { editingCaregiver = null },
+            onSave = { viewModel.updateCaregiver(it); editingCaregiver = null }
         )
     }
 
     if (showAddFamilyMemberDialog) {
         AddFamilyMemberDialog(
             onDismiss = { showAddFamilyMemberDialog = false },
-            onAdd = { viewModel.addFamilyMember(it); showAddFamilyMemberDialog = false }
+            onSave = { viewModel.addFamilyMember(it); showAddFamilyMemberDialog = false }
+        )
+    }
+
+    if (editingFamilyMember != null) {
+        AddFamilyMemberDialog(
+            existing = editingFamilyMember,
+            onDismiss = { editingFamilyMember = null },
+            onSave = { viewModel.updateFamilyMember(it); editingFamilyMember = null }
         )
     }
 
@@ -182,6 +200,7 @@ fun CaregiverScreen(viewModel: CaregiverViewModel = hiltViewModel()) {
             items(familyMembers, key = { it.id }) { member ->
                 FamilyMemberCard(
                     member = member,
+                    onEdit = { editingFamilyMember = member },
                     onDelete = { viewModel.deleteFamilyMember(member) }
                 )
             }
@@ -246,6 +265,7 @@ fun CaregiverScreen(viewModel: CaregiverViewModel = hiltViewModel()) {
             items(caregivers, key = { it.id }) { caregiver ->
                 CaregiverCard(
                     caregiver = caregiver,
+                    onEdit = { editingCaregiver = caregiver },
                     onDelete = { viewModel.deleteCaregiver(caregiver) },
                     onToggleMissed = {
                         viewModel.updateCaregiver(caregiver.copy(notifyOnMissed = !caregiver.notifyOnMissed))
@@ -262,6 +282,7 @@ fun CaregiverScreen(viewModel: CaregiverViewModel = hiltViewModel()) {
 @Composable
 fun FamilyMemberCard(
     member: FamilyMember,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
@@ -296,6 +317,9 @@ fun FamilyMemberCard(
                         )
                     }
                 }
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, stringResource(R.string.edit_family_member), tint = MaterialTheme.colorScheme.primary)
+                }
                 IconButton(onClick = onDelete) {
                     Icon(Icons.Default.Delete, stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                 }
@@ -307,6 +331,7 @@ fun FamilyMemberCard(
 @Composable
 fun CaregiverCard(
     caregiver: Caregiver,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleMissed: () -> Unit,
     onToggleTaken: () -> Unit
@@ -343,6 +368,9 @@ fun CaregiverCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, stringResource(R.string.edit_caregiver), tint = MaterialTheme.colorScheme.primary)
+                }
                 IconButton(onClick = onDelete) {
                     Icon(Icons.Default.Delete, stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                 }
@@ -361,17 +389,24 @@ fun CaregiverCard(
 }
 
 @Composable
-fun AddCaregiverDialog(onDismiss: () -> Unit, onAdd: (Caregiver) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var relationship by remember { mutableStateOf("") }
+fun AddCaregiverDialog(
+    existing: Caregiver? = null,
+    onDismiss: () -> Unit,
+    onSave: (Caregiver) -> Unit
+) {
+    val isEdit = existing != null
+    var name by remember { mutableStateOf(existing?.name ?: "") }
+    var phone by remember { mutableStateOf(existing?.phone ?: "") }
+    var email by remember { mutableStateOf(existing?.email ?: "") }
+    var relationship by remember { mutableStateOf(existing?.relationship ?: "") }
 
     val isValid = name.isNotBlank() && phone.isNotBlank() && email.isNotBlank()
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.add_caregiver)) },
+        title = {
+            Text(stringResource(if (isEdit) R.string.edit_caregiver else R.string.add_caregiver))
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -400,16 +435,26 @@ fun AddCaregiverDialog(onDismiss: () -> Unit, onAdd: (Caregiver) -> Unit) {
             Button(
                 onClick = {
                     if (isValid) {
-                        onAdd(Caregiver(
-                            name = name.trim(),
-                            phone = phone.trim(),
-                            email = email.trim(),
-                            relationship = relationship.trim()
-                        ))
+                        val caregiver = if (isEdit) {
+                            existing!!.copy(
+                                name = name.trim(),
+                                phone = phone.trim(),
+                                email = email.trim(),
+                                relationship = relationship.trim()
+                            )
+                        } else {
+                            Caregiver(
+                                name = name.trim(),
+                                phone = phone.trim(),
+                                email = email.trim(),
+                                relationship = relationship.trim()
+                            )
+                        }
+                        onSave(caregiver)
                     }
                 },
                 enabled = isValid
-            ) { Text(stringResource(R.string.add)) }
+            ) { Text(stringResource(if (isEdit) R.string.save_changes else R.string.add)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
@@ -417,10 +462,15 @@ fun AddCaregiverDialog(onDismiss: () -> Unit, onAdd: (Caregiver) -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddFamilyMemberDialog(onDismiss: () -> Unit, onAdd: (FamilyMember) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var age by remember { mutableStateOf("") }
-    var selectedRelation by remember { mutableStateOf("") }
+fun AddFamilyMemberDialog(
+    existing: FamilyMember? = null,
+    onDismiss: () -> Unit,
+    onSave: (FamilyMember) -> Unit
+) {
+    val isEdit = existing != null
+    var name by remember { mutableStateOf(existing?.name ?: "") }
+    var age by remember { mutableStateOf(existing?.age?.toString() ?: "") }
+    var selectedRelation by remember { mutableStateOf(existing?.relation ?: "") }
     var relationExpanded by remember { mutableStateOf(false) }
 
     val relations = listOf("Parent", "Child", "Spouse", "Sibling", "Other")
@@ -428,7 +478,9 @@ fun AddFamilyMemberDialog(onDismiss: () -> Unit, onAdd: (FamilyMember) -> Unit) 
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.add_family_member)) },
+        title = {
+            Text(stringResource(if (isEdit) R.string.edit_family_member else R.string.add_family_member))
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -477,15 +529,24 @@ fun AddFamilyMemberDialog(onDismiss: () -> Unit, onAdd: (FamilyMember) -> Unit) 
             Button(
                 onClick = {
                     if (isValid) {
-                        onAdd(FamilyMember(
-                            name = name.trim(),
-                            age = age.toIntOrNull() ?: 0,
-                            relation = selectedRelation
-                        ))
+                        val member = if (isEdit) {
+                            existing!!.copy(
+                                name = name.trim(),
+                                age = age.toIntOrNull() ?: 0,
+                                relation = selectedRelation
+                            )
+                        } else {
+                            FamilyMember(
+                                name = name.trim(),
+                                age = age.toIntOrNull() ?: 0,
+                                relation = selectedRelation
+                            )
+                        }
+                        onSave(member)
                     }
                 },
                 enabled = isValid
-            ) { Text(stringResource(R.string.add)) }
+            ) { Text(stringResource(if (isEdit) R.string.save_changes else R.string.add)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
