@@ -122,6 +122,19 @@ interface DoseLogDao {
     """)
     suspend fun doseLogExistsForWindow(scheduleId: Long, windowStart: Long, windowEnd: Long): Boolean
 
+    /**
+     * Deletes PENDING/SNOOZED dose logs whose schedule no longer exists,
+     * ensuring the Today screen doesn't show stale entries after schedule
+     * deletion or deactivation.
+     */
+    @Query("""
+        DELETE FROM dose_logs
+        WHERE status IN ('pending', 'snoozed')
+        AND scheduledTime BETWEEN :startTime AND :endTime
+        AND scheduleId NOT IN (SELECT id FROM schedules WHERE isActive = 1)
+    """)
+    suspend fun deleteOrphanPendingLogs(startTime: Long, endTime: Long)
+
     @Query("SELECT * FROM dose_logs")
     suspend fun getAllDoseLogsSync(): List<DoseLogEntity>
 

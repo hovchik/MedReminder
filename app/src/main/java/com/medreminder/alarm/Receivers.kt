@@ -135,6 +135,8 @@ class TakenReceiver : BroadcastReceiver() {
 class CancelReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val doseLogIds = intent.getLongArrayExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS)
+        val medicationIds = intent.getLongArrayExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_IDS)
+        val names = intent.getStringArrayExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_NAMES)
 
         // Fallback to legacy single-medication extras
         val legacyDoseLogId = intent.getLongExtra(AlarmScheduler.EXTRA_DOSE_LOG_ID, -1)
@@ -145,14 +147,37 @@ class CancelReceiver : BroadcastReceiver() {
                 val db = AppDatabase.getInstance(context)
                 val nm = context.getSystemService(NotificationManager::class.java)
 
-                if (doseLogIds != null) {
+                if (doseLogIds != null && medicationIds != null && names != null) {
                     for (i in doseLogIds.indices) {
                         db.doseLogDao().updateDoseStatus(doseLogIds[i], "skipped")
+                        CaregiverNotificationHelper.notifyCaregiversOnSkipped(
+                            context.applicationContext, db, medicationIds[i], names[i]
+                        )
+                        nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogIds[i].toInt())
+                    }
+                    nm.cancel(AlarmReceiver.COMBINED_NOTIFICATION_ID)
+                } else if (doseLogIds != null) {
+                    for (i in doseLogIds.indices) {
+                        db.doseLogDao().updateDoseStatus(doseLogIds[i], "skipped")
+                        val log = db.doseLogDao().getDoseLogById(doseLogIds[i])
+                        log?.let {
+                            val med = db.medicationDao().getMedicationById(it.medicationId)
+                            CaregiverNotificationHelper.notifyCaregiversOnSkipped(
+                                context.applicationContext, db, it.medicationId, med?.name ?: "Medication"
+                            )
+                        }
                         nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogIds[i].toInt())
                     }
                     nm.cancel(AlarmReceiver.COMBINED_NOTIFICATION_ID)
                 } else if (legacyDoseLogId > 0) {
                     db.doseLogDao().updateDoseStatus(legacyDoseLogId, "skipped")
+                    val log = db.doseLogDao().getDoseLogById(legacyDoseLogId)
+                    log?.let {
+                        val med = db.medicationDao().getMedicationById(it.medicationId)
+                        CaregiverNotificationHelper.notifyCaregiversOnSkipped(
+                            context.applicationContext, db, it.medicationId, med?.name ?: "Medication"
+                        )
+                    }
                     nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + legacyDoseLogId.toInt())
                 }
 

@@ -60,6 +60,9 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     // Trigger to restart the today-data Flow with fresh time bounds
     private val refreshTrigger = MutableStateFlow(0)
 
@@ -218,7 +221,16 @@ class HomeViewModel @Inject constructor(
 
     fun markDoseSkipped(logId: Long) {
         viewModelScope.launch {
+            val doseLog = repository.getDoseLogById(logId)
             repository.markDoseSkipped(logId)
+            if (doseLog != null) {
+                val med = repository.getMedicationById(doseLog.medicationId)
+                if (med != null) {
+                    CaregiverNotificationHelper.notifyCaregiversOnSkipped(
+                        context, database, med.id, med.name
+                    )
+                }
+            }
         }
     }
 
@@ -238,110 +250,134 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Fire-and-forget version for lifecycle callbacks.
+     */
     fun generateTodayDoses() {
         viewModelScope.launch {
-            val startOfDay = DateUtils.getStartOfDay()
-            val endOfDay = DateUtils.getEndOfDay()
-            val sixHoursAhead = System.currentTimeMillis() + 6 * 60 * 60 * 1000
-            val upcomingEnd = maxOf(endOfDay, sixHoursAhead) // all of today + up to 6h into tomorrow
-            val schedules = repository.getAllActiveSchedules()
+            doGenerateTodayDoses()
+        }
+    }
 
-            for (schedule in schedules) {
-                if (schedule.frequency == ScheduleFrequency.AS_NEEDED) continue
-                if (!isScheduledForDay(schedule, Calendar.getInstance())) continue
+    /**
+     * Suspending version used by pull-to-refresh so the indicator stays
+     * visible until the work is actually complete.
+     */
+    suspend fun refreshTodayDoses() {
+        _isRefreshing.value = true
+        try {
+            doGenerateTodayDoses()
+        } finally {
+            _isRefreshing.value = false
+        }
+    }
 
-                if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS && schedule.intervalHours > 0) {
-                    val cal = Calendar.getInstance().apply {
-                        set(Calendar.HOUR_OF_DAY, schedule.timeHour)
-                        set(Calendar.MINUTE, schedule.timeMinute)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
-                    }
-                    while (cal.timeInMillis <= upcomingEnd) {
-                        if (cal.timeInMillis >= startOfDay) {
-                            val alreadyExists = repository.doseLogExistsForWindow(
-                                schedule.id, cal.timeInMillis - 60000, cal.timeInMillis + 60000
-                            )
-                            if (!alreadyExists) {
-                                repository.createDoseLog(
-                                    DoseLog(
-                                        medicationId = schedule.medicationId,
-                                        scheduleId = schedule.id,
-                                        scheduledTime = cal.timeInMillis,
-                                        status = if (cal.timeInMillis < System.currentTimeMillis() - 3600000)
-                                            DoseStatus.MISSED else DoseStatus.PENDING
-                                    )
-                                )
-                            }
-                        }
-                        cal.add(Calendar.HOUR_OF_DAY, schedule.intervalHours)
-                    }
-                } else {
-                    val doseTime = Calendar.getInstance().apply {
-                        set(Calendar.HOUR_OF_DAY, schedule.timeHour)
-                        set(Calendar.MINUTE, schedule.timeMinute)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
-                    }
-                    if (doseTime.timeInMillis <= upcomingEnd) {
-                        val dayStart = DateUtils.getStartOfDay(doseTime.timeInMillis)
-                        val dayEnd = DateUtils.getEndOfDay(doseTime.timeInMillis)
-                        val exists = repository.doseLogExistsForWindow(schedule.id, dayStart, dayEnd)
-                        if (!exists) {
+    private suspend fun doGenerateTodayDoses() {
+        val startOfDay = DateUtils.getStartOfDay()
+        val endOfDay = DateUtils.getEndOfDay()
+        val sixHoursAhead = System.currentTimeMillis() + 6 * 60 * 60 * 1000
+        val upcomingEnd = maxOf(endOfDay, sixHoursAhead) // all of today + up to 6h into tomorrow
+
+        // Remove stale pending/snoozed logs for schedules that were deleted or deactivated
+        repository.deleteOrphanPendingLogs(startOfDay, upcomingEnd)
+
+        val schedules = repository.getAllActiveSchedules()
+
+        for (schedule in schedules) {
+            if (schedule.frequency == ScheduleFrequency.AS_NEEDED) continue
+            if (!isScheduledForDay(schedule, Calendar.getInstance())) continue
+
+            if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS && schedule.intervalHours > 0) {
+                val cal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                    set(Calendar.MINUTE, schedule.timeMinute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                while (cal.timeInMillis <= upcomingEnd) {
+                    if (cal.timeInMillis >= startOfDay) {
+                        val alreadyExists = repository.doseLogExistsForWindow(
+                            schedule.id, cal.timeInMillis - 60000, cal.timeInMillis + 60000
+                        )
+                        if (!alreadyExists) {
                             repository.createDoseLog(
                                 DoseLog(
                                     medicationId = schedule.medicationId,
                                     scheduleId = schedule.id,
-                                    scheduledTime = doseTime.timeInMillis,
-                                    status = if (doseTime.timeInMillis < System.currentTimeMillis() - 3600000)
+                                    scheduledTime = cal.timeInMillis,
+                                    status = if (cal.timeInMillis < System.currentTimeMillis() - 3600000)
                                         DoseStatus.MISSED else DoseStatus.PENDING
                                 )
                             )
                         }
                     }
+                    cal.add(Calendar.HOUR_OF_DAY, schedule.intervalHours)
                 }
-            }
-
-            // Also generate doses for tomorrow if the +6h window crosses midnight
-            val tomorrowCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }
-            if (upcomingEnd > DateUtils.getStartOfDay(tomorrowCal.timeInMillis)) {
-                for (schedule in schedules) {
-                    if (schedule.frequency == ScheduleFrequency.AS_NEEDED) continue
-                    if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS) continue // already handled above
-                    if (!isScheduledForDay(schedule, tomorrowCal)) continue
-
-                    val doseTime = Calendar.getInstance().apply {
-                        timeInMillis = tomorrowCal.timeInMillis
-                        set(Calendar.HOUR_OF_DAY, schedule.timeHour)
-                        set(Calendar.MINUTE, schedule.timeMinute)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
-                    }
-                    if (doseTime.timeInMillis <= upcomingEnd) {
-                        val dayStart = DateUtils.getStartOfDay(doseTime.timeInMillis)
-                        val dayEnd = DateUtils.getEndOfDay(doseTime.timeInMillis)
-                        val exists = repository.doseLogExistsForWindow(schedule.id, dayStart, dayEnd)
-                        if (!exists) {
-                            repository.createDoseLog(
-                                DoseLog(
-                                    medicationId = schedule.medicationId,
-                                    scheduleId = schedule.id,
-                                    scheduledTime = doseTime.timeInMillis,
-                                    status = DoseStatus.PENDING
-                                )
+            } else {
+                val doseTime = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                    set(Calendar.MINUTE, schedule.timeMinute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                if (doseTime.timeInMillis <= upcomingEnd) {
+                    val dayStart = DateUtils.getStartOfDay(doseTime.timeInMillis)
+                    val dayEnd = DateUtils.getEndOfDay(doseTime.timeInMillis)
+                    val exists = repository.doseLogExistsForWindow(schedule.id, dayStart, dayEnd)
+                    if (!exists) {
+                        repository.createDoseLog(
+                            DoseLog(
+                                medicationId = schedule.medicationId,
+                                scheduleId = schedule.id,
+                                scheduledTime = doseTime.timeInMillis,
+                                status = if (doseTime.timeInMillis < System.currentTimeMillis() - 3600000)
+                                    DoseStatus.MISSED else DoseStatus.PENDING
                             )
-                        }
+                        )
                     }
                 }
             }
-
-            // Reschedule alarms
-            alarmScheduler.scheduleAllAlarms()
-
-            // Trigger a refresh of the today-data Flow with fresh time bounds
-            // so the UI picks up any dose logs created or changed by schedule edits
-            refreshTrigger.value++
         }
+
+        // Also generate doses for tomorrow if the +6h window crosses midnight
+        val tomorrowCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }
+        if (upcomingEnd > DateUtils.getStartOfDay(tomorrowCal.timeInMillis)) {
+            for (schedule in schedules) {
+                if (schedule.frequency == ScheduleFrequency.AS_NEEDED) continue
+                if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS) continue // already handled above
+                if (!isScheduledForDay(schedule, tomorrowCal)) continue
+
+                val doseTime = Calendar.getInstance().apply {
+                    timeInMillis = tomorrowCal.timeInMillis
+                    set(Calendar.HOUR_OF_DAY, schedule.timeHour)
+                    set(Calendar.MINUTE, schedule.timeMinute)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                if (doseTime.timeInMillis <= upcomingEnd) {
+                    val dayStart = DateUtils.getStartOfDay(doseTime.timeInMillis)
+                    val dayEnd = DateUtils.getEndOfDay(doseTime.timeInMillis)
+                    val exists = repository.doseLogExistsForWindow(schedule.id, dayStart, dayEnd)
+                    if (!exists) {
+                        repository.createDoseLog(
+                            DoseLog(
+                                medicationId = schedule.medicationId,
+                                scheduleId = schedule.id,
+                                scheduledTime = doseTime.timeInMillis,
+                                status = DoseStatus.PENDING
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // Reschedule alarms
+        alarmScheduler.scheduleAllAlarms()
+
+        // Trigger a refresh of the today-data Flow with fresh time bounds
+        // so the UI picks up any dose logs created or changed by schedule edits
+        refreshTrigger.value++
     }
 
     private fun isScheduledForDay(schedule: Schedule, day: Calendar): Boolean {

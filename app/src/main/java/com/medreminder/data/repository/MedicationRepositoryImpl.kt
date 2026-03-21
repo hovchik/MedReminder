@@ -280,6 +280,10 @@ class MedicationRepositoryImpl @Inject constructor(
         doseLogDao.markOverdueDosesAsMissed(cutoffTime)
     }
 
+    override suspend fun deleteOrphanPendingLogs(startTime: Long, endTime: Long) {
+        doseLogDao.deleteOrphanPendingLogs(startTime, endTime)
+    }
+
     override fun getTodayDoses(startOfDay: Long, endOfDay: Long): Flow<List<DoseLog>> =
         doseLogDao.getLogsForDateRange(startOfDay, endOfDay).map { list ->
             list.map { log ->

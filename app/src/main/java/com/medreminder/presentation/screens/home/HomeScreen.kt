@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -101,15 +102,10 @@ fun HomeScreen(
     }
 
     // Pull-to-refresh: swipe down to regenerate doses and refresh the screen
-    val isRefreshing = remember { mutableStateOf(false) }
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val pullRefreshOffset = remember { mutableFloatStateOf(0f) }
-
-    if (isRefreshing.value) {
-        LaunchedEffect(true) {
-            viewModel.generateTodayDoses()
-            isRefreshing.value = false
-        }
-    }
+    val refreshThresholdPx = 200f
+    val coroutineScope = rememberCoroutineScope()
 
     val pullRefreshConnection = remember {
         object : NestedScrollConnection {
@@ -130,12 +126,13 @@ fun HomeScreen(
                 return Offset.Zero
             }
 
-            override suspend fun onPostFling(consumed: androidx.compose.ui.unit.Velocity, available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
-                if (pullRefreshOffset.floatValue > 200f && !isRefreshing.value) {
-                    isRefreshing.value = true
-                }
+            override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
+                val offset = pullRefreshOffset.floatValue
                 pullRefreshOffset.floatValue = 0f
-                return super.onPostFling(consumed, available)
+                if (offset > refreshThresholdPx) {
+                    coroutineScope.launch { viewModel.refreshTodayDoses() }
+                }
+                return super.onPreFling(available)
             }
         }
     }
@@ -320,9 +317,26 @@ fun HomeScreen(
         item { Spacer(modifier = Modifier.height(8.dp)) }
     }
 
-    // Pull-to-refresh indicator
+    // Pull-to-refresh drag indicator (visible during drag)
+    val pullProgress = (pullRefreshOffset.floatValue / refreshThresholdPx).coerceIn(0f, 1f)
+    if (pullProgress > 0f && !isRefreshing) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                progress = { pullProgress },
+                modifier = Modifier.size(32.dp),
+                strokeWidth = 3.dp
+            )
+        }
+    }
+
+    // Pull-to-refresh active indicator
     androidx.compose.animation.AnimatedVisibility(
-        visible = isRefreshing.value,
+        visible = isRefreshing,
         enter = fadeIn(),
         exit = fadeOut(),
         modifier = Modifier.align(Alignment.TopCenter)

@@ -26,6 +26,7 @@ interface MedicationRepository {
     suspend fun markDoseSkipped(logId: Long)
     suspend fun snoozeDose(logId: Long, snoozedUntil: Long)
     suspend fun markOverdueDosesAsMissed(cutoffTime: Long)
+    suspend fun deleteOrphanPendingLogs(startTime: Long, endTime: Long)
     fun getTodayDoses(startOfDay: Long, endOfDay: Long): Flow<List<DoseLog>>
     fun getDoseLogsForDateRange(startTime: Long, endTime: Long): Flow<List<DoseLog>>
     suspend fun getDoseLogById(id: Long): DoseLog?
