@@ -255,7 +255,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
     }
 
     private fun callGeminiApi(apiKey: String, prompt: String): String {
-        val url = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey")
+        val url = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey")
         val body = JSONObject().apply {
             put("contents", org.json.JSONArray().apply {
                 put(JSONObject().apply {
