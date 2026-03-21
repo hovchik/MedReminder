@@ -6,6 +6,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -96,6 +100,50 @@ fun HomeScreen(
         }
     }
 
+    // Pull-to-refresh: swipe down to regenerate doses and refresh the screen
+    val isRefreshing = remember { mutableStateOf(false) }
+    val pullRefreshOffset = remember { mutableFloatStateOf(0f) }
+
+    if (isRefreshing.value) {
+        LaunchedEffect(true) {
+            viewModel.generateTodayDoses()
+            isRefreshing.value = false
+        }
+    }
+
+    val pullRefreshConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (pullRefreshOffset.floatValue > 0 && available.y < 0) {
+                    val consumed = maxOf(available.y, -pullRefreshOffset.floatValue)
+                    pullRefreshOffset.floatValue += consumed
+                    return Offset(0f, consumed)
+                }
+                return Offset.Zero
+            }
+
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (available.y > 0 && source == NestedScrollSource.UserInput) {
+                    pullRefreshOffset.floatValue += available.y
+                    return Offset(0f, available.y)
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(consumed: androidx.compose.ui.unit.Velocity, available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
+                if (pullRefreshOffset.floatValue > 200f && !isRefreshing.value) {
+                    isRefreshing.value = true
+                }
+                pullRefreshOffset.floatValue = 0f
+                return super.onPostFling(consumed, available)
+            }
+        }
+    }
+
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .nestedScroll(pullRefreshConnection)
+    ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -271,6 +319,21 @@ fun HomeScreen(
         // Bottom spacer for navigation bar
         item { Spacer(modifier = Modifier.height(8.dp)) }
     }
+
+    // Pull-to-refresh indicator
+    androidx.compose.animation.AnimatedVisibility(
+        visible = isRefreshing.value,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = Modifier.align(Alignment.TopCenter)
+    ) {
+        LinearProgressIndicator(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp)
+        )
+    }
+    } // end Box
 }
 
 @Composable

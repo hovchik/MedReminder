@@ -275,6 +275,7 @@
     <string name="claude_desc">Anthropic Claude — 高度な推論</string>
     <string name="chatgpt_desc">OpenAI ChatGPT — 多用途AIアシスタント</string>
     <string name="deepseek_desc">DeepSeek — 効率的で経済的</string>
+    <string name="gemini_desc">Google Gemini — Googleのマルチモーダル AI</string>
 
     <!-- Alarm Screen -->
     <string name="time_to_take">服用の時間です</string>

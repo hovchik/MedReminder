@@ -380,6 +380,7 @@
     <string name="claude_desc">Anthropic Claude — продвинутые рассуждения</string>
     <string name="chatgpt_desc">OpenAI ChatGPT — универсальный ИИ-ассистент</string>
     <string name="deepseek_desc">DeepSeek — эффективный и экономичный</string>
+    <string name="gemini_desc">Google Gemini — мультимодальный ИИ от Google</string>
 
     <!-- AI Analysis Extra -->
     <string name="insights_header">Наблюдения</string>

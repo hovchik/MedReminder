@@ -381,6 +381,7 @@
     <string name="claude_desc">Anthropic Claude — استدلال پیشرفته</string>
     <string name="chatgpt_desc">OpenAI ChatGPT — دستیار همه‌کاره</string>
     <string name="deepseek_desc">DeepSeek — کارآمد و مقرون‌به‌صرفه</string>
+    <string name="gemini_desc">Google Gemini — هوش مصنوعی چندوجهی گوگل</string>
 
     <!-- AI Analysis Extra -->
     <string name="insights_header">بینش‌ها</string>

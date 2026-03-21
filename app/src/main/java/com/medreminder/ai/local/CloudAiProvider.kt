@@ -17,7 +17,8 @@ import javax.inject.Singleton
 enum class CloudAiService(val displayName: String) {
     CLAUDE("Claude"),
     CHATGPT("ChatGPT"),
-    DEEPSEEK("DeepSeek")
+    DEEPSEEK("DeepSeek"),
+    GEMINI("Gemini")
 }
 
 @Singleton
@@ -65,6 +66,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
                     CloudAiService.CLAUDE -> callClaudeApi(key, prompt)
                     CloudAiService.CHATGPT -> callChatGptApi(key, prompt)
                     CloudAiService.DEEPSEEK -> callDeepSeekApi(key, prompt)
+                    CloudAiService.GEMINI -> callGeminiApi(key, prompt)
                 }
             }
             extractJson(rawResponse)
@@ -93,6 +95,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
                     CloudAiService.CLAUDE -> callClaudeApi(key, prompt)
                     CloudAiService.CHATGPT -> callChatGptApi(key, prompt)
                     CloudAiService.DEEPSEEK -> callDeepSeekApi(key, prompt)
+                    CloudAiService.GEMINI -> callGeminiApi(key, prompt)
                 }
             }
             parseApiResponse(responseText, activeService).copy(
@@ -249,6 +252,44 @@ class CloudAiProvider @Inject constructor() : AiProvider {
             ?: throw Exception("DeepSeek response missing 'choices': ${response.take(200)}")
         return choices.getJSONObject(0)
             .getJSONObject("message").getString("content")
+    }
+
+    private fun callGeminiApi(apiKey: String, prompt: String): String {
+        val url = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey")
+        val body = JSONObject().apply {
+            put("contents", org.json.JSONArray().apply {
+                put(JSONObject().apply {
+                    put("parts", org.json.JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("text", prompt)
+                        })
+                    })
+                })
+            })
+            put("generationConfig", JSONObject().apply {
+                put("maxOutputTokens", 1024)
+            })
+        }
+
+        val response = makeHttpPost(url, body.toString(), mapOf(
+            "Content-Type" to "application/json"
+        ))
+        val json = JSONObject(response)
+
+        // Check for API-level error
+        if (json.has("error")) {
+            val err = json.optJSONObject("error")
+            val errMsg = err?.optString("message") ?: json.getString("error")
+            throw Exception("Gemini API error: $errMsg")
+        }
+
+        val candidates = json.optJSONArray("candidates")
+            ?: throw Exception("Gemini response missing 'candidates': ${response.take(200)}")
+        return candidates.getJSONObject(0)
+            .getJSONObject("content")
+            .getJSONArray("parts")
+            .getJSONObject(0)
+            .getString("text")
     }
 
     private fun makeHttpPost(url: URL, body: String, headers: Map<String, String>): String {

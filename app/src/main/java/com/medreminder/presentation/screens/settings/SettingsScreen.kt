@@ -1324,6 +1324,7 @@ fun CloudServiceDialog(
                                         CloudAiService.CLAUDE -> stringResource(R.string.claude_desc)
                                         CloudAiService.CHATGPT -> stringResource(R.string.chatgpt_desc)
                                         CloudAiService.DEEPSEEK -> stringResource(R.string.deepseek_desc)
+                                        CloudAiService.GEMINI -> stringResource(R.string.gemini_desc)
                                     },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant

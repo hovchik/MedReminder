@@ -1,6 +1,7 @@
 package com.medreminder.presentation.screens.home
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.medreminder.R
@@ -51,6 +52,10 @@ class HomeViewModel @Inject constructor(
     private val userPreferencesManager: UserPreferencesManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    companion object {
+        private const val TAG = "HomeViewModel"
+    }
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -197,11 +202,15 @@ class HomeViewModel @Inject constructor(
             // Send SMS/call to caregivers if conditions are met
             if (doseLog != null) {
                 val med = repository.getMedicationById(doseLog.medicationId)
+                Log.d(TAG, "markDoseTaken: logId=$logId, medId=${doseLog.medicationId}, " +
+                        "medFound=${med != null}, notifyCaregivers=${med?.notifyCaregivers}")
                 if (med != null) {
                     CaregiverNotificationHelper.notifyCaregiversOnTaken(
                         context, database, med.id, med.name
                     )
                 }
+            } else {
+                Log.w(TAG, "markDoseTaken: doseLog not found for logId=$logId")
             }
             loadStreak()
         }

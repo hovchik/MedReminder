@@ -380,6 +380,7 @@
     <string name="claude_desc">Anthropic Claude — razonamiento avanzado</string>
     <string name="chatgpt_desc">OpenAI ChatGPT — asistente de IA versátil</string>
     <string name="deepseek_desc">DeepSeek — eficiente y económico</string>
+    <string name="gemini_desc">Google Gemini — IA multimodal de Google</string>
 
     <!-- AI Analysis Extra -->
     <string name="insights_header">Observaciones</string>

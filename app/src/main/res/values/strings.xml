@@ -403,6 +403,7 @@
     <string name="claude_desc">Anthropic Claude — advanced reasoning</string>
     <string name="chatgpt_desc">OpenAI ChatGPT — versatile AI assistant</string>
     <string name="deepseek_desc">DeepSeek — efficient and cost-effective</string>
+    <string name="gemini_desc">Google Gemini — multimodal AI by Google</string>
 
     <!-- Alarm Screen -->
     <string name="time_to_take">Time to take</string>

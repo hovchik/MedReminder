@@ -275,6 +275,7 @@
     <string name="claude_desc">Anthropic Claude — उन्नत तर्क</string>
     <string name="chatgpt_desc">OpenAI ChatGPT — बहुमुखी AI सहायक</string>
     <string name="deepseek_desc">DeepSeek — कुशल और किफायती</string>
+    <string name="gemini_desc">Google Gemini — Google का मल्टीमॉडल AI</string>
 
     <!-- Alarm Screen -->
     <string name="time_to_take">दवाई लेने का समय</string>

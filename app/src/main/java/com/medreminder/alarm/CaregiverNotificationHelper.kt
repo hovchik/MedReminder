@@ -43,8 +43,16 @@ object CaregiverNotificationHelper {
         medicationName: String,
         isMissed: Boolean
     ) {
-        val medication = db.medicationDao().getMedicationById(medicationId) ?: return
-        if (!medication.notifyCaregivers) return
+        Log.d(TAG, "notifyCaregivers: medId=$medicationId, name=$medicationName, isMissed=$isMissed")
+        val medication = db.medicationDao().getMedicationById(medicationId)
+        if (medication == null) {
+            Log.w(TAG, "notifyCaregivers: medication not found for id=$medicationId")
+            return
+        }
+        if (!medication.notifyCaregivers) {
+            Log.d(TAG, "notifyCaregivers: notifyCaregivers=false for '$medicationName', skipping")
+            return
+        }
 
         val caregivers = if (isMissed) {
             db.caregiverDao().getCaregiversForMissedAlert()
@@ -52,6 +60,7 @@ object CaregiverNotificationHelper {
             db.caregiverDao().getCaregiversForTakenAlert()
         }
 
+        Log.d(TAG, "notifyCaregivers: found ${caregivers.size} caregivers (isMissed=$isMissed)")
         if (caregivers.isEmpty()) return
 
         var message = if (isMissed) {
@@ -76,6 +85,7 @@ object CaregiverNotificationHelper {
 
         for (caregiver in caregivers) {
             val domain = caregiver.toDomain()
+            Log.d(TAG, "notifyCaregivers: caregiver='${domain.name}', phone='${domain.phone}', email='${domain.email}'")
             if (domain.phone.isNotBlank()) {
                 sendSms(context, domain.phone, message, domain.name, medicationName)
             }

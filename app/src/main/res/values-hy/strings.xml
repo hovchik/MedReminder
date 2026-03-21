@@ -304,6 +304,7 @@
     <string name="claude_desc">Anthropic Claude — առաջադեմ տրամաբանություն</string>
     <string name="chatgpt_desc">OpenAI ChatGPT — բազմակողմանի ԱԸ օգնական</string>
     <string name="deepseek_desc">DeepSeek — արդյունավետ և տնտեսավետ</string>
+    <string name="gemini_desc">Google Gemini — Google-ի բազմամոդալ AI</string>
 
     <!-- AI Analysis Extra -->
     <string name="insights_header">Պատկերացումներ</string>

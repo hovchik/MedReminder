@@ -37,6 +37,7 @@ class AiProviderSelector @Inject constructor(
         private val KEY_API_KEY_CLAUDE = stringPreferencesKey("api_key_claude")
         private val KEY_API_KEY_CHATGPT = stringPreferencesKey("api_key_chatgpt")
         private val KEY_API_KEY_DEEPSEEK = stringPreferencesKey("api_key_deepseek")
+        private val KEY_API_KEY_GEMINI = stringPreferencesKey("api_key_gemini")
     }
 
     fun getSelectedProviderType(): Flow<AiProviderType> =
@@ -105,6 +106,7 @@ class AiProviderSelector @Inject constructor(
                 CloudAiService.CLAUDE -> prefs[KEY_API_KEY_CLAUDE]
                 CloudAiService.CHATGPT -> prefs[KEY_API_KEY_CHATGPT]
                 CloudAiService.DEEPSEEK -> prefs[KEY_API_KEY_DEEPSEEK]
+                CloudAiService.GEMINI -> prefs[KEY_API_KEY_GEMINI]
             }
         }
 
@@ -114,6 +116,7 @@ class AiProviderSelector @Inject constructor(
                 CloudAiService.CLAUDE -> KEY_API_KEY_CLAUDE
                 CloudAiService.CHATGPT -> KEY_API_KEY_CHATGPT
                 CloudAiService.DEEPSEEK -> KEY_API_KEY_DEEPSEEK
+                CloudAiService.GEMINI -> KEY_API_KEY_GEMINI
             }
             if (apiKey.isBlank()) {
                 prefs.remove(key)
