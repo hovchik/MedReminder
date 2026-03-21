@@ -127,10 +127,12 @@
     <string name="relationship_optional">संबंध (वैकल्पिक)</string>
     <string name="notify_on_missed">छूटने पर सूचित करें</string>
     <string name="notify_on_taken">लेने पर सूचित करें</string>
+    <string name="notify_on_cancelled">रद्द करने पर सूचित करें</string>
     <string name="notify_caregivers">देखभालकर्ताओं को सूचित करें</string>
     <string name="notify_caregivers_description">SMS या ईमेल द्वारा इस दवाई के बारे में देखभालकर्ताओं को सूचित करें</string>
     <string name="emergency_medication">आपातकालीन दवाई</string>
     <string name="emergency_medication_description">छूटने पर, देखभालकर्ताओं को आपकी लोकेशन के साथ SMS मिलेगा</string>
+    <string name="emergency_includes_location">आपातकालीन • लोकेशन शामिल</string>
 
     <!-- Family Members -->
     <string name="family">परिवार</string>

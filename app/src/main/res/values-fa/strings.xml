@@ -110,10 +110,12 @@
     <string name="relationship_optional">نسبت (اختیاری)</string>
     <string name="notify_on_missed">اطلاع در صورت فراموشی</string>
     <string name="notify_on_taken">اطلاع در صورت مصرف</string>
+    <string name="notify_on_cancelled">اطلاع در صورت لغو</string>
     <string name="notify_caregivers">اطلاع‌رسانی به مراقبان</string>
     <string name="notify_caregivers_description">اطلاع‌رسانی به مراقبان درباره این دارو از طریق پیامک یا ایمیل</string>
     <string name="emergency_medication">داروی اضطراری</string>
     <string name="emergency_medication_description">در صورت فراموشی، مراقبان پیامکی با موقعیت مکانی شما دریافت می‌کنند</string>
+    <string name="emergency_includes_location">اضطراری • شامل موقعیت مکانی</string>
 
     <!-- Family Members -->
     <string name="family">خانواده</string>

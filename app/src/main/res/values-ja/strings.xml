@@ -127,10 +127,12 @@
     <string name="relationship_optional">関係（任意）</string>
     <string name="notify_on_missed">未服用時に通知</string>
     <string name="notify_on_taken">服用時に通知</string>
+    <string name="notify_on_cancelled">キャンセル時に通知</string>
     <string name="notify_caregivers">介護者に通知</string>
     <string name="notify_caregivers_description">SMSまたはメールでこのお薬について介護者に通知</string>
     <string name="emergency_medication">緊急のお薬</string>
     <string name="emergency_medication_description">未服用時、介護者に位置情報付きSMSが送信されます</string>
+    <string name="emergency_includes_location">緊急 • 位置情報を含む</string>
 
     <!-- Family Members -->
     <string name="family">家族</string>

@@ -260,6 +260,15 @@ class FullScreenAlarmActivity : ComponentActivity() {
                 for (med in medications) {
                     db.doseLogDao().updateDoseStatus(med.doseLogId, "skipped")
                 }
+                // Send caregiver notifications after all DB operations complete
+                for (med in medications) {
+                    try {
+                        val db2 = AppDatabase.getInstance(this@FullScreenAlarmActivity)
+                        CaregiverNotificationHelper.notifyCaregiversOnSkipped(
+                            applicationContext, db2, med.medicationId, med.name
+                        )
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
             } catch (e: Exception) { e.printStackTrace() }
             withContext(Dispatchers.Main) { finish() }
         }

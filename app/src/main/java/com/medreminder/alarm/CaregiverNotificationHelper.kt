@@ -36,14 +36,24 @@ object CaregiverNotificationHelper {
         notifyCaregivers(context, db, medicationId, medicationName, isMissed = false)
     }
 
+    suspend fun notifyCaregiversOnSkipped(
+        context: Context,
+        db: AppDatabase,
+        medicationId: Long,
+        medicationName: String
+    ) {
+        notifyCaregivers(context, db, medicationId, medicationName, isMissed = false, isSkipped = true)
+    }
+
     private suspend fun notifyCaregivers(
         context: Context,
         db: AppDatabase,
         medicationId: Long,
         medicationName: String,
-        isMissed: Boolean
+        isMissed: Boolean,
+        isSkipped: Boolean = false
     ) {
-        Log.d(TAG, "notifyCaregivers: medId=$medicationId, name=$medicationName, isMissed=$isMissed")
+        Log.d(TAG, "notifyCaregivers: medId=$medicationId, name=$medicationName, isMissed=$isMissed, isSkipped=$isSkipped")
         val medication = db.medicationDao().getMedicationById(medicationId)
         if (medication == null) {
             Log.w(TAG, "notifyCaregivers: medication not found for id=$medicationId")
@@ -54,19 +64,23 @@ object CaregiverNotificationHelper {
             return
         }
 
-        val caregivers = if (isMissed) {
-            db.caregiverDao().getCaregiversForMissedAlert()
-        } else {
-            db.caregiverDao().getCaregiversForTakenAlert()
+        val caregivers = when {
+            isMissed -> db.caregiverDao().getCaregiversForMissedAlert()
+            isSkipped -> db.caregiverDao().getCaregiversForCancelledAlert()
+            else -> db.caregiverDao().getCaregiversForTakenAlert()
         }
 
-        Log.d(TAG, "notifyCaregivers: found ${caregivers.size} caregivers (isMissed=$isMissed)")
+        Log.d(TAG, "notifyCaregivers: found ${caregivers.size} caregivers (isMissed=$isMissed, isSkipped=$isSkipped)")
         if (caregivers.isEmpty()) return
 
-        var message = if (isMissed) {
-            "MedReminder: $medicationName dose was missed."
-        } else {
-            "MedReminder: $medicationName dose was taken."
+        val timeFormat = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+        val now = timeFormat.format(java.util.Date())
+        val dosageInfo = if (medication.dosage.isNotBlank()) " (${medication.dosage}${if (medication.dosageUnit.isNotBlank()) " ${medication.dosageUnit}" else ""})" else ""
+
+        var message = when {
+            isMissed -> "MedReminder: $medicationName$dosageInfo was MISSED at $now. Please check on the patient."
+            isSkipped -> "MedReminder: $medicationName$dosageInfo was skipped at $now. The patient declined this dose."
+            else -> "MedReminder: $medicationName$dosageInfo was taken at $now. No action needed."
         }
 
         // For emergency medications, append location for both taken and missed
@@ -90,10 +104,10 @@ object CaregiverNotificationHelper {
                 sendSms(context, domain.phone, message, domain.name, medicationName)
             }
             if (domain.email.isNotBlank()) {
-                val subject = if (medication.isEmergency && isMissed) {
-                    "EMERGENCY: MedReminder - $medicationName missed"
-                } else {
-                    "MedReminder Notification"
+                val subject = when {
+                    medication.isEmergency && isMissed -> "EMERGENCY: MedReminder - $medicationName missed"
+                    isSkipped -> "MedReminder - $medicationName skipped"
+                    else -> "MedReminder Notification"
                 }
                 sendEmail(context, domain.email, subject, message)
             }

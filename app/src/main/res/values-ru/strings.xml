@@ -110,10 +110,12 @@
     <string name="relationship_optional">Родство (необязательно)</string>
     <string name="notify_on_missed">Уведомлять о пропуске</string>
     <string name="notify_on_taken">Уведомлять о приёме</string>
+    <string name="notify_on_cancelled">Уведомлять об отмене</string>
     <string name="notify_caregivers">Уведомлять опекунов</string>
     <string name="notify_caregivers_description">Информировать опекунов об этом лекарстве через SMS или электронную почту</string>
     <string name="emergency_medication">Экстренное лекарство</string>
     <string name="emergency_medication_description">При пропуске опекуны получат SMS с вашим местоположением</string>
+    <string name="emergency_includes_location">Экстренное • Включает местоположение</string>
 
     <!-- Family Members -->
     <string name="family">Семья</string>
