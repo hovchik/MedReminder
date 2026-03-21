@@ -1414,8 +1414,11 @@ fun GeminiModelDialog(
                                 )
                                 Text(
                                     when (model) {
+                                        GeminiModel.GEMINI_2_FLASH_LITE -> stringResource(R.string.gemini_2_flash_lite_desc)
+                                        GeminiModel.GEMINI_2_5_FLASH_LITE -> stringResource(R.string.gemini_2_5_flash_lite_desc)
                                         GeminiModel.GEMINI_2_5_FLASH -> stringResource(R.string.gemini_flash_desc)
                                         GeminiModel.GEMINI_2_5_PRO -> stringResource(R.string.gemini_pro_desc)
+                                        GeminiModel.GEMINI_3_1_FLASH_LITE -> stringResource(R.string.gemini_3_1_flash_lite_desc)
                                         GeminiModel.GEMMA_3_27B -> stringResource(R.string.gemma_3_desc)
                                     },
                                     style = MaterialTheme.typography.bodySmall,

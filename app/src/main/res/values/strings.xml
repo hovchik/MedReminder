@@ -410,8 +410,11 @@
     <string name="gemini_desc">Google Gemini — multimodal AI by Google</string>
     <string name="gemini_model">Gemini model</string>
     <string name="select_gemini_model">Select Gemini model</string>
+    <string name="gemini_2_flash_lite_desc">Lightweight and fast — ideal for simple tasks</string>
+    <string name="gemini_2_5_flash_lite_desc">Efficient lite model — great balance of speed and quality</string>
     <string name="gemini_flash_desc">Fast and efficient — best for everyday use</string>
     <string name="gemini_pro_desc">Most capable — advanced reasoning and analysis</string>
+    <string name="gemini_3_1_flash_lite_desc">Latest lite model — optimized for speed and efficiency</string>
     <string name="gemma_3_desc">Open model by Google — 27B parameters</string>
 
     <!-- Alarm Screen -->

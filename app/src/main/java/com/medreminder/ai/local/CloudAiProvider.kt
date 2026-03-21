@@ -22,8 +22,11 @@ enum class CloudAiService(val displayName: String) {
 }
 
 enum class GeminiModel(val displayName: String, val modelId: String, val supportsThinking: Boolean) {
+    GEMINI_2_FLASH_LITE("Gemini 2 Flash Lite", "gemini-2.0-flash-lite", false),
+    GEMINI_2_5_FLASH_LITE("Gemini 2.5 Flash Lite", "gemini-2.5-flash-lite", false),
     GEMINI_2_5_FLASH("Gemini 2.5 Flash", "gemini-2.5-flash", true),
     GEMINI_2_5_PRO("Gemini 2.5 Pro", "gemini-2.5-pro", true),
+    GEMINI_3_1_FLASH_LITE("Gemini 3.1 Flash Lite", "gemini-3.1-flash-lite", false),
     GEMMA_3_27B("Gemma 3 27B", "gemma-3-27b-it", false)
 }
 
