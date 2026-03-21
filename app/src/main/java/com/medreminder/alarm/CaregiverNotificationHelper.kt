@@ -60,12 +60,16 @@ object CaregiverNotificationHelper {
             "MedReminder: $medicationName dose was taken."
         }
 
-        // For emergency medications that are missed, append location
-        if (medication.isEmergency && isMissed) {
+        // For emergency medications, append location for both taken and missed
+        if (medication.isEmergency) {
             val locationText = getLastKnownLocation(context)
             if (locationText != null) {
-                message += " EMERGENCY - Location: $locationText"
-            } else {
+                message += if (isMissed) {
+                    " EMERGENCY - Location: $locationText"
+                } else {
+                    " Location: $locationText"
+                }
+            } else if (isMissed) {
                 message += " EMERGENCY - Location unavailable."
             }
         }
@@ -100,10 +104,10 @@ object CaregiverNotificationHelper {
             val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
             val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                 ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                ?: locationManager.getLastKnownLocation(LocationManager.FUSED_PROVIDER)
 
             if (location != null) {
-                val mapsUrl = "https://maps.google.com/?q=${location.latitude},${location.longitude}"
-                mapsUrl
+                "https://maps.google.com/?q=${location.latitude},${location.longitude}"
             } else {
                 null
             }
@@ -129,10 +133,15 @@ object CaregiverNotificationHelper {
         }
         try {
             @Suppress("DEPRECATION")
-            val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val smsManager: SmsManager? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 context.getSystemService(SmsManager::class.java)
             } else {
                 SmsManager.getDefault()
+            }
+            if (smsManager == null) {
+                Log.e(TAG, "SmsManager unavailable, falling back to call for $phone")
+                makeCallFallback(context, phone)
+                return
             }
             val parts = smsManager.divideMessage(message)
 
