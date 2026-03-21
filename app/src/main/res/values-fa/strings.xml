@@ -115,6 +115,7 @@
     <string name="notify_caregivers_description">اطلاع‌رسانی به مراقبان درباره این دارو از طریق پیامک یا ایمیل</string>
     <string name="emergency_medication">داروی اضطراری</string>
     <string name="emergency_medication_description">در صورت فراموشی، مراقبان پیامکی با موقعیت مکانی شما دریافت می‌کنند</string>
+    <string name="emergency_includes_location">اضطراری • شامل موقعیت مکانی</string>
 
     <!-- Family Members -->
     <string name="family">خانواده</string>

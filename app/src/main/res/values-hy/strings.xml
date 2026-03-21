@@ -102,6 +102,7 @@
     <string name="notify_caregivers_description">Տեղեկացնել խնամակալներին այս դեղի մասին SMS կամ էլ. փոստով</string>
     <string name="emergency_medication">Արտակարգ դեղ</string>
     <string name="emergency_medication_description">Բաց թողնելիս խնամակալները կստանան SMS ձեր տեղադրությամբ</string>
+    <string name="emergency_includes_location">Արտակարգ • Ներառում է տեղադրությունը</string>
     <string name="settings">Կարգավորումներ</string>
     <string name="active_medications">%1$d ակտիվ դեղեր</string>
     <string name="version">Տարբերակ 1.0.0</string>

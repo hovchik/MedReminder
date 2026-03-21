@@ -162,6 +162,7 @@
     <string name="notify_caregivers_description">Inform caregivers about this medication via SMS or email</string>
     <string name="emergency_medication">Emergency medication</string>
     <string name="emergency_medication_description">When missed, caregivers receive an SMS with your location</string>
+    <string name="emergency_includes_location">Emergency \u2022 Includes location</string>
 
     <!-- Family Members -->
     <string name="family">Family</string>
