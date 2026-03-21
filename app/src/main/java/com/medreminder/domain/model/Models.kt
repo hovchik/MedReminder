@@ -154,6 +154,7 @@ data class Caregiver(
     val relationship: String = "",
     val notifyOnMissed: Boolean = true,
     val notifyOnTaken: Boolean = false,
+    val notifyOnCancelled: Boolean = false,
     val notifyDelay: Int = 30,
     val isActive: Boolean = true
 )
@@ -221,13 +222,15 @@ fun DoseLog.toEntity() = DoseLogEntity(
 fun CaregiverEntity.toDomain() = Caregiver(
     id = id, name = name, phone = phone, email = email,
     relationship = relationship, notifyOnMissed = notifyOnMissed,
-    notifyOnTaken = notifyOnTaken, notifyDelay = notifyDelay, isActive = isActive
+    notifyOnTaken = notifyOnTaken, notifyOnCancelled = notifyOnCancelled,
+    notifyDelay = notifyDelay, isActive = isActive
 )
 
 fun Caregiver.toEntity() = CaregiverEntity(
     id = id, name = name, phone = phone, email = email,
     relationship = relationship, notifyOnMissed = notifyOnMissed,
-    notifyOnTaken = notifyOnTaken, notifyDelay = notifyDelay, isActive = isActive
+    notifyOnTaken = notifyOnTaken, notifyOnCancelled = notifyOnCancelled,
+    notifyDelay = notifyDelay, isActive = isActive
 )
 
 fun FamilyMemberEntity.toDomain() = FamilyMember(

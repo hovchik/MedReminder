@@ -601,6 +601,7 @@ class MedicationRepositoryImpl @Inject constructor(
                 put("relationship", c.relationship)
                 put("notifyOnMissed", c.notifyOnMissed)
                 put("notifyOnTaken", c.notifyOnTaken)
+                put("notifyOnCancelled", c.notifyOnCancelled)
                 put("notifyDelay", c.notifyDelay)
                 put("isActive", c.isActive)
                 put("createdAt", c.createdAt)
@@ -719,6 +720,7 @@ class MedicationRepositoryImpl @Inject constructor(
                         relationship = c.optString("relationship", ""),
                         notifyOnMissed = c.optBoolean("notifyOnMissed", true),
                         notifyOnTaken = c.optBoolean("notifyOnTaken", false),
+                        notifyOnCancelled = c.optBoolean("notifyOnCancelled", false),
                         notifyDelay = c.optInt("notifyDelay", 30),
                         isActive = c.optBoolean("isActive", true),
                         createdAt = c.optLong("createdAt", System.currentTimeMillis())

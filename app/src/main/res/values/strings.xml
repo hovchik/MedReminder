@@ -157,6 +157,7 @@
     <string name="relationship_optional">Relationship (optional)</string>
     <string name="notify_on_missed">Notify on missed</string>
     <string name="notify_on_taken">Notify on taken</string>
+    <string name="notify_on_cancelled">Notify on cancelled</string>
     <string name="notify_caregivers">Notify caregivers</string>
     <string name="notify_caregivers_description">Inform caregivers about this medication via SMS or email</string>
     <string name="emergency_medication">Emergency medication</string>

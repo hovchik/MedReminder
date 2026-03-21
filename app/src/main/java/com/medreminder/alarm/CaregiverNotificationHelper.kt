@@ -64,10 +64,10 @@ object CaregiverNotificationHelper {
             return
         }
 
-        val caregivers = if (isMissed) {
-            db.caregiverDao().getCaregiversForMissedAlert()
-        } else {
-            db.caregiverDao().getCaregiversForTakenAlert()
+        val caregivers = when {
+            isMissed -> db.caregiverDao().getCaregiversForMissedAlert()
+            isSkipped -> db.caregiverDao().getCaregiversForCancelledAlert()
+            else -> db.caregiverDao().getCaregiversForTakenAlert()
         }
 
         Log.d(TAG, "notifyCaregivers: found ${caregivers.size} caregivers (isMissed=$isMissed, isSkipped=$isSkipped)")

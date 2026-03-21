@@ -13,6 +13,7 @@ data class CaregiverEntity(
     val relationship: String = "", // family, friend, doctor, nurse, other
     val notifyOnMissed: Boolean = true,
     val notifyOnTaken: Boolean = false,
+    val notifyOnCancelled: Boolean = false,
     val notifyDelay: Int = 30, // minutes after missed dose to notify
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis()

@@ -272,6 +272,9 @@ fun CaregiverScreen(viewModel: CaregiverViewModel = hiltViewModel()) {
                     },
                     onToggleTaken = {
                         viewModel.updateCaregiver(caregiver.copy(notifyOnTaken = !caregiver.notifyOnTaken))
+                    },
+                    onToggleCancelled = {
+                        viewModel.updateCaregiver(caregiver.copy(notifyOnCancelled = !caregiver.notifyOnCancelled))
                     }
                 )
             }
@@ -334,7 +337,8 @@ fun CaregiverCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleMissed: () -> Unit,
-    onToggleTaken: () -> Unit
+    onToggleTaken: () -> Unit,
+    onToggleCancelled: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -383,6 +387,10 @@ fun CaregiverCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.notify_on_taken), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Switch(checked = caregiver.notifyOnTaken, onCheckedChange = { onToggleTaken() })
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.notify_on_cancelled), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Switch(checked = caregiver.notifyOnCancelled, onCheckedChange = { onToggleCancelled() })
             }
         }
     }

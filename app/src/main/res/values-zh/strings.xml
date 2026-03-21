@@ -110,6 +110,7 @@
     <string name="relationship_optional">关系（可选）</string>
     <string name="notify_on_missed">错过时通知</string>
     <string name="notify_on_taken">服用时通知</string>
+    <string name="notify_on_cancelled">取消时通知</string>
     <string name="notify_caregivers">通知看护人</string>
     <string name="notify_caregivers_description">通过短信或电子邮件通知看护人关于此药物</string>
     <string name="emergency_medication">紧急药物</string>

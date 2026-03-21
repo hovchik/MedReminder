@@ -110,6 +110,7 @@
     <string name="relationship_optional">Relación (opcional)</string>
     <string name="notify_on_missed">Notificar al perder</string>
     <string name="notify_on_taken">Notificar al tomar</string>
+    <string name="notify_on_cancelled">Notificar al cancelar</string>
     <string name="notify_caregivers">Notificar a cuidadores</string>
     <string name="notify_caregivers_description">Informar a los cuidadores sobre este medicamento por SMS o correo electrónico</string>
     <string name="emergency_medication">Medicamento de emergencia</string>

@@ -25,6 +25,9 @@ interface CaregiverDao {
     @Query("SELECT * FROM caregivers WHERE isActive = 1 AND notifyOnTaken = 1")
     suspend fun getCaregiversForTakenAlert(): List<CaregiverEntity>
 
+    @Query("SELECT * FROM caregivers WHERE isActive = 1 AND notifyOnCancelled = 1")
+    suspend fun getCaregiversForCancelledAlert(): List<CaregiverEntity>
+
     @Query("SELECT * FROM caregivers WHERE id = :id")
     suspend fun getCaregiverById(id: Long): CaregiverEntity?
 

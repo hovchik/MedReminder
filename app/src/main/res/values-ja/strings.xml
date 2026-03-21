@@ -127,6 +127,7 @@
     <string name="relationship_optional">関係（任意）</string>
     <string name="notify_on_missed">未服用時に通知</string>
     <string name="notify_on_taken">服用時に通知</string>
+    <string name="notify_on_cancelled">キャンセル時に通知</string>
     <string name="notify_caregivers">介護者に通知</string>
     <string name="notify_caregivers_description">SMSまたはメールでこのお薬について介護者に通知</string>
     <string name="emergency_medication">緊急のお薬</string>

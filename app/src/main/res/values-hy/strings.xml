@@ -97,6 +97,7 @@
     <string name="relationship_optional">Կապ (կամավոր)</string>
     <string name="notify_on_missed">Ծանուցել բաց թողնելիս</string>
     <string name="notify_on_taken">Ծանուցել ընդունելիս</string>
+    <string name="notify_on_cancelled">Ծանուցել չեղարկելիս</string>
     <string name="notify_caregivers">Ծանուցել խնամակալներին</string>
     <string name="notify_caregivers_description">Տեղեկացնել խնամակալներին այս դեղի մասին SMS կամ էլ. փոստով</string>
     <string name="emergency_medication">Արտակարգ դեղ</string>
