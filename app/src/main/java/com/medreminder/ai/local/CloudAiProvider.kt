@@ -179,7 +179,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
         val url = URL("https://api.anthropic.com/v1/messages")
         val body = JSONObject().apply {
             put("model", "claude-sonnet-4-6-20250514")
-            put("max_tokens", 1024)
+            put("max_tokens", 2048)
             put("messages", org.json.JSONArray().apply {
                 put(JSONObject().apply {
                     put("role", "user")
@@ -188,21 +188,30 @@ class CloudAiProvider @Inject constructor() : AiProvider {
             })
         }
 
-        return makeHttpPost(url, body.toString(), mapOf(
+        val response = makeHttpPost(url, body.toString(), mapOf(
             "x-api-key" to apiKey,
             "anthropic-version" to "2023-06-01",
             "Content-Type" to "application/json"
-        )).let { response ->
-            val json = JSONObject(response)
-            json.getJSONArray("content").getJSONObject(0).getString("text")
+        ))
+        val json = JSONObject(response)
+
+        // Check for API-level error
+        if (json.has("error")) {
+            val err = json.optJSONObject("error")
+            val errMsg = err?.optString("message") ?: json.getString("error")
+            throw Exception("Claude API error: $errMsg")
         }
+
+        val content = json.optJSONArray("content")
+            ?: throw Exception("Claude response missing 'content': ${response.take(200)}")
+        return content.getJSONObject(0).getString("text")
     }
 
     private fun callChatGptApi(apiKey: String, prompt: String): String {
         val url = URL("https://api.openai.com/v1/chat/completions")
         val body = JSONObject().apply {
             put("model", "gpt-4o-mini")
-            put("max_tokens", 1024)
+            put("max_tokens", 2048)
             put("messages", org.json.JSONArray().apply {
                 put(JSONObject().apply {
                     put("role", "user")
@@ -211,14 +220,23 @@ class CloudAiProvider @Inject constructor() : AiProvider {
             })
         }
 
-        return makeHttpPost(url, body.toString(), mapOf(
+        val response = makeHttpPost(url, body.toString(), mapOf(
             "Authorization" to "Bearer $apiKey",
             "Content-Type" to "application/json"
-        )).let { response ->
-            val json = JSONObject(response)
-            json.getJSONArray("choices").getJSONObject(0)
-                .getJSONObject("message").getString("content")
+        ))
+        val json = JSONObject(response)
+
+        // Check for API-level error
+        if (json.has("error")) {
+            val err = json.optJSONObject("error")
+            val errMsg = err?.optString("message") ?: json.getString("error")
+            throw Exception("ChatGPT API error: $errMsg")
         }
+
+        val choices = json.optJSONArray("choices")
+            ?: throw Exception("ChatGPT response missing 'choices': ${response.take(200)}")
+        return choices.getJSONObject(0)
+            .getJSONObject("message").getString("content")
     }
 
     private fun callDeepSeekApi(apiKey: String, prompt: String): String {
@@ -267,7 +285,10 @@ class CloudAiProvider @Inject constructor() : AiProvider {
                 })
             })
             put("generationConfig", JSONObject().apply {
-                put("maxOutputTokens", 1024)
+                put("maxOutputTokens", 2048)
+                put("thinkingConfig", JSONObject().apply {
+                    put("thinkingBudget", 0)
+                })
             })
         }
 
@@ -285,11 +306,22 @@ class CloudAiProvider @Inject constructor() : AiProvider {
 
         val candidates = json.optJSONArray("candidates")
             ?: throw Exception("Gemini response missing 'candidates': ${response.take(200)}")
-        return candidates.getJSONObject(0)
+        val parts = candidates.getJSONObject(0)
             .getJSONObject("content")
             .getJSONArray("parts")
-            .getJSONObject(0)
-            .getString("text")
+
+        // Gemini 2.5 models return thinking + text parts; find the actual text part
+        var resultText: String? = null
+        for (i in 0 until parts.length()) {
+            val part = parts.getJSONObject(i)
+            // Skip thought parts (they have a "thought" field set to true)
+            if (part.optBoolean("thought", false)) continue
+            if (part.has("text")) {
+                resultText = part.getString("text")
+            }
+        }
+        return resultText
+            ?: throw Exception("Gemini response has no text part: ${response.take(200)}")
     }
 
     private fun makeHttpPost(url: URL, body: String, headers: Map<String, String>): String {
@@ -342,13 +374,19 @@ class CloudAiProvider @Inject constructor() : AiProvider {
     }
 
     private fun extractJson(text: String): String {
+        // Strip markdown code fences (e.g. ```json ... ```) that Gemini often adds
+        val stripped = text
+            .replace(Regex("^\\s*```(?:json)?\\s*", RegexOption.MULTILINE), "")
+            .replace(Regex("\\s*```\\s*$", RegexOption.MULTILINE), "")
+            .trim()
+
         // Find JSON object in the response text
-        val start = text.indexOf('{')
-        val end = text.lastIndexOf('}')
+        val start = stripped.indexOf('{')
+        val end = stripped.lastIndexOf('}')
         return if (start >= 0 && end > start) {
-            text.substring(start, end + 1)
+            stripped.substring(start, end + 1)
         } else {
-            text
+            stripped
         }
     }
 
