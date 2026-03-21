@@ -37,11 +37,19 @@ interface ScheduleDao {
     @Query("SELECT * FROM schedules WHERE medicationId = :medicationId AND isEnabled = 1")
     suspend fun getActiveSchedulesForMedication(medicationId: Long): List<ScheduleEntity>
 
-    @Query("SELECT * FROM schedules WHERE isEnabled = 1")
+    @Query("""
+        SELECT s.* FROM schedules s
+        INNER JOIN medications m ON s.medicationId = m.id
+        WHERE s.isEnabled = 1 AND m.isActive = 1
+    """)
     suspend fun getAllActiveSchedules(): List<ScheduleEntity>
 
     @Transaction
-    @Query("SELECT * FROM schedules WHERE isEnabled = 1")
+    @Query("""
+        SELECT s.* FROM schedules s
+        INNER JOIN medications m ON s.medicationId = m.id
+        WHERE s.isEnabled = 1 AND m.isActive = 1
+    """)
     suspend fun getAllActiveSchedulesWithMedication(): List<ScheduleWithMedication>
 
     @Query("SELECT * FROM schedules WHERE id = :id")

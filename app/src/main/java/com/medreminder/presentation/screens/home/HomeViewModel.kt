@@ -285,6 +285,7 @@ class HomeViewModel @Inject constructor(
 
         for (schedule in schedules) {
             if (schedule.frequency == ScheduleFrequency.AS_NEEDED) continue
+            if (isScheduleExpired(schedule)) continue
             if (!isScheduledForDay(schedule, Calendar.getInstance())) continue
 
             if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS && schedule.intervalHours > 0) {
@@ -345,6 +346,7 @@ class HomeViewModel @Inject constructor(
             for (schedule in schedules) {
                 if (schedule.frequency == ScheduleFrequency.AS_NEEDED) continue
                 if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS) continue // already handled above
+                if (isScheduleExpired(schedule)) continue
                 if (!isScheduledForDay(schedule, tomorrowCal)) continue
 
                 val doseTime = Calendar.getInstance().apply {
@@ -378,6 +380,21 @@ class HomeViewModel @Inject constructor(
         // Trigger a refresh of the today-data Flow with fresh time bounds
         // so the UI picks up any dose logs created or changed by schedule edits
         refreshTrigger.value++
+    }
+
+    private fun isScheduleExpired(schedule: Schedule): Boolean {
+        val now = System.currentTimeMillis()
+        if (schedule.endDate != null && now > schedule.endDate) return true
+        if (schedule.durationType != DurationType.ONGOING && schedule.durationValue > 0) {
+            val expirationCal = Calendar.getInstance().apply { timeInMillis = schedule.startDate }
+            when (schedule.durationType) {
+                DurationType.DAYS -> expirationCal.add(Calendar.DAY_OF_YEAR, schedule.durationValue)
+                DurationType.MONTHS -> expirationCal.add(Calendar.MONTH, schedule.durationValue)
+                else -> {}
+            }
+            if (now > expirationCal.timeInMillis) return true
+        }
+        return false
     }
 
     private fun isScheduledForDay(schedule: Schedule, day: Calendar): Boolean {
