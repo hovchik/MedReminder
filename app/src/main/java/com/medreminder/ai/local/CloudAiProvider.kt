@@ -267,7 +267,10 @@ class CloudAiProvider @Inject constructor() : AiProvider {
                 })
             })
             put("generationConfig", JSONObject().apply {
-                put("maxOutputTokens", 1024)
+                put("maxOutputTokens", 2048)
+                put("thinkingConfig", JSONObject().apply {
+                    put("thinkingBudget", 0)
+                })
             })
         }
 
@@ -285,11 +288,22 @@ class CloudAiProvider @Inject constructor() : AiProvider {
 
         val candidates = json.optJSONArray("candidates")
             ?: throw Exception("Gemini response missing 'candidates': ${response.take(200)}")
-        return candidates.getJSONObject(0)
+        val parts = candidates.getJSONObject(0)
             .getJSONObject("content")
             .getJSONArray("parts")
-            .getJSONObject(0)
-            .getString("text")
+
+        // Gemini 2.5 models return thinking + text parts; find the actual text part
+        var resultText: String? = null
+        for (i in 0 until parts.length()) {
+            val part = parts.getJSONObject(i)
+            // Skip thought parts (they have a "thought" field set to true)
+            if (part.optBoolean("thought", false)) continue
+            if (part.has("text")) {
+                resultText = part.getString("text")
+            }
+        }
+        return resultText
+            ?: throw Exception("Gemini response has no text part: ${response.take(200)}")
     }
 
     private fun makeHttpPost(url: URL, body: String, headers: Map<String, String>): String {
@@ -342,13 +356,19 @@ class CloudAiProvider @Inject constructor() : AiProvider {
     }
 
     private fun extractJson(text: String): String {
+        // Strip markdown code fences (e.g. ```json ... ```) that Gemini often adds
+        val stripped = text
+            .replace(Regex("^\\s*```(?:json)?\\s*", RegexOption.MULTILINE), "")
+            .replace(Regex("\\s*```\\s*$", RegexOption.MULTILINE), "")
+            .trim()
+
         // Find JSON object in the response text
-        val start = text.indexOf('{')
-        val end = text.lastIndexOf('}')
+        val start = stripped.indexOf('{')
+        val end = stripped.lastIndexOf('}')
         return if (start >= 0 && end > start) {
-            text.substring(start, end + 1)
+            stripped.substring(start, end + 1)
         } else {
-            text
+            stripped
         }
     }
 
