@@ -27,6 +27,7 @@ class CustomLocalModelProvider @Inject constructor(
     override val displayName = "Local Model (Custom)"
 
     private var activeRuntime: LocalModelRuntime? = null
+    private var activeModel: LocalAiModel? = null
 
     override fun isAvailable(): Boolean {
         // activeRuntime is set by loadModel() which is called by
@@ -35,6 +36,7 @@ class CustomLocalModelProvider @Inject constructor(
     }
 
     fun getActiveRuntime(): LocalModelRuntime? = activeRuntime
+    fun getActiveModel(): LocalAiModel? = activeModel
 
     suspend fun loadModel(modelId: String): Boolean {
         val model = modelManager.getModel(modelId)
@@ -60,6 +62,7 @@ class CustomLocalModelProvider @Inject constructor(
         // Release previous runtime before loading a new one
         activeRuntime?.release()
         activeRuntime = null
+        activeModel = null
 
         activeRuntime = try {
             when (model.runtimeType) {
@@ -76,6 +79,7 @@ class CustomLocalModelProvider @Inject constructor(
         }
 
         val success = activeRuntime != null
+        if (success) activeModel = model
         Log.d(TAG, "loadModel: '$modelId' result=${if (success) "SUCCESS" else "FAILED"}")
         return success
     }
@@ -83,6 +87,7 @@ class CustomLocalModelProvider @Inject constructor(
     fun unloadModel() {
         activeRuntime?.release()
         activeRuntime = null
+        activeModel = null
     }
 
     /**
@@ -108,13 +113,16 @@ class CustomLocalModelProvider @Inject constructor(
         }
 
         return try {
+            val isThinking = activeModel?.isThinkingModel == true
             val prompt = promptAdapter.adaptPrompt(
                 input = input,
-                supportsStructuredJson = runtime.supportsStructuredJson()
+                supportsStructuredJson = runtime.supportsStructuredJson(),
+                isThinkingModel = isThinking
             )
 
             val rawResponse = runtime.runPrompt(prompt)
-            val result = promptAdapter.parseResponse(rawResponse, input)
+            val cleanedResponse = promptAdapter.stripThinkingTokens(rawResponse)
+            val result = promptAdapter.parseResponse(cleanedResponse, input)
 
             result.copy(
                 providerUsed = AiProviderType.CUSTOM_LOCAL,

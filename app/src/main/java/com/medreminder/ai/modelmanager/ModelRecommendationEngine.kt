@@ -132,7 +132,8 @@ class ModelRecommendationEngine @Inject constructor(
             supportsStructuredJson = false,
             supportsStreaming = true,
             supportsTextGeneration = true,
-            parameterCount = "4B"
+            parameterCount = "4B",
+            isThinkingModel = true
         )
     )
 

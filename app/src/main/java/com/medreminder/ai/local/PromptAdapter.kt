@@ -8,7 +8,7 @@ import javax.inject.Singleton
 @Singleton
 class PromptAdapter @Inject constructor() {
 
-    fun adaptPrompt(input: AnalysisInput, supportsStructuredJson: Boolean): String {
+    fun adaptPrompt(input: AnalysisInput, supportsStructuredJson: Boolean, isThinkingModel: Boolean = false): String {
         val medsSection = input.medications.joinToString("\n") { med ->
             val base = "- ${med.name} ${med.dosage} (${med.form}, ${med.frequency})"
             val extra = buildList {
@@ -57,12 +57,16 @@ class PromptAdapter @Inject constructor() {
 
         val languageInstruction = AiLanguageHelper.getLanguageInstruction()
 
+        // For thinking models (e.g. Qwen3), append /no_think to disable the
+        // internal reasoning phase and avoid wasting tokens on <think> blocks.
+        val noThinkSuffix = if (isThinkingModel) "\n/no_think" else ""
+
         return if (supportsStructuredJson) {
             """
                 |$basePrompt
                 |
                 |Respond in JSON:
-                |{"summary": "...", "insights": ["..."], "recommendations": ["..."], "riskLevel": "LOW|MODERATE|HIGH"}$languageInstruction
+                |{"summary": "...", "insights": ["..."], "recommendations": ["..."], "riskLevel": "LOW|MODERATE|HIGH"}$languageInstruction$noThinkSuffix
             """.trimMargin()
         } else {
             """
@@ -72,9 +76,17 @@ class PromptAdapter @Inject constructor() {
                 |SUMMARY: A brief summary of adherence patterns
                 |INSIGHTS: Key observations (one per line, prefixed with "- ")
                 |RECOMMENDATIONS: Actionable suggestions (one per line, prefixed with "- ")
-                |RISK: LOW, MODERATE, or HIGH$languageInstruction
+                |RISK: LOW, MODERATE, or HIGH$languageInstruction$noThinkSuffix
             """.trimMargin()
         }
+    }
+
+    /**
+     * Strip Qwen3-style `<think>...</think>` reasoning blocks from the response.
+     * Safe to call on any response — returns it unchanged if no thinking tags are found.
+     */
+    fun stripThinkingTokens(response: String): String {
+        return response.replace(Regex("<think>[\\s\\S]*?</think>"), "").trim()
     }
 
     fun parseResponse(rawResponse: String, input: AnalysisInput): AnalysisResult {
