@@ -37,12 +37,15 @@ class CloudAiProvider @Inject constructor() : AiProvider {
     override val displayName: String
         get() = "Cloud AI (${activeService.displayName})"
 
+    @Volatile
     var activeService: CloudAiService = CloudAiService.CLAUDE
         private set
 
+    @Volatile
     var activeGeminiModel: GeminiModel = GeminiModel.GEMINI_2_5_FLASH
         private set
 
+    @Volatile
     private var apiKey: String? = null
 
     fun configure(apiKey: String, service: CloudAiService = CloudAiService.CLAUDE) {
@@ -272,7 +275,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
             "Authorization" to "Bearer $apiKey",
             "Content-Type" to "application/json"
         ))
-        Log.d(TAG, "DeepSeek raw response (first 500 chars): ${response.take(500)}")
+        Log.d(TAG, "DeepSeek response received (${response.length} chars)")
         val json = JSONObject(response)
 
         // Check for API-level error

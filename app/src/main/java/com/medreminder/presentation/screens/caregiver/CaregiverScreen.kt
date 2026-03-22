@@ -408,7 +408,7 @@ fun AddCaregiverDialog(
     var email by remember { mutableStateOf(existing?.email ?: "") }
     var relationship by remember { mutableStateOf(existing?.relationship ?: "") }
 
-    val isValid = name.isNotBlank() && phone.isNotBlank() && email.isNotBlank()
+    val isValid = name.isNotBlank() && (phone.isNotBlank() || email.isNotBlank())
 
     AlertDialog(
         onDismissRequest = onDismiss,

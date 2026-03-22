@@ -36,36 +36,27 @@ class HistoryViewModel @Inject constructor(
     private val repository: MedicationRepository
 ) : ViewModel() {
 
-    private val _logs = MutableStateFlow<List<DoseLog>>(emptyList())
-    val logs: StateFlow<List<DoseLog>> = _logs.asStateFlow()
-
     private val _daysBack = MutableStateFlow(7)
     val daysBack: StateFlow<Int> = _daysBack.asStateFlow()
 
-    init { loadHistory() }
+    // Use flatMapLatest so that changing _daysBack automatically cancels the
+    // previous collector and starts a new one — no leaked collectors.
+    val logs: StateFlow<List<DoseLog>> = _daysBack.flatMapLatest { days ->
+        val start = DateUtils.daysAgo(days)
+        val end = DateUtils.getEndOfDay()
+        repository.getDoseLogsForDateRange(start, end).map { list ->
+            list.filter { it.status == DoseStatus.TAKEN || it.status == DoseStatus.MISSED || it.status == DoseStatus.SKIPPED }
+                .sortedByDescending { it.scheduledTime }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setDaysBack(days: Int) {
         _daysBack.value = days
-        loadHistory()
     }
 
     fun markAsTaken(logId: Long) {
         viewModelScope.launch {
             repository.markDoseTaken(logId)
-        }
-    }
-
-    private fun loadHistory() {
-        viewModelScope.launch {
-            val start = DateUtils.daysAgo(_daysBack.value)
-            val end = DateUtils.getEndOfDay()
-            repository.getDoseLogsForDateRange(start, end).collect { list ->
-                // Only show completed doses: TAKEN, MISSED, and SKIPPED (canceled).
-                // PENDING and SNOOZED (upcoming) doses are shown on the Today screen.
-                _logs.value = list
-                    .filter { it.status == DoseStatus.TAKEN || it.status == DoseStatus.MISSED || it.status == DoseStatus.SKIPPED }
-                    .sortedByDescending { it.scheduledTime }
-            }
         }
     }
 }

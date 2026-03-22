@@ -129,12 +129,16 @@ class AlarmScheduler @Inject constructor(
     }
 
     fun cancelAlarm(scheduleId: Long) {
-        val intent = Intent(context, AlarmReceiver::class.java)
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = "com.medreminder.MEDICATION_ALARM"
+        }
         val pendingIntent = PendingIntent.getBroadcast(
             context, (scheduleId and 0x7FFFFFFF).toInt(), intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )
-        alarmManager.cancel(pendingIntent)
+        if (pendingIntent != null) {
+            alarmManager.cancel(pendingIntent)
+        }
     }
 
     private suspend fun cancelAllAlarms() {
@@ -195,7 +199,7 @@ class AlarmScheduler @Inject constructor(
             com.medreminder.domain.model.ScheduleFrequency.SPECIFIC_DAYS -> {
                 if (schedule.daysOfWeek.isEmpty()) return null
                 var found = false
-                for (i in 0..7) {
+                for (i in 0..6) {
                     val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
                     if (schedule.daysOfWeek.contains(dayOfWeek) &&
                         calendar.timeInMillis > System.currentTimeMillis()

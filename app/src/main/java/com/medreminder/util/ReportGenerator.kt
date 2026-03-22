@@ -24,8 +24,8 @@ object ReportGenerator {
         doseLogs: List<DoseLog>,
         periodLabel: String = "Last 7 days"
     ): File? {
+        val document = PdfDocument()
         return try {
-            val document = PdfDocument()
             var pageNum = 1
             var yPos = 60f
 
@@ -172,6 +172,7 @@ object ReportGenerator {
             file
         } catch (e: Exception) {
             e.printStackTrace()
+            try { document.close() } catch (_: Exception) {}
             null
         }
     }

@@ -231,6 +231,7 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             }
+            loadStreak()
         }
     }
 

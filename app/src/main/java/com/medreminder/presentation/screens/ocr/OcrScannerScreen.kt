@@ -221,6 +221,7 @@ fun OcrScannerScreen(
                             coroutineScope.launch(Dispatchers.Main) {
                                 imageAnalysis.clearAnalyzer()
                             }
+                            scanner.close()
 
                             if (barcodes.isNotEmpty()) {
                                 val barcode = barcodes.first()
@@ -304,6 +305,7 @@ fun OcrScannerScreen(
                         }
                         .addOnFailureListener { e ->
                             Log.e("OCR", "Code scan failed", e)
+                            scanner.close()
                             coroutineScope.launch(Dispatchers.Main) {
                                 imageAnalysis.clearAnalyzer()
                                 isProcessing = false
@@ -343,6 +345,7 @@ fun OcrScannerScreen(
                         )
                         recognizer.process(image)
                             .addOnSuccessListener { result ->
+                                recognizer.close()
                                 coroutineScope.launch(Dispatchers.Main) {
                                     imageAnalysis.clearAnalyzer()
                                     if (result.text.isNotBlank()) {
@@ -357,6 +360,7 @@ fun OcrScannerScreen(
                             }
                             .addOnFailureListener { e ->
                                 Log.e("OCR", "ML Kit recognition failed", e)
+                                recognizer.close()
                                 coroutineScope.launch(Dispatchers.Main) {
                                     imageAnalysis.clearAnalyzer()
                                     isProcessing = false
@@ -367,6 +371,7 @@ fun OcrScannerScreen(
                             }
                     } else {
                         imageProxy.close()
+                        recognizer.close()
                         coroutineScope.launch(Dispatchers.Main) {
                             imageAnalysis.clearAnalyzer()
                             isProcessing = false

@@ -236,7 +236,7 @@ fun SettingsScreen(
                 } catch (_: SecurityException) {
                     // Not all providers support persistable permissions — transient access still works
                 }
-                val json = context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()
+                val json = context.contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
                 if (json != null) {
                     pendingImportJson = json
                     showImportConfirmDialog = true
@@ -270,7 +270,7 @@ fun SettingsScreen(
                     onClick = {
                         showClearDialog = false
                         viewModel.clearAllData { success ->
-                            val msg = if (success) R.string.clear_all_success else R.string.export_error
+                            val msg = if (success) R.string.clear_all_success else R.string.import_error
                             Toast.makeText(context, context.getString(msg), Toast.LENGTH_SHORT).show()
                         }
                     },
