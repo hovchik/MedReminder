@@ -74,7 +74,10 @@ object DrugInteractionChecker {
             }
         }
 
-        return interactions.distinctBy { "${it.drug1}-${it.drug2}" }
+        return interactions.distinctBy {
+            val sorted = listOf(it.drug1, it.drug2).sorted()
+            "${sorted[0]}-${sorted[1]}"
+        }
     }
 
     private fun findInteraction(name1: String, name2: String): List<DrugInteraction> {

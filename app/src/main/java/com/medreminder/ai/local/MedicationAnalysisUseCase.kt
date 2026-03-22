@@ -29,7 +29,7 @@ class MedicationAnalysisUseCase @Inject constructor(
         val timestamp: Long
     )
 
-    private val cache = mutableMapOf<Long, CachedAnalysis>()
+    private val cache = java.util.concurrent.ConcurrentHashMap<Long, CachedAnalysis>()
 
     /** Returns a cached result if still valid (within 1 hour), or null. */
     fun getCachedResult(medicationId: Long): MedicationAnalysisResult? {
@@ -106,7 +106,7 @@ class MedicationAnalysisUseCase @Inject constructor(
         val startTime = System.currentTimeMillis()
 
         // Generate the medication-specific result
-        val result = generateMedicationResult(input, provider, prompt, System.currentTimeMillis() - startTime)
+        val result = generateMedicationResult(input, provider, prompt, startTime)
         cache[medicationId] = CachedAnalysis(result, System.currentTimeMillis())
         return result
     }
@@ -115,7 +115,7 @@ class MedicationAnalysisUseCase @Inject constructor(
         input: MedicationAnalysisInput,
         provider: AiProvider,
         prompt: String,
-        latencyMs: Long
+        startTime: Long
     ): MedicationAnalysisResult {
         // Use the interface method — works for any provider (Cloud, Local, System AI)
         val rawJson: String? = try {
@@ -124,6 +124,8 @@ class MedicationAnalysisUseCase @Inject constructor(
             android.util.Log.e("MedicationAnalysis", "Provider ${provider.type.name} raw completion failed", e)
             null
         }
+
+        val latencyMs = System.currentTimeMillis() - startTime
 
         if (rawJson != null) {
             try {

@@ -44,7 +44,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext, AppDatabase::class.java, DATABASE_NAME
                 ).addMigrations(
                     MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7
-                ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
+                ).build().also { INSTANCE = it }
             }
 
         val MIGRATION_2_3 = object : Migration(2, 3) {
