@@ -212,7 +212,7 @@ fun AddEditMedicationScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 MedicationColors.forEach { color ->
-                    val hex = "#${Integer.toHexString(color.toArgb()).drop(2).uppercase()}"
+                    val hex = "#${String.format("%06X", color.toArgb() and 0xFFFFFF)}"
                     Box(
                         modifier = Modifier
                             .size(36.dp)

@@ -205,11 +205,20 @@ fun Schedule.toEntity() = ScheduleEntity(
     isEnabled = isEnabled
 )
 
-fun DoseLogEntity.toDomain() = DoseLog(
+fun DoseLogEntity.toDomain(
+    medicationName: String = "",
+    medicationDosage: String = "",
+    medicationColor: String = "#4A90D9",
+    assignedToId: Long? = null,
+    assignedToName: String = ""
+) = DoseLog(
     id = id, medicationId = medicationId, scheduleId = scheduleId,
     scheduledTime = scheduledTime, actionTime = actionTime,
     status = DoseStatus.fromString(status), snoozedUntil = snoozedUntil,
-    snoozeCount = snoozeCount, notes = notes
+    snoozeCount = snoozeCount, notes = notes,
+    medicationName = medicationName, medicationDosage = medicationDosage,
+    medicationColor = medicationColor, assignedToId = assignedToId,
+    assignedToName = assignedToName
 )
 
 fun DoseLog.toEntity() = DoseLogEntity(

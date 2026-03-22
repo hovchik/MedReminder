@@ -123,6 +123,10 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
+    fun goBackToModelChoice() {
+        _state.update { it.copy(currentStep = OnboardingStep.AI_MODEL_CHOICE) }
+    }
+
     fun chooseAutoDownload() {
         val bestFit = _state.value.bestFitRecommendation
         if (bestFit == null) {

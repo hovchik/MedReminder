@@ -3,6 +3,7 @@ package com.medreminder.alarm
 import android.Manifest
 import android.app.PendingIntent
 import android.content.Context
+import android.os.Build
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
@@ -128,7 +129,9 @@ object CaregiverNotificationHelper {
             val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
             val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                 ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-                ?: locationManager.getLastKnownLocation(LocationManager.FUSED_PROVIDER)
+                ?: if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    locationManager.getLastKnownLocation(LocationManager.FUSED_PROVIDER)
+                } else null
 
             if (location != null) {
                 "https://maps.google.com/?q=${location.latitude},${location.longitude}"
@@ -198,41 +201,25 @@ object CaregiverNotificationHelper {
     }
 
     private fun makeCallFallback(context: Context, phone: String) {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
-            try {
-                val callIntent = Intent(Intent.ACTION_CALL).apply {
-                    data = Uri.parse("tel:$phone")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(callIntent)
-                Log.d(TAG, "Fallback call initiated to $phone")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to initiate fallback call to $phone", e)
+        try {
+            // Use ACTION_DIAL (not ACTION_CALL) so the user must confirm the call.
+            // This avoids initiating unexpected phone calls from background processing.
+            val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+                data = Uri.parse("tel:$phone")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-        } else {
-            Log.w(TAG, "CALL_PHONE permission not granted for fallback call to $phone")
+            context.startActivity(dialIntent)
+            Log.d(TAG, "Fallback dial screen opened for $phone")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to open dialer for $phone", e)
         }
     }
 
     private fun sendEmail(context: Context, email: String, subject: String, body: String) {
-        try {
-            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:")
-                putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
-                putExtra(Intent.EXTRA_SUBJECT, subject)
-                putExtra(Intent.EXTRA_TEXT, body)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            if (intent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(intent)
-                Log.d(TAG, "Email intent launched for $email")
-            } else {
-                Log.w(TAG, "No email app available for $email")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to send email to $email", e)
-        }
+        // Email sending from background (BroadcastReceivers) would pop up the email
+        // compose UI unexpectedly. Instead, log the notification for now.
+        // A proper implementation would use a server-side email API or WorkManager
+        // to queue email notifications.
+        Log.i(TAG, "Email notification for $email: subject='$subject', body='$body'")
     }
 }

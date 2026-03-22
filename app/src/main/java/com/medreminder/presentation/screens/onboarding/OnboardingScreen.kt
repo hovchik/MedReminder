@@ -84,7 +84,7 @@ fun OnboardingScreen(
                 state = state,
                 onSelectModel = viewModel::selectRecommendation,
                 onDownload = viewModel::downloadSelectedModel,
-                onBack = {},
+                onBack = viewModel::goBackToModelChoice,
                 onSkip = viewModel::skipAiSetup,
                 onDismissWifiWarning = viewModel::dismissWifiWarning,
                 onConfirmWithoutWifi = viewModel::confirmDownloadWithoutWifi

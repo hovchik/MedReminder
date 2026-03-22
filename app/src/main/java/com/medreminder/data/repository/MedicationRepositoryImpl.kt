@@ -510,11 +510,13 @@ class MedicationRepositoryImpl @Inject constructor(
 
     // Data management
     override suspend fun clearAllData() {
-        doseLogDao.deleteAllDoseLogs()
-        scheduleDao.deleteAllSchedules()
-        medicationDao.deleteAllMedications()
-        caregiverDao.deleteAllCaregivers()
-        familyMemberDao.deleteAllFamilyMembers()
+        database.withTransaction {
+            doseLogDao.deleteAllDoseLogs()
+            scheduleDao.deleteAllSchedules()
+            medicationDao.deleteAllMedications()
+            caregiverDao.deleteAllCaregivers()
+            familyMemberDao.deleteAllFamilyMembers()
+        }
     }
 
     override suspend fun exportAllData(): String {

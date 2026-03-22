@@ -8,6 +8,7 @@ import android.media.RingtoneManager
 import android.os.*
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -51,6 +53,7 @@ data class AlarmMedication(
 class FullScreenAlarmActivity : ComponentActivity() {
 
     companion object {
+        @Volatile
         private var currentInstance: FullScreenAlarmActivity? = null
 
         const val EXTRA_DOSE_LOG_IDS = "dose_log_ids"
@@ -71,7 +74,10 @@ class FullScreenAlarmActivity : ComponentActivity() {
 
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
-    private var medications: List<AlarmMedication> = emptyList()
+    private val _medications = mutableStateOf<List<AlarmMedication>>(emptyList())
+    private var medications: List<AlarmMedication>
+        get() = _medications.value
+        set(value) { _medications.value = value }
     private var isProcessing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -100,17 +106,18 @@ class FullScreenAlarmActivity : ComponentActivity() {
         startVibration()
 
         setContent {
-            if (medications.size == 1) {
+            val currentMeds = _medications.value
+            if (currentMeds.size == 1) {
                 AlarmScreen(
-                    medicationName = medications.first().name,
-                    medicationDosage = medications.first().dosage,
+                    medicationName = currentMeds.first().name,
+                    medicationDosage = currentMeds.first().dosage,
                     onTaken = { handleTakenAll() },
                     onSnooze = { handleSnoozeAll() },
                     onCancel = { handleCancelAll() }
                 )
-            } else {
+            } else if (currentMeds.isNotEmpty()) {
                 CombinedAlarmScreen(
-                    medications = medications,
+                    medications = currentMeds,
                     onTakenAll = { handleTakenAll() },
                     onSnoozeAll = { handleSnoozeAll() },
                     onCancelAll = { handleCancelAll() }
@@ -207,19 +214,17 @@ class FullScreenAlarmActivity : ComponentActivity() {
         if (isProcessing) return
         isProcessing = true
         stopAlarm()
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
                 for (med in medications) {
                     db.doseLogDao().updateDoseStatus(med.doseLogId, "taken")
                     db.medicationDao().decrementStock(med.medicationId)
                 }
-                // Send caregiver notifications after all DB operations complete
                 for (med in medications) {
                     try {
-                        val db2 = AppDatabase.getInstance(this@FullScreenAlarmActivity)
                         CaregiverNotificationHelper.notifyCaregiversOnTaken(
-                            applicationContext, db2, med.medicationId, med.name
+                            applicationContext, db, med.medicationId, med.name
                         )
                     } catch (e: Exception) { e.printStackTrace() }
                 }
@@ -232,7 +237,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
         if (isProcessing) return
         isProcessing = true
         stopAlarm()
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
                 val snoozeUntil = System.currentTimeMillis() + 10 * 60 * 1000
@@ -254,18 +259,16 @@ class FullScreenAlarmActivity : ComponentActivity() {
         if (isProcessing) return
         isProcessing = true
         stopAlarm()
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
                 for (med in medications) {
                     db.doseLogDao().updateDoseStatus(med.doseLogId, "skipped")
                 }
-                // Send caregiver notifications after all DB operations complete
                 for (med in medications) {
                     try {
-                        val db2 = AppDatabase.getInstance(this@FullScreenAlarmActivity)
                         CaregiverNotificationHelper.notifyCaregiversOnSkipped(
-                            applicationContext, db2, med.medicationId, med.name
+                            applicationContext, db, med.medicationId, med.name
                         )
                     } catch (e: Exception) { e.printStackTrace() }
                 }
@@ -308,8 +311,12 @@ fun AlarmScreen(
         ), label = "scale"
     )
 
-    val currentTime = remember {
-        SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
+    var currentTime by remember { mutableStateOf(SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(30_000L)
+            currentTime = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
+        }
     }
 
     Box(
@@ -457,8 +464,12 @@ fun CombinedAlarmScreen(
         ), label = "scale"
     )
 
-    val currentTime = remember {
-        SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
+    var currentTime by remember { mutableStateOf(SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(30_000L)
+            currentTime = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
+        }
     }
 
     Box(
