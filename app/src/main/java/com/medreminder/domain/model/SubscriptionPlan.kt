@@ -62,7 +62,7 @@ object SubscriptionPlans {
             pricePerMonth = "$0",
             description = "Essential medication tracking for everyone",
             features = listOf(
-                SubscriptionFeature("Up to 5 medications"),
+                SubscriptionFeature("Up to 10 medications"),
                 SubscriptionFeature("Reminders & alarms"),
                 SubscriptionFeature("Dose history tracking"),
                 SubscriptionFeature("Basic adherence stats"),
