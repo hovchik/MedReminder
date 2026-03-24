@@ -166,7 +166,9 @@ class AlarmScheduler @Inject constructor(
             putExtra(EXTRA_DOSE_LOG_ID, doseLogId)
         }
 
-        val requestCode = ((scheduleId * 1000 + System.currentTimeMillis() % 1000) and 0x7FFFFFFF).toInt()
+        // Use a distinct high range to avoid colliding with regular alarm request codes
+        // which use (scheduleId and 0x7FFFFFFF)
+        val requestCode = ((0x40000000L + scheduleId * 100 + doseLogId % 100) and 0x7FFFFFFF).toInt()
         val pendingIntent = PendingIntent.getBroadcast(
             context, requestCode, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

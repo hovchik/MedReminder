@@ -33,6 +33,10 @@ object DateUtils {
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
+            // Ensure we don't return a future date
+            if (timeInMillis > System.currentTimeMillis()) {
+                add(Calendar.WEEK_OF_YEAR, -1)
+            }
         }
         return cal.timeInMillis
     }

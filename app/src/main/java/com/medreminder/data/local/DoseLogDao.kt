@@ -220,11 +220,12 @@ interface DoseLogDao {
     suspend fun getAverageDelayMsForMedication(medicationId: Long, startTime: Long, endTime: Long): Long?
 
     // Time-of-day adherence: taken count by hour ranges
+    // Use SQLite strftime with 'localtime' to correctly handle timezone offsets
     @Query("""
         SELECT COUNT(*) FROM dose_logs
         WHERE status = 'taken'
         AND scheduledTime BETWEEN :startTime AND :endTime
-        AND CAST((scheduledTime / 1000 % 86400) / 3600 AS INTEGER) BETWEEN :hourStart AND :hourEnd
+        AND CAST(strftime('%H', scheduledTime / 1000, 'unixepoch', 'localtime') AS INTEGER) BETWEEN :hourStart AND :hourEnd
     """)
     suspend fun getTakenCountByHourRange(startTime: Long, endTime: Long, hourStart: Int, hourEnd: Int): Int
 
@@ -232,7 +233,7 @@ interface DoseLogDao {
         SELECT COUNT(*) FROM dose_logs
         WHERE status IN ('taken', 'skipped', 'missed')
         AND scheduledTime BETWEEN :startTime AND :endTime
-        AND CAST((scheduledTime / 1000 % 86400) / 3600 AS INTEGER) BETWEEN :hourStart AND :hourEnd
+        AND CAST(strftime('%H', scheduledTime / 1000, 'unixepoch', 'localtime') AS INTEGER) BETWEEN :hourStart AND :hourEnd
     """)
     suspend fun getTotalCountByHourRange(startTime: Long, endTime: Long, hourStart: Int, hourEnd: Int): Int
 }

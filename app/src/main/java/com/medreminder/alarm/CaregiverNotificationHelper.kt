@@ -100,8 +100,9 @@ object CaregiverNotificationHelper {
         for (caregiver in caregivers) {
             val domain = caregiver.toDomain()
             Log.d(TAG, "notifyCaregivers: caregiver='${domain.name}', phone='${domain.phone}', email='${domain.email}'")
-            if (domain.phone.isNotBlank()) {
-                sendSms(context, domain.phone, message, domain.name, medicationName)
+            val sanitizedPhone = sanitizePhoneNumber(domain.phone)
+            if (sanitizedPhone.isNotBlank()) {
+                sendSms(context, sanitizedPhone, message, domain.name, medicationName)
             }
             if (domain.email.isNotBlank()) {
                 val subject = when {
@@ -141,6 +142,16 @@ object CaregiverNotificationHelper {
             Log.e(TAG, "Error getting location", e)
             null
         }
+    }
+
+    private fun sanitizePhoneNumber(phone: String): String {
+        // Strip everything except digits and leading +
+        val stripped = phone.trim()
+        if (stripped.isEmpty()) return ""
+        val prefix = if (stripped.startsWith("+")) "+" else ""
+        val digits = stripped.filter { it.isDigit() }
+        if (digits.length < 3) return "" // too short to be valid
+        return prefix + digits
     }
 
     private fun sendSms(

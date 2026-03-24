@@ -1,7 +1,6 @@
 package com.medreminder.di
 
 import android.content.Context
-import androidx.room.Room
 import com.medreminder.data.local.*
 import com.medreminder.data.repository.MedicationRepositoryImpl
 import com.medreminder.domain.repository.MedicationRepository
@@ -19,13 +18,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(
-            context, AppDatabase::class.java, AppDatabase.DATABASE_NAME
-        ).addMigrations(
-            AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4,
-            AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
-            AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8
-        ).build()
+        AppDatabase.getInstance(context)
 
     @Provides
     fun provideMedicationDao(db: AppDatabase): MedicationDao = db.medicationDao()

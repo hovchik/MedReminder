@@ -107,7 +107,16 @@ class FullScreenAlarmActivity : ComponentActivity() {
 
         setContent {
             val currentMeds = _medications.value
-            if (currentMeds.size == 1) {
+            if (currentMeds.isEmpty()) {
+                // Edge case: no valid medication data - show a dismiss-only screen
+                AlarmScreen(
+                    medicationName = "Medication",
+                    medicationDosage = "",
+                    onTaken = { stopAlarm(); finish() },
+                    onSnooze = { stopAlarm(); finish() },
+                    onCancel = { stopAlarm(); finish() }
+                )
+            } else if (currentMeds.size == 1) {
                 AlarmScreen(
                     medicationName = currentMeds.first().name,
                     medicationDosage = currentMeds.first().dosage,
@@ -115,7 +124,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
                     onSnooze = { handleSnoozeAll() },
                     onCancel = { handleCancelAll() }
                 )
-            } else if (currentMeds.isNotEmpty()) {
+            } else {
                 CombinedAlarmScreen(
                     medications = currentMeds,
                     onTakenAll = { handleTakenAll() },
@@ -279,10 +288,16 @@ class FullScreenAlarmActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
-        // Activity already showing; update medication list if a new/concurrent alarm arrives
-        val updated = parseMedications(intent)
-        if (updated.isNotEmpty()) {
-            medications = updated
+        // Activity already showing; merge new medications with existing ones
+        val incoming = parseMedications(intent)
+        if (incoming.isNotEmpty()) {
+            val existingIds = medications.map { it.doseLogId }.toSet()
+            val newMeds = incoming.filter { it.doseLogId !in existingIds }
+            medications = if (newMeds.isNotEmpty()) {
+                medications + newMeds
+            } else {
+                incoming // full replacement if all IDs match (e.g. updated data)
+            }
         }
     }
 
