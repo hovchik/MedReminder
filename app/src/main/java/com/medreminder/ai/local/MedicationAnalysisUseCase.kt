@@ -2,6 +2,8 @@ package com.medreminder.ai.local
 
 import com.medreminder.ai.*
 import com.medreminder.ai.AiLanguageHelper
+import com.medreminder.billing.SubscriptionLimitException
+import com.medreminder.billing.SubscriptionRepository
 import com.medreminder.data.local.DoseLogDao
 import com.medreminder.data.local.MedicationDao
 import com.medreminder.data.preferences.UserPreferencesManager
@@ -20,6 +22,7 @@ import javax.inject.Singleton
 class MedicationAnalysisUseCase @Inject constructor(
     private val repository: MedicationRepository,
     private val providerSelector: AiProviderSelector,
+    private val subscriptionRepository: SubscriptionRepository,
     private val doseLogDao: DoseLogDao,
     private val medicationDao: MedicationDao,
     private val userPreferencesManager: UserPreferencesManager
@@ -43,7 +46,25 @@ class MedicationAnalysisUseCase @Inject constructor(
 
     suspend fun analyze(medicationId: Long): MedicationAnalysisResult {
         getCachedResult(medicationId)?.let { return it }
+
+        // Check deep analysis quota
+        if (!subscriptionRepository.canPerformDeepAnalysis()) {
+            throw SubscriptionLimitException(
+                "You've reached your medication deep analysis limit for this month. Upgrade to Premium for unlimited analyses."
+            )
+        }
+
         val provider = providerSelector.selectProvider()
+
+        // If using Cloud AI, verify subscription allows it
+        if (provider.type == AiProviderType.CLOUD) {
+            val tier = subscriptionRepository.getCurrentTierOnce()
+            if (!com.medreminder.domain.model.SubscriptionPlans.hasCloudAi(tier)) {
+                throw SubscriptionLimitException(
+                    "Cloud AI requires a Pro or Premium subscription. Please upgrade your plan or switch to on-device AI."
+                )
+            }
+        }
 
         val now = System.currentTimeMillis()
         val start30Days = DateUtils.daysAgo(30)
@@ -108,6 +129,7 @@ class MedicationAnalysisUseCase @Inject constructor(
         // Generate the medication-specific result
         val result = generateMedicationResult(input, provider, prompt, startTime)
         cache[medicationId] = CachedAnalysis(result, System.currentTimeMillis())
+        subscriptionRepository.incrementDeepAnalysisCount()
         return result
     }
 

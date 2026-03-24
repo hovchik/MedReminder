@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.medreminder.R
 import com.medreminder.alarm.AlarmScheduler
+import com.medreminder.billing.SubscriptionRepository
 import com.medreminder.domain.model.*
 import com.medreminder.domain.repository.MedicationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -53,6 +54,7 @@ data class ScheduleInput(
 class AddEditMedicationViewModel @Inject constructor(
     private val repository: MedicationRepository,
     private val alarmScheduler: AlarmScheduler,
+    private val subscriptionRepository: SubscriptionRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -213,6 +215,23 @@ class AddEditMedicationViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                // Check medication limit for new medications (not edits)
+                if (!state.isEditing) {
+                    val limit = subscriptionRepository.getMedicationLimit().first()
+                    if (limit != null) {
+                        val currentCount = repository.getActiveMedicationCount().first()
+                        if (currentCount >= limit) {
+                            _uiState.update {
+                                it.copy(
+                                    isSaving = false,
+                                    error = context.getString(R.string.medication_limit_reached, limit)
+                                )
+                            }
+                            return@launch
+                        }
+                    }
+                }
+
                 val medication = Medication(
                     id = editingMedicationId ?: 0,
                     name = state.name.trim(),

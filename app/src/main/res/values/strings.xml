@@ -581,4 +581,9 @@
     <string name="subscription_api_cost">Raw API cost: ~$%1$s (we handle it for you)</string>
     <string name="subscription_settings_title">Subscription</string>
     <string name="subscription_settings_subtitle">Manage your plan &amp; Cloud AI access</string>
+
+    <!-- Subscription Enforcement -->
+    <string name="medication_limit_reached">You\'ve reached the limit of %1$d medications on your current plan. Upgrade to add more.</string>
+    <string name="cloud_ai_requires_upgrade">Cloud AI requires a Pro or Premium subscription.</string>
+    <string name="deep_analysis_limit_reached">You\'ve used all your deep analyses this month. Upgrade to Premium for unlimited.</string>
 </resources>

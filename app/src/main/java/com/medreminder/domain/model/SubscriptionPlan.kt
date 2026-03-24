@@ -17,11 +17,16 @@ package com.medreminder.domain.model
  * All other features are kept affordable.
  */
 
-enum class SubscriptionTier {
-    FREE,
-    BASIC,
-    PRO,
-    PREMIUM
+enum class SubscriptionTier(val productId: String?) {
+    FREE(null),
+    BASIC("medreminder_basic_monthly"),
+    PRO("medreminder_pro_monthly"),
+    PREMIUM("medreminder_premium_monthly");
+
+    companion object {
+        fun fromProductId(productId: String): SubscriptionTier? =
+            entries.find { it.productId == productId }
+    }
 }
 
 data class SubscriptionPlan(
@@ -153,4 +158,27 @@ object SubscriptionPlans {
     fun estimateMonthlyCost(tokens: Long): Float {
         return (tokens / 1000f) * COST_PER_1K_TOKENS_USD
     }
+
+    /** Maximum medication count for a given tier. null = unlimited. */
+    fun maxMedications(tier: SubscriptionTier): Int? = when (tier) {
+        SubscriptionTier.FREE -> 10
+        else -> null
+    }
+
+    /** Whether Cloud AI features are available for this tier. */
+    fun hasCloudAi(tier: SubscriptionTier): Boolean = when (tier) {
+        SubscriptionTier.PRO, SubscriptionTier.PREMIUM -> true
+        else -> false
+    }
+
+    /** Max medication deep analyses per month. null = unlimited. */
+    fun maxDeepAnalysesPerMonth(tier: SubscriptionTier): Int? = when (tier) {
+        SubscriptionTier.FREE, SubscriptionTier.BASIC -> 0
+        SubscriptionTier.PRO -> 5
+        SubscriptionTier.PREMIUM -> null
+    }
+
+    /** All product IDs for querying Google Play. */
+    val allProductIds: List<String>
+        get() = SubscriptionTier.entries.mapNotNull { it.productId }
 }
