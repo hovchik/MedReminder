@@ -35,7 +35,7 @@ class CloudAiProvider @Inject constructor() : AiProvider {
 
     override val type = AiProviderType.CLOUD
     override val displayName: String
-        get() = "Cloud AI (${activeService.displayName})"
+        get() = "Cloud AI"
 
     @Volatile
     var activeService: CloudAiService = CloudAiService.CLAUDE
