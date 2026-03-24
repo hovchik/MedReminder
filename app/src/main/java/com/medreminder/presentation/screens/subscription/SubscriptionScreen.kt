@@ -1,8 +1,8 @@
 package com.medreminder.presentation.screens.subscription
 
+import android.app.Activity
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,15 +13,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.medreminder.R
 import com.medreminder.domain.model.SubscriptionFeature
 import com.medreminder.domain.model.SubscriptionPlan
@@ -31,10 +30,13 @@ import com.medreminder.domain.model.SubscriptionTier
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubscriptionScreen(
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    viewModel: SubscriptionViewModel = hiltViewModel()
 ) {
     val plans = remember { SubscriptionPlans.getAllPlans() }
-    var selectedTier by remember { mutableStateOf(SubscriptionTier.PRO) }
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val activity = context as? Activity
 
     Scaffold(
         topBar = {
@@ -84,8 +86,10 @@ fun SubscriptionScreen(
             plans.forEach { plan ->
                 PlanCard(
                     plan = plan,
-                    isSelected = selectedTier == plan.tier,
-                    onSelect = { selectedTier = plan.tier }
+                    isSelected = uiState.selectedTier == plan.tier,
+                    isCurrent = uiState.currentTier == plan.tier,
+                    googlePrice = uiState.prices[plan.tier],
+                    onSelect = { viewModel.selectTier(plan.tier) }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -93,23 +97,41 @@ fun SubscriptionScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Subscribe button
-            val selectedPlan = plans.first { it.tier == selectedTier }
+            val selectedPlan = plans.first { it.tier == uiState.selectedTier }
+            val isCurrentPlan = uiState.selectedTier == uiState.currentTier
+            val displayPrice = uiState.prices[uiState.selectedTier] ?: selectedPlan.pricePerMonth
+
             Button(
-                onClick = { /* TODO: Integrate billing */ },
+                onClick = {
+                    if (activity != null) {
+                        viewModel.purchase(activity)
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                enabled = selectedTier != SubscriptionTier.FREE
+                enabled = !isCurrentPlan && uiState.selectedTier != SubscriptionTier.FREE && uiState.isBillingReady
             ) {
                 Text(
-                    text = if (selectedTier == SubscriptionTier.FREE) {
-                        stringResource(R.string.subscription_current_plan)
-                    } else {
-                        stringResource(R.string.subscription_subscribe, selectedPlan.pricePerMonth)
+                    text = when {
+                        isCurrentPlan -> stringResource(R.string.subscription_current_plan)
+                        uiState.selectedTier == SubscriptionTier.FREE -> stringResource(R.string.subscription_current_plan)
+                        else -> stringResource(R.string.subscription_subscribe, displayPrice)
                     },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Error message
+            uiState.purchaseError?.let { error ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center
                 )
             }
 
@@ -228,6 +250,8 @@ private fun TokenRow(label: String, tokens: String, count: String) {
 private fun PlanCard(
     plan: SubscriptionPlan,
     isSelected: Boolean,
+    isCurrent: Boolean,
+    googlePrice: String?,
     onSelect: () -> Unit
 ) {
     val borderColor by animateColorAsState(
@@ -282,6 +306,21 @@ private fun PlanCard(
                                 )
                             }
                         }
+                        if (isCurrent) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.tertiary
+                            ) {
+                                Text(
+                                    stringResource(R.string.subscription_current_plan),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onTertiary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                     Text(
                         plan.description,
@@ -292,7 +331,7 @@ private fun PlanCard(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        plan.pricePerMonth,
+                        googlePrice ?: plan.pricePerMonth,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (plan.tier == SubscriptionTier.FREE)

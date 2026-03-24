@@ -4,8 +4,10 @@ import com.medreminder.ai.*
 import com.medreminder.data.local.DoseLogDao
 import com.medreminder.data.local.MedicationDao
 import com.medreminder.data.local.ScheduleDao
+import com.medreminder.billing.SubscriptionRepository
 import com.medreminder.data.local.entity.DoseLogEntity
 import com.medreminder.data.preferences.UserPreferencesManager
+import com.medreminder.domain.model.SubscriptionPlans
 import com.medreminder.domain.repository.MedicationRepository
 import com.medreminder.util.DateUtils
 import kotlinx.coroutines.flow.first
@@ -18,6 +20,7 @@ import javax.inject.Singleton
 class DailyAnalysisUseCase @Inject constructor(
     private val repository: MedicationRepository,
     private val providerSelector: AiProviderSelector,
+    private val subscriptionRepository: SubscriptionRepository,
     private val doseLogDao: DoseLogDao,
     private val medicationDao: MedicationDao,
     private val scheduleDao: ScheduleDao,
@@ -51,6 +54,19 @@ class DailyAnalysisUseCase @Inject constructor(
         isSelf: Boolean
     ): AnalysisResult {
         val provider = providerSelector.selectProvider()
+
+        // If using Cloud AI, verify subscription allows it
+        if (provider.type == AiProviderType.CLOUD) {
+            val tier = subscriptionRepository.getCurrentTierOnce()
+            if (!SubscriptionPlans.hasCloudAi(tier)) {
+                return AnalysisResult(
+                    summary = "Cloud AI requires a Pro or Premium subscription. Please upgrade your plan or switch to on-device AI in Settings.",
+                    recommendations = emptyList(),
+                    providerUsed = provider.type,
+                    latencyMs = 0
+                )
+            }
+        }
 
         val startOfDay = DateUtils.getStartOfDay()
         val endOfDay = DateUtils.getEndOfDay()

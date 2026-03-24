@@ -96,6 +96,9 @@ dependencies {
     // ML Kit Barcode Scanning
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
 
+    // Google Play Billing
+    implementation("com.android.billingclient:billing-ktx:7.0.0")
+
     // MediaPipe LLM Inference (on-device AI for .task models)
     implementation("com.google.mediapipe:tasks-genai:0.10.27")
 
