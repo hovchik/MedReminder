@@ -8,7 +8,7 @@ package com.medreminder.domain.model
  * - Each weekly report  ≈ 2,100 tokens (1,500 input + 600 output)
  * - Each medication deep analysis ≈ 2,000 tokens (1,200 input + 800 output)
  *
- * At Claude Sonnet rates ($3/M input, $15/M output):
+ * At typical Cloud AI rates (blended average across providers):
  * - Light user (~65K tokens/mo) costs ~$0.50/mo
  * - Heavy user (~200K tokens/mo) costs ~$1.50/mo
  * - Power user (~500K+ tokens/mo) costs ~$4.00/mo
@@ -105,7 +105,7 @@ object SubscriptionPlans {
                 SubscriptionFeature("Cloud AI weekly reports"),
                 SubscriptionFeature("5 medication deep analyses/mo"),
                 SubscriptionFeature("~150K tokens/month included"),
-                SubscriptionFeature("Choose AI provider (Claude, GPT, Gemini)"),
+                SubscriptionFeature("Choose AI provider"),
                 SubscriptionFeature("3D anatomy visualization"),
                 SubscriptionFeature("Priority notifications"),
                 SubscriptionFeature("Unlimited deep analyses", included = false)
