@@ -25,7 +25,7 @@ class CustomLocalModelProvider @Inject constructor(
 
     override val type = AiProviderType.CUSTOM_LOCAL
     override val displayName: String
-        get() = activeModel?.name ?: "Local Model"
+        get() = activeModel?.displayName ?: "Local Model"
 
     private var activeRuntime: LocalModelRuntime? = null
     private var activeModel: LocalAiModel? = null
