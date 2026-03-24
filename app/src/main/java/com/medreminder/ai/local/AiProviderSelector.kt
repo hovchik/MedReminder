@@ -272,6 +272,10 @@ class AiProviderSelector @Inject constructor(
         val provider = getActiveProvider(selectedType)
         val activeName = when (provider.type) {
             AiProviderType.CLOUD -> "Cloud AI (${cloudProvider.activeService.displayName})"
+            AiProviderType.CUSTOM_LOCAL -> {
+                val modelName = customLocalProvider.getActiveModel()?.displayName
+                if (modelName != null) "Local AI ($modelName)" else "Local AI"
+            }
             else -> provider.displayName
         }
         return ProviderInfo(
