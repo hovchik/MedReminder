@@ -191,8 +191,11 @@ class AlarmReceiver : BroadcastReceiver() {
         val notificationId = if (doseLogIds.size > 1) {
             COMBINED_NOTIFICATION_ID
         } else {
-            NOTIFICATION_ID_BASE + doseLogIds.first().toInt()
+            NOTIFICATION_ID_BASE + (doseLogIds.first().toInt() and 0xFFFF)
         }
+
+        // Use stable request code base to avoid Int overflow (notificationId * 10 could overflow)
+        val requestCodeBase = (notificationId and 0x0FFFFFFF) * 4
 
         // Taken action
         val takenIntent = Intent(context, TakenReceiver::class.java).apply {
@@ -201,7 +204,7 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_NAMES, names)
         }
         val takenPending = PendingIntent.getBroadcast(
-            context, notificationId * 10, takenIntent,
+            context, requestCodeBase, takenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -215,16 +218,18 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_COLORS, colors)
         }
         val snoozePending = PendingIntent.getBroadcast(
-            context, notificationId * 10 + 1, snoozeIntent,
+            context, requestCodeBase + 1, snoozeIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         // Cancel action
         val cancelIntent = Intent(context, CancelReceiver::class.java).apply {
             putExtra(FullScreenAlarmActivity.EXTRA_DOSE_LOG_IDS, doseLogIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_IDS, medicationIds)
+            putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_NAMES, names)
         }
         val cancelPending = PendingIntent.getBroadcast(
-            context, notificationId * 10 + 3, cancelIntent,
+            context, requestCodeBase + 2, cancelIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -241,7 +246,7 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra(FullScreenAlarmActivity.EXTRA_MEDICATION_COLORS, colors)
         }
         val fullScreenPending = PendingIntent.getActivity(
-            context, notificationId * 10 + 2, fullScreenIntent,
+            context, requestCodeBase + 3, fullScreenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 

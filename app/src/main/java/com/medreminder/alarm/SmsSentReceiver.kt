@@ -1,18 +1,15 @@
 package com.medreminder.alarm
 
-import android.Manifest
 import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import com.medreminder.R
 
 class SmsSentReceiver : BroadcastReceiver() {
@@ -46,25 +43,10 @@ class SmsSentReceiver : BroadcastReceiver() {
 
         Log.w(TAG, "SMS to $phone failed: $errorReason. Attempting phone call fallback.")
 
-        // Attempt to make a phone call as fallback
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
-            try {
-                val callIntent = Intent(Intent.ACTION_CALL).apply {
-                    data = Uri.parse("tel:$phone")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(callIntent)
-                Log.d(TAG, "Fallback call initiated to $phone")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to initiate fallback call to $phone", e)
-                showFailureNotification(context, phone, caregiverName, medicationName)
-            }
-        } else {
-            Log.w(TAG, "CALL_PHONE permission not granted, showing notification instead")
-            showFailureNotification(context, phone, caregiverName, medicationName)
-        }
+        // Show a notification so the user can manually initiate the call.
+        // Starting activities (ACTION_CALL/ACTION_DIAL) directly from a BroadcastReceiver
+        // is restricted on Android 10+ and unreliable from background context.
+        showFailureNotification(context, phone, caregiverName, medicationName)
     }
 
     private fun showFailureNotification(
@@ -87,8 +69,9 @@ class SmsSentReceiver : BroadcastReceiver() {
             nm.createNotificationChannel(channel)
         }
 
-        // Create a call intent so user can tap the notification to call
-        val callIntent = Intent(Intent.ACTION_CALL).apply {
+        // Use ACTION_DIAL (not ACTION_CALL) so it works without CALL_PHONE permission
+        // and the user explicitly confirms the call
+        val callIntent = Intent(Intent.ACTION_DIAL).apply {
             data = Uri.parse("tel:$phone")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
@@ -111,6 +94,6 @@ class SmsSentReceiver : BroadcastReceiver() {
             .setAutoCancel(true)
             .build()
 
-        nm.notify(NOTIFICATION_ID_BASE + phone.hashCode(), notification)
+        nm.notify(NOTIFICATION_ID_BASE + (phone.hashCode() and 0x7FFFFFFF) % 1000, notification)
     }
 }
