@@ -35,6 +35,7 @@ import com.medreminder.ai.setupwizard.LocalAiSetupWizard
 import com.medreminder.presentation.screens.insights.AiInsightsScreen
 import com.medreminder.presentation.screens.medanalysis.MedicationAnalysisScreen
 import com.medreminder.presentation.screens.settings.SettingsScreen
+import com.medreminder.presentation.screens.subscription.SubscriptionScreen
 
 sealed class Screen(val route: String) {
     data object Onboarding : Screen("onboarding")
@@ -58,6 +59,7 @@ sealed class Screen(val route: String) {
     data object Settings : Screen("settings")
     data object LocalAiSetup : Screen("local_ai_setup")
     data object AiInsights : Screen("ai_insights")
+    data object Subscription : Screen("subscription")
     data object MedicationAnalysis : Screen("medication_analysis/{medicationId}") {
         fun createRoute(medicationId: Long) = "medication_analysis/$medicationId"
     }
@@ -218,7 +220,13 @@ fun MedReminderNavigation() {
             composable(Screen.Caregiver.route) { CaregiverScreen() }
             composable(Screen.Settings.route) {
                 SettingsScreen(
-                    onNavigateToAiSetup = { navController.navigate(Screen.LocalAiSetup.route) }
+                    onNavigateToAiSetup = { navController.navigate(Screen.LocalAiSetup.route) },
+                    onNavigateToSubscription = { navController.navigate(Screen.Subscription.route) }
+                )
+            }
+            composable(Screen.Subscription.route) {
+                SubscriptionScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(Screen.LocalAiSetup.route) {

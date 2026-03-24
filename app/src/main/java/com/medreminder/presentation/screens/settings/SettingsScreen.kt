@@ -214,6 +214,7 @@ val supportedLanguages = listOf(
 @Composable
 fun SettingsScreen(
     onNavigateToAiSetup: () -> Unit = {},
+    onNavigateToSubscription: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -486,7 +487,15 @@ fun SettingsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        // Subscription
+        SettingsItem(
+            icon = Icons.Default.Star,
+            title = stringResource(R.string.subscription_settings_title),
+            subtitle = stringResource(R.string.subscription_settings_subtitle),
+            onClick = onNavigateToSubscription
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         // User section
         Text(stringResource(R.string.user_profile), style = MaterialTheme.typography.titleMedium,

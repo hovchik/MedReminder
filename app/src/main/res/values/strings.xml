@@ -561,4 +561,24 @@
     <string name="permissions_can_change">You can change permissions later in Settings</string>
     <string name="permissions">Permissions</string>
     <string name="permissions_settings_subtitle">Manage app permissions</string>
+
+    <!-- Subscription Screen -->
+    <string name="subscription_title">Subscription Plans</string>
+    <string name="subscription_headline">Choose Your Plan</string>
+    <string name="subscription_subheadline">Cloud AI features are priced based on actual token usage. All other features stay affordable.</string>
+    <string name="subscription_popular">POPULAR</string>
+    <string name="subscription_per_month">/month</string>
+    <string name="subscription_current_plan">Current Plan</string>
+    <string name="subscription_subscribe">Subscribe for %1$s/month</string>
+    <string name="subscription_fine_print">Cancel anytime. Prices may vary by region. Cloud AI usage is metered by tokens consumed per prompt.</string>
+    <string name="subscription_token_breakdown_title">How Cloud AI Pricing Works</string>
+    <string name="subscription_daily_analysis">Daily adherence analysis</string>
+    <string name="subscription_weekly_report">Weekly health report</string>
+    <string name="subscription_med_analysis">Medication deep analysis</string>
+    <string name="subscription_per_call">/ call</string>
+    <string name="subscription_typical_monthly">Typical monthly usage</string>
+    <string name="subscription_tokens_estimate">~%1$s tokens</string>
+    <string name="subscription_api_cost">Raw API cost: ~$%1$s (we handle it for you)</string>
+    <string name="subscription_settings_title">Subscription</string>
+    <string name="subscription_settings_subtitle">Manage your plan &amp; Cloud AI access</string>
 </resources>
