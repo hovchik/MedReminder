@@ -270,9 +270,13 @@ class AiProviderSelector @Inject constructor(
 
     fun getActiveProviderInfo(selectedType: AiProviderType = AiProviderType.AUTO): ProviderInfo {
         val provider = getActiveProvider(selectedType)
+        val activeName = when (provider.type) {
+            AiProviderType.CLOUD -> "Cloud AI (${cloudProvider.activeService.displayName})"
+            else -> provider.displayName
+        }
         return ProviderInfo(
             type = provider.type,
-            displayName = provider.displayName,
+            displayName = activeName,
             isAvailable = provider.isAvailable(),
             isLocal = provider.type != AiProviderType.CLOUD,
             privacyNote = if (provider.type != AiProviderType.CLOUD) {
