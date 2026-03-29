@@ -89,12 +89,12 @@ dependencies {
     implementation("androidx.hilt:hilt-work:1.1.0")
     ksp("androidx.hilt:hilt-compiler:1.1.0")
 
-    // ML Kit Text Recognition (OCR)
-    implementation("com.google.mlkit:text-recognition:16.0.0")
-    implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
+    // ML Kit Text Recognition (OCR) — 16.0.1+ ships 16 KB-aligned native libs
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
 
-    // ML Kit Barcode Scanning
-    implementation("com.google.mlkit:barcode-scanning:17.2.0")
+    // ML Kit Barcode Scanning — 17.3.0+ ships 16 KB-aligned native libs
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     // Google Play Billing
     implementation("com.android.billingclient:billing-ktx:7.0.0")
