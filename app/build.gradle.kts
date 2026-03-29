@@ -52,18 +52,6 @@ android {
     }
 }
 
-// Force 16 KB-aligned versions of shared ML Kit / ODML native libraries
-// that may be pulled in at older versions via transitive dependencies.
-configurations.all {
-    resolutionStrategy.eachDependency {
-        if (requested.group == "com.google.android.odml"
-            && requested.name == "image") {
-            useVersion("1.0.0-beta2")
-            because("older versions ship libimage_processing_util_jni.so without 16 KB alignment")
-        }
-    }
-}
-
 dependencies {
     // Core
     implementation("androidx.core:core-ktx:1.12.0")
