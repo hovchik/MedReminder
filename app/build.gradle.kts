@@ -52,6 +52,18 @@ android {
     }
 }
 
+// Force 16 KB-aligned versions of shared ML Kit / ODML native libraries
+// that may be pulled in at older versions via transitive dependencies.
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "com.google.android.odml"
+            && requested.name == "image") {
+            useVersion("1.0.0-beta2")
+            because("older versions ship libimage_processing_util_jni.so without 16 KB alignment")
+        }
+    }
+}
+
 dependencies {
     // Core
     implementation("androidx.core:core-ktx:1.12.0")
@@ -105,11 +117,11 @@ dependencies {
     // Tesseract OCR for Armenian, Russian, Farsi scripts
     implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
 
-    // CameraX
-    implementation("androidx.camera:camera-core:1.3.1")
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")
-    implementation("androidx.camera:camera-view:1.3.1")
+    // CameraX — 1.4.1+ ships 16 KB-aligned native libs
+    implementation("androidx.camera:camera-core:1.4.1")
+    implementation("androidx.camera:camera-camera2:1.4.1")
+    implementation("androidx.camera:camera-lifecycle:1.4.1")
+    implementation("androidx.camera:camera-view:1.4.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
