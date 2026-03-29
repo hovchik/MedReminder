@@ -89,6 +89,8 @@
     <string name="instructions_hint">Instructions (e.g., take with food)</string>
     <string name="stock_tracking">Stock tracking</string>
     <string name="current_stock">Current stock</string>
+    <string name="stock_remaining">%1$d left</string>
+    <string name="stock_low">Low stock: %1$d left</string>
     <string name="refill_at">Refill at</string>
     <string name="remind_to_refill">Remind me to refill</string>
     <string name="notes">Notes</string>
