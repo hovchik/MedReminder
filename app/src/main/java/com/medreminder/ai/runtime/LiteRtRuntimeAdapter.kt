@@ -22,7 +22,7 @@ class LiteRtRuntimeAdapter(
 
     companion object {
         private const val TAG = "LiteRtRuntime"
-        private const val MAX_TOKENS = 1024
+        private const val MAX_TOKENS = 4096
         private const val MAX_TOP_K = 64
         private const val TOP_K = 40
         private const val TEMPERATURE = 0.7f

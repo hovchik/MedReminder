@@ -301,8 +301,11 @@ fun HomeScreen(
                         TimeSectionHeader(section = section, doseCount = doses.size)
                     }
                     items(doses, key = { it.id }) { dose ->
+                        val medication = viewModel.getMedicationForDose(dose)
                         DoseCard(
                             dose = dose,
+                            currentStock = medication?.currentStock ?: 0,
+                            refillThreshold = medication?.refillThreshold ?: 0,
                             onClick = { selectedDose = dose },
                             onTaken = { viewModel.markDoseTaken(dose.id) },
                             onCancel = { viewModel.markDoseSkipped(dose.id) },
@@ -676,6 +679,8 @@ private fun StatPill(
 @Composable
 fun DoseCard(
     dose: DoseLog,
+    currentStock: Int = 0,
+    refillThreshold: Int = 0,
     onClick: () -> Unit,
     onTaken: () -> Unit,
     onCancel: () -> Unit,
@@ -753,6 +758,30 @@ fun DoseCard(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+
+                    // Stock indicator
+                    if (currentStock > 0) {
+                        val isLowStock = currentStock <= refillThreshold
+                        val stockColor = if (isLowStock) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Inventory2,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp),
+                                tint = stockColor
+                            )
+                            Text(
+                                text = if (isLowStock) stringResource(R.string.stock_low, currentStock)
+                                    else stringResource(R.string.stock_remaining, currentStock),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = stockColor
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(4.dp))

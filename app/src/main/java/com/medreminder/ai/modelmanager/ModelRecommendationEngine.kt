@@ -41,13 +41,17 @@ class ModelRecommendationEngine @Inject constructor(
 ) {
 
     /**
-     * Catalog of verified, publicly downloadable models on HuggingFace.
-     * All URLs are non-gated (no auth token required).
+     * Catalog of downloadable models on HuggingFace.
      *
-     * Note: Gemma models were removed — litert-community Gemma repos are gated
-     * (require HuggingFace login + Gemma license acceptance, return HTTP 401).
-     * Phi-2, Falcon-RW-1B, StableLM-3B were removed — broken with MediaPipe
-     * (infinite loops, defunct URLs).
+     * Only .task format models are listed — these work with the MediaPipe
+     * LlmInference API bundled in the app. Gated models (e.g. Gemma) require
+     * a HuggingFace access token configured in Settings.
+     *
+     * .litertlm models (Gemma 3n, Qwen 3.5 VL) are NOT supported yet because
+     * they require the LiteRT LM SDK (com.google.ai.edge.litert) which needs
+     * Kotlin 2.2+. The project currently uses Kotlin 1.9.22.
+     *
+     * Removed: Phi-2, Falcon-RW-1B, StableLM-3B (broken with MediaPipe).
      */
     fun getFullModelCatalog(): List<LocalAiModel> = listOf(
         // --- SmolLM 135M — ultra-tiny, instant on any device ---
@@ -134,6 +138,97 @@ class ModelRecommendationEngine @Inject constructor(
             supportsTextGeneration = true,
             parameterCount = "4B",
             isThinkingModel = true
+        ),
+        // --- Llama 3.2 1B — Meta's mobile-optimized Llama, compact ---
+        LocalAiModel(
+            modelId = "llama3.2-1b-q8",
+            displayName = "Llama 3.2 1B (Q8)",
+            description = "Meta's Llama 3.2 1B, optimized for mobile. Good quality for its size, Q8 quantized.",
+            runtimeType = RuntimeType.MEDIA_PIPE,
+            fileFormat = "task",
+            quantization = "Q8",
+            requiredRamMb = 2048,
+            recommendedRamMb = 4096,
+            sizeMb = 2212,
+            downloadUrl = "https://huggingface.co/vimal-yuvabe/llama-3.2-1b-tflite/resolve/main/llama-3.2-1b-q8.task",
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "3.2",
+            supportsStructuredJson = false,
+            supportsStreaming = true,
+            supportsTextGeneration = true,
+            parameterCount = "1B"
+        ),
+        // --- Llama 3.2 3B — Meta's mobile-optimized Llama, higher quality ---
+        LocalAiModel(
+            modelId = "llama3.2-3b-q8",
+            displayName = "Llama 3.2 3B (Q8)",
+            description = "Meta's Llama 3.2 3B, optimized for mobile. Strong reasoning for on-device use, Q8 quantized.",
+            runtimeType = RuntimeType.MEDIA_PIPE,
+            fileFormat = "task",
+            quantization = "Q8",
+            requiredRamMb = 4096,
+            recommendedRamMb = 6144,
+            sizeMb = 5622,
+            downloadUrl = "https://huggingface.co/vimal-yuvabe/llama-3.2-3b-tflite/resolve/main/llama-3.2-3B-q8.task",
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "3.2",
+            supportsStructuredJson = false,
+            supportsStreaming = true,
+            supportsTextGeneration = true,
+            parameterCount = "3B"
+        ),
+        // --- Gemma 3 1B — compact Google model, gated (requires HuggingFace token) ---
+        LocalAiModel(
+            modelId = "gemma3-1b-it-int4",
+            displayName = "Gemma 3 1B (INT4)",
+            description = "Google's Gemma 3 1B instruction-tuned. Good for nutrition text parsing and medication names. Requires HuggingFace token.",
+            runtimeType = RuntimeType.MEDIA_PIPE,
+            fileFormat = "task",
+            quantization = "INT4",
+            requiredRamMb = 512,
+            recommendedRamMb = 1024,
+            sizeMb = 529,
+            downloadUrl = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task",
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "3.0",
+            supportsStructuredJson = false,
+            supportsStreaming = true,
+            supportsTextGeneration = true,
+            parameterCount = "1B"
+        ),
+        // NOTE: Gemma 3n (.litertlm) and Qwen 3.5 VL (.litertlm) models are NOT
+        // listed here because .litertlm requires the LiteRT LM SDK
+        // (com.google.ai.edge.litert) which needs Kotlin 2.2+. The current project
+        // uses Kotlin 1.9.22 + MediaPipe LlmInference which only supports .task files.
+        // These models can be re-added once the project upgrades to Kotlin 2.2+ and
+        // integrates the LiteRT LM SDK.
+        //
+        // --- Phi-4 Mini — medical text reasoning, open (no auth) ---
+        LocalAiModel(
+            modelId = "phi4-mini-q8",
+            displayName = "Phi-4 Mini (Q8)",
+            description = "Microsoft Phi-4 Mini instruction-tuned. Strong medical text reasoning and medication parsing. No auth required.",
+            runtimeType = RuntimeType.MEDIA_PIPE,
+            fileFormat = "task",
+            quantization = "Q8",
+            requiredRamMb = 4096,
+            recommendedRamMb = 6144,
+            sizeMb = 3700,
+            downloadUrl = "https://huggingface.co/litert-community/Phi-4-mini-instruct/resolve/main/Phi-4-mini-instruct_multi-prefill-seq_q8_ekv1280.task",
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "4.0",
+            supportsStructuredJson = false,
+            supportsStreaming = true,
+            supportsTextGeneration = true,
+            parameterCount = "3.8B"
         )
     )
 

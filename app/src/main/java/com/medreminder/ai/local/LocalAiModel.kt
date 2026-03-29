@@ -38,7 +38,8 @@ data class LocalAiModel(
     val supportsTextGeneration: Boolean,
     val parameterCount: String = "",
     val downloadedBytes: Long = 0,
-    val isThinkingModel: Boolean = false
+    val isThinkingModel: Boolean = false,
+    val supportsVision: Boolean = false
 )
 
 @Entity(tableName = "local_ai_models")
@@ -62,7 +63,8 @@ data class LocalAiModelEntity(
     val supportsTextGeneration: Boolean,
     val parameterCount: String = "",
     val downloadedBytes: Long = 0,
-    val isThinkingModel: Boolean = false
+    val isThinkingModel: Boolean = false,
+    val supportsVision: Boolean = false
 )
 
 fun LocalAiModelEntity.toDomain() = LocalAiModel(
@@ -85,7 +87,8 @@ fun LocalAiModelEntity.toDomain() = LocalAiModel(
     supportsTextGeneration = supportsTextGeneration,
     parameterCount = parameterCount,
     downloadedBytes = downloadedBytes,
-    isThinkingModel = isThinkingModel
+    isThinkingModel = isThinkingModel,
+    supportsVision = supportsVision
 )
 
 fun LocalAiModel.toEntity() = LocalAiModelEntity(
@@ -108,5 +111,6 @@ fun LocalAiModel.toEntity() = LocalAiModelEntity(
     supportsTextGeneration = supportsTextGeneration,
     parameterCount = parameterCount,
     downloadedBytes = downloadedBytes,
-    isThinkingModel = isThinkingModel
+    isThinkingModel = isThinkingModel,
+    supportsVision = supportsVision
 )
