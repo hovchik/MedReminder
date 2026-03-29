@@ -43,12 +43,15 @@ class ModelRecommendationEngine @Inject constructor(
     /**
      * Catalog of downloadable models on HuggingFace.
      *
-     * Most models are non-gated (no auth required). Gated models (e.g. Llama 3)
-     * require a HuggingFace access token configured in Settings. The download
-     * manager sends the token automatically for huggingface.co URLs.
+     * Only .task format models are listed — these work with the MediaPipe
+     * LlmInference API bundled in the app. Gated models (e.g. Gemma) require
+     * a HuggingFace access token configured in Settings.
      *
-     * Note: Phi-2, Falcon-RW-1B, StableLM-3B were removed — broken with MediaPipe
-     * (infinite loops, defunct URLs).
+     * .litertlm models (Gemma 3n, Qwen 3.5 VL) are NOT supported yet because
+     * they require the LiteRT LM SDK (com.google.ai.edge.litert) which needs
+     * Kotlin 2.2+. The project currently uses Kotlin 1.9.22.
+     *
+     * Removed: Phi-2, Falcon-RW-1B, StableLM-3B (broken with MediaPipe).
      */
     fun getFullModelCatalog(): List<LocalAiModel> = listOf(
         // --- SmolLM 135M — ultra-tiny, instant on any device ---
@@ -199,116 +202,13 @@ class ModelRecommendationEngine @Inject constructor(
             supportsTextGeneration = true,
             parameterCount = "1B"
         ),
-        // --- Gemma 3n E2B — vision-capable, gated (requires HuggingFace token) ---
-        LocalAiModel(
-            modelId = "gemma3n-e2b-it-int4",
-            displayName = "Gemma 3n E2B (INT4)",
-            description = "Google's Gemma 3n E2B with vision support. Meal photo analysis on-device. Requires HuggingFace token and Gemma license.",
-            runtimeType = RuntimeType.LITE_RT,
-            fileFormat = "litertlm",
-            quantization = "INT4",
-            requiredRamMb = 3072,
-            recommendedRamMb = 6144,
-            sizeMb = 2900,
-            downloadUrl = "https://huggingface.co/google/gemma-3n-E2B-it-litert-lm/resolve/main/gemma-3n-E2B-it-int4.litertlm",
-            localPath = "",
-            installState = InstallState.NOT_INSTALLED,
-            checksum = "",
-            version = "3.0",
-            supportsStructuredJson = false,
-            supportsStreaming = true,
-            supportsTextGeneration = true,
-            parameterCount = "2B",
-            supportsVision = true
-        ),
-        // --- Gemma 3n E4B — best vision quality, gated ---
-        LocalAiModel(
-            modelId = "gemma3n-e4b-it-int4",
-            displayName = "Gemma 3n E4B (INT4)",
-            description = "Google's Gemma 3n E4B with vision support. Best quality meal photo analysis. Requires HuggingFace token and Gemma license.",
-            runtimeType = RuntimeType.LITE_RT,
-            fileFormat = "litertlm",
-            quantization = "INT4",
-            requiredRamMb = 4096,
-            recommendedRamMb = 8192,
-            sizeMb = 4100,
-            downloadUrl = "https://huggingface.co/google/gemma-3n-E4B-it-litert-lm/resolve/main/gemma-3n-E4B-it-int4.litertlm",
-            localPath = "",
-            installState = InstallState.NOT_INSTALLED,
-            checksum = "",
-            version = "3.0",
-            supportsStructuredJson = false,
-            supportsStreaming = true,
-            supportsTextGeneration = true,
-            parameterCount = "4B",
-            supportsVision = true
-        ),
-        // --- Qwen 3.5 0.8B VL — lightweight vision, open (no auth) ---
-        LocalAiModel(
-            modelId = "qwen3.5-0.8b-vl",
-            displayName = "Qwen 3.5 0.8B VL",
-            description = "Alibaba Qwen 3.5 0.8B with vision. Lightweight meal photo analysis, no auth required.",
-            runtimeType = RuntimeType.LITE_RT,
-            fileFormat = "litertlm",
-            quantization = "INT4",
-            requiredRamMb = 1024,
-            recommendedRamMb = 2048,
-            sizeMb = 1100,
-            downloadUrl = "https://huggingface.co/litert-community/Qwen3.5-0.8B-LiteRT/resolve/main/model_multimodal.litertlm",
-            localPath = "",
-            installState = InstallState.NOT_INSTALLED,
-            checksum = "",
-            version = "3.5",
-            supportsStructuredJson = false,
-            supportsStreaming = true,
-            supportsTextGeneration = true,
-            parameterCount = "0.8B",
-            supportsVision = true
-        ),
-        // --- Qwen 3.5 2B VL — balanced vision, open ---
-        LocalAiModel(
-            modelId = "qwen3.5-2b-vl",
-            displayName = "Qwen 3.5 2B VL",
-            description = "Alibaba Qwen 3.5 2B with vision. Balanced meal photo analysis, no auth required.",
-            runtimeType = RuntimeType.LITE_RT,
-            fileFormat = "litertlm",
-            quantization = "INT4",
-            requiredRamMb = 3072,
-            recommendedRamMb = 4096,
-            sizeMb = 2600,
-            downloadUrl = "https://huggingface.co/litert-community/Qwen3.5-2B-LiteRT/resolve/main/model_multimodal.litertlm",
-            localPath = "",
-            installState = InstallState.NOT_INSTALLED,
-            checksum = "",
-            version = "3.5",
-            supportsStructuredJson = false,
-            supportsStreaming = true,
-            supportsTextGeneration = true,
-            parameterCount = "2B",
-            supportsVision = true
-        ),
-        // --- Qwen 3.5 4B VL — strongest open vision model ---
-        LocalAiModel(
-            modelId = "qwen3.5-4b-vl",
-            displayName = "Qwen 3.5 4B VL",
-            description = "Alibaba Qwen 3.5 4B with vision. Strongest open vision model for meal photo analysis, no auth required.",
-            runtimeType = RuntimeType.LITE_RT,
-            fileFormat = "litertlm",
-            quantization = "INT4",
-            requiredRamMb = 6144,
-            recommendedRamMb = 8192,
-            sizeMb = 4900,
-            downloadUrl = "https://huggingface.co/litert-community/Qwen3.5-4B-LiteRT/resolve/main/model_multimodal.litertlm",
-            localPath = "",
-            installState = InstallState.NOT_INSTALLED,
-            checksum = "",
-            version = "3.5",
-            supportsStructuredJson = false,
-            supportsStreaming = true,
-            supportsTextGeneration = true,
-            parameterCount = "4B",
-            supportsVision = true
-        ),
+        // NOTE: Gemma 3n (.litertlm) and Qwen 3.5 VL (.litertlm) models are NOT
+        // listed here because .litertlm requires the LiteRT LM SDK
+        // (com.google.ai.edge.litert) which needs Kotlin 2.2+. The current project
+        // uses Kotlin 1.9.22 + MediaPipe LlmInference which only supports .task files.
+        // These models can be re-added once the project upgrades to Kotlin 2.2+ and
+        // integrates the LiteRT LM SDK.
+        //
         // --- Phi-4 Mini — medical text reasoning, open (no auth) ---
         LocalAiModel(
             modelId = "phi4-mini-q8",
