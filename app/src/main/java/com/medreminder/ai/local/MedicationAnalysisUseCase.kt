@@ -47,21 +47,19 @@ class MedicationAnalysisUseCase @Inject constructor(
     suspend fun analyze(medicationId: Long): MedicationAnalysisResult {
         getCachedResult(medicationId)?.let { return it }
 
-        // Check deep analysis quota
-        if (!subscriptionRepository.canPerformDeepAnalysis()) {
-            throw SubscriptionLimitException(
-                "You've reached your medication deep analysis limit for this month. Upgrade to Premium for unlimited analyses."
-            )
-        }
-
         val provider = providerSelector.selectProvider()
 
-        // If using Cloud AI, verify subscription allows it
+        // Subscription checks only apply to Cloud AI — local/on-device AI is always free
         if (provider.type == AiProviderType.CLOUD) {
             val tier = subscriptionRepository.getCurrentTierOnce()
             if (!com.medreminder.domain.model.SubscriptionPlans.hasCloudAi(tier)) {
                 throw SubscriptionLimitException(
                     "Cloud AI requires a Pro or Premium subscription. Please upgrade your plan or switch to on-device AI."
+                )
+            }
+            if (!subscriptionRepository.canPerformDeepAnalysis()) {
+                throw SubscriptionLimitException(
+                    "You've reached your Cloud AI medication deep analysis limit for this month. Upgrade to Premium for unlimited analyses, or switch to on-device AI."
                 )
             }
         }
@@ -129,7 +127,10 @@ class MedicationAnalysisUseCase @Inject constructor(
         // Generate the medication-specific result
         val result = generateMedicationResult(input, provider, prompt, startTime)
         cache[medicationId] = CachedAnalysis(result, System.currentTimeMillis())
-        subscriptionRepository.incrementDeepAnalysisCount()
+        // Only count Cloud AI analyses against the monthly quota
+        if (provider.type == AiProviderType.CLOUD) {
+            subscriptionRepository.incrementDeepAnalysisCount()
+        }
         return result
     }
 
