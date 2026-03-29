@@ -136,47 +136,47 @@ class ModelRecommendationEngine @Inject constructor(
             parameterCount = "4B",
             isThinkingModel = true
         ),
-        // --- Llama 3 8B — high quality, gated (requires HuggingFace token) ---
+        // --- Llama 3.2 1B — Meta's mobile-optimized Llama, compact ---
         LocalAiModel(
-            modelId = "llama3-8b-instruct-q4",
-            displayName = "Llama 3 8B (INT4)",
-            description = "Meta's Llama 3 8B instruction-tuned model. High quality, INT4 quantized. Requires a HuggingFace token and Llama license acceptance.",
+            modelId = "llama3.2-1b-q8",
+            displayName = "Llama 3.2 1B (Q8)",
+            description = "Meta's Llama 3.2 1B, optimized for mobile. Good quality for its size, Q8 quantized.",
             runtimeType = RuntimeType.MEDIA_PIPE,
             fileFormat = "task",
-            quantization = "INT4",
-            requiredRamMb = 6144,
-            recommendedRamMb = 8192,
-            sizeMb = 4370,
-            downloadUrl = "https://huggingface.co/litert-community/Meta-Llama-3-8B-Instruct/resolve/main/Meta-Llama-3-8B-Instruct_multi-prefill-seq_q4_ekv2048.task",
+            quantization = "Q8",
+            requiredRamMb = 2048,
+            recommendedRamMb = 4096,
+            sizeMb = 2212,
+            downloadUrl = "https://huggingface.co/vimal-yuvabe/llama-3.2-1b-tflite/resolve/main/llama-3.2-1b-q8.task",
             localPath = "",
             installState = InstallState.NOT_INSTALLED,
             checksum = "",
-            version = "3.0",
+            version = "3.2",
             supportsStructuredJson = false,
             supportsStreaming = true,
             supportsTextGeneration = true,
-            parameterCount = "8B"
+            parameterCount = "1B"
         ),
-        // --- Llama 3 70B — top-tier quality, very large, gated ---
+        // --- Llama 3.2 3B — Meta's mobile-optimized Llama, higher quality ---
         LocalAiModel(
-            modelId = "llama3-70b-instruct-q4",
-            displayName = "Llama 3 70B (INT4)",
-            description = "Meta's Llama 3 70B instruction-tuned model. Top-tier quality, requires a powerful device with 16 GB+ RAM. Requires a HuggingFace token and Llama license acceptance.",
+            modelId = "llama3.2-3b-q8",
+            displayName = "Llama 3.2 3B (Q8)",
+            description = "Meta's Llama 3.2 3B, optimized for mobile. Strong reasoning for on-device use, Q8 quantized.",
             runtimeType = RuntimeType.MEDIA_PIPE,
             fileFormat = "task",
-            quantization = "INT4",
-            requiredRamMb = 16384,
-            recommendedRamMb = 24576,
-            sizeMb = 38000,
-            downloadUrl = "https://huggingface.co/litert-community/Meta-Llama-3-70B-Instruct/resolve/main/Meta-Llama-3-70B-Instruct_multi-prefill-seq_q4_ekv2048.task",
+            quantization = "Q8",
+            requiredRamMb = 4096,
+            recommendedRamMb = 6144,
+            sizeMb = 5622,
+            downloadUrl = "https://huggingface.co/vimal-yuvabe/llama-3.2-3b-tflite/resolve/main/llama-3.2-3B-q8.task",
             localPath = "",
             installState = InstallState.NOT_INSTALLED,
             checksum = "",
-            version = "3.0",
+            version = "3.2",
             supportsStructuredJson = false,
             supportsStreaming = true,
             supportsTextGeneration = true,
-            parameterCount = "70B"
+            parameterCount = "3B"
         )
     )
 
