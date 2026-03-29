@@ -41,12 +41,13 @@ class ModelRecommendationEngine @Inject constructor(
 ) {
 
     /**
-     * Catalog of verified, publicly downloadable models on HuggingFace.
-     * All URLs are non-gated (no auth token required).
+     * Catalog of downloadable models on HuggingFace.
      *
-     * Note: Gemma models were removed — litert-community Gemma repos are gated
-     * (require HuggingFace login + Gemma license acceptance, return HTTP 401).
-     * Phi-2, Falcon-RW-1B, StableLM-3B were removed — broken with MediaPipe
+     * Most models are non-gated (no auth required). Gated models (e.g. Llama 3)
+     * require a HuggingFace access token configured in Settings. The download
+     * manager sends the token automatically for huggingface.co URLs.
+     *
+     * Note: Phi-2, Falcon-RW-1B, StableLM-3B were removed — broken with MediaPipe
      * (infinite loops, defunct URLs).
      */
     fun getFullModelCatalog(): List<LocalAiModel> = listOf(
@@ -134,6 +135,48 @@ class ModelRecommendationEngine @Inject constructor(
             supportsTextGeneration = true,
             parameterCount = "4B",
             isThinkingModel = true
+        ),
+        // --- Llama 3 8B — high quality, gated (requires HuggingFace token) ---
+        LocalAiModel(
+            modelId = "llama3-8b-instruct-q4",
+            displayName = "Llama 3 8B (INT4)",
+            description = "Meta's Llama 3 8B instruction-tuned model. High quality, INT4 quantized. Requires a HuggingFace token and Llama license acceptance.",
+            runtimeType = RuntimeType.MEDIA_PIPE,
+            fileFormat = "task",
+            quantization = "INT4",
+            requiredRamMb = 6144,
+            recommendedRamMb = 8192,
+            sizeMb = 4370,
+            downloadUrl = "https://huggingface.co/litert-community/Meta-Llama-3-8B-Instruct/resolve/main/Meta-Llama-3-8B-Instruct_multi-prefill-seq_q4_ekv2048.task",
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "3.0",
+            supportsStructuredJson = false,
+            supportsStreaming = true,
+            supportsTextGeneration = true,
+            parameterCount = "8B"
+        ),
+        // --- Llama 3 70B — top-tier quality, very large, gated ---
+        LocalAiModel(
+            modelId = "llama3-70b-instruct-q4",
+            displayName = "Llama 3 70B (INT4)",
+            description = "Meta's Llama 3 70B instruction-tuned model. Top-tier quality, requires a powerful device with 16 GB+ RAM. Requires a HuggingFace token and Llama license acceptance.",
+            runtimeType = RuntimeType.MEDIA_PIPE,
+            fileFormat = "task",
+            quantization = "INT4",
+            requiredRamMb = 16384,
+            recommendedRamMb = 24576,
+            sizeMb = 38000,
+            downloadUrl = "https://huggingface.co/litert-community/Meta-Llama-3-70B-Instruct/resolve/main/Meta-Llama-3-70B-Instruct_multi-prefill-seq_q4_ekv2048.task",
+            localPath = "",
+            installState = InstallState.NOT_INSTALLED,
+            checksum = "",
+            version = "3.0",
+            supportsStructuredJson = false,
+            supportsStreaming = true,
+            supportsTextGeneration = true,
+            parameterCount = "70B"
         )
     )
 

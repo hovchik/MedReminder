@@ -146,6 +146,17 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // --- HuggingFace token ---
+
+    val huggingFaceToken: StateFlow<String?> = providerSelector.getHuggingFaceToken()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun setHuggingFaceToken(token: String) {
+        viewModelScope.launch {
+            providerSelector.setHuggingFaceToken(token)
+        }
+    }
+
     val selectedGeminiModel: StateFlow<GeminiModel> = providerSelector.getSelectedGeminiModel()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), GeminiModel.GEMINI_2_5_FLASH)
 
@@ -339,6 +350,8 @@ fun SettingsScreen(
     var showCloudServiceDialog by remember { mutableStateOf(false) }
     var showGeminiModelDialog by remember { mutableStateOf(false) }
     var showApiKeyDialog by remember { mutableStateOf(false) }
+    var showHfTokenDialog by remember { mutableStateOf(false) }
+    val hfToken by viewModel.huggingFaceToken.collectAsStateWithLifecycle()
 
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val userAge by viewModel.userAge.collectAsStateWithLifecycle()
@@ -451,6 +464,17 @@ fun SettingsScreen(
             onSave = { key ->
                 showApiKeyDialog = false
                 viewModel.setApiKey(selectedCloudService, key)
+            }
+        )
+    }
+
+    if (showHfTokenDialog) {
+        HuggingFaceTokenDialog(
+            currentToken = hfToken ?: "",
+            onDismiss = { showHfTokenDialog = false },
+            onSave = { token ->
+                showHfTokenDialog = false
+                viewModel.setHuggingFaceToken(token)
             }
         )
     }
@@ -618,6 +642,16 @@ fun SettingsScreen(
                     title = stringResource(R.string.setup_local_ai),
                     subtitle = stringResource(R.string.setup_local_ai_subtitle),
                     onClick = onNavigateToAiSetup
+                )
+                SettingsItem(
+                    icon = Icons.Default.Key,
+                    title = stringResource(R.string.hf_token),
+                    subtitle = if (!hfToken.isNullOrBlank()) {
+                        stringResource(R.string.hf_token_configured)
+                    } else {
+                        stringResource(R.string.hf_token_not_set)
+                    },
+                    onClick = { showHfTokenDialog = true }
                 )
             }
             else -> {
@@ -1506,6 +1540,68 @@ fun ApiKeyDialog(
         },
         confirmButton = {
             TextButton(onClick = { onSave(apiKey.trim()) }) {
+                Text(stringResource(R.string.save_changes))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        }
+    )
+}
+
+@Composable
+fun HuggingFaceTokenDialog(
+    currentToken: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var token by remember { mutableStateOf(currentToken) }
+    var tokenVisible by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.hf_token_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    stringResource(R.string.hf_token_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = token,
+                    onValueChange = { token = it },
+                    label = { Text(stringResource(R.string.hf_token)) },
+                    singleLine = true,
+                    visualTransformation = if (tokenVisible) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { tokenVisible = !tokenVisible }) {
+                            Icon(
+                                if (tokenVisible) Icons.Default.VisibilityOff
+                                else Icons.Default.Visibility,
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (token.isNotBlank()) {
+                    TextButton(
+                        onClick = { token = "" },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(Icons.Default.Delete, null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.remove))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(token.trim()) }) {
                 Text(stringResource(R.string.save_changes))
             }
         },

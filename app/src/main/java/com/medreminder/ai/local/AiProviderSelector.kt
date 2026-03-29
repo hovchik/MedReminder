@@ -39,6 +39,7 @@ class AiProviderSelector @Inject constructor(
         private val KEY_API_KEY_DEEPSEEK = stringPreferencesKey("api_key_deepseek")
         private val KEY_API_KEY_GEMINI = stringPreferencesKey("api_key_gemini")
         private val KEY_GEMINI_MODEL = stringPreferencesKey("gemini_model")
+        private val KEY_HF_TOKEN = stringPreferencesKey("hf_api_token")
     }
 
     fun getSelectedProviderType(): Flow<AiProviderType> =
@@ -128,6 +129,23 @@ class AiProviderSelector @Inject constructor(
         // If this is the active service, update the provider
         if (cloudProvider.activeService == service) {
             cloudProvider.setApiKey(apiKey)
+        }
+    }
+
+    // --- HuggingFace token (for gated model downloads like Llama) ---
+
+    fun getHuggingFaceToken(): Flow<String?> =
+        context.aiPrefsDataStore.data.map { prefs -> prefs[KEY_HF_TOKEN] }
+
+    suspend fun getHuggingFaceTokenOnce(): String? = getHuggingFaceToken().first()
+
+    suspend fun setHuggingFaceToken(token: String) {
+        context.aiPrefsDataStore.edit { prefs ->
+            if (token.isBlank()) {
+                prefs.remove(KEY_HF_TOKEN)
+            } else {
+                prefs[KEY_HF_TOKEN] = token
+            }
         }
     }
 

@@ -3,6 +3,7 @@ package com.medreminder.ai.modelmanager
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import com.medreminder.ai.local.AiProviderSelector
 import com.medreminder.ai.local.InstallState
 import com.medreminder.ai.local.LocalAiModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -60,7 +61,8 @@ enum class DownloadStatus {
 @Singleton
 class ModelDownloadManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val modelManager: LocalModelManager
+    private val modelManager: LocalModelManager,
+    private val providerSelector: AiProviderSelector
 ) {
     companion object {
         private const val BUFFER_SIZE = 256 * 1024           // 256 KB read buffer
@@ -79,6 +81,19 @@ class ModelDownloadManager @Inject constructor(
     private var downloadJob: Job? = null
     @Volatile private var isPaused = false
     @Volatile private var isCancelled = false
+
+    /**
+     * Cached HuggingFace token, read once at the start of each download.
+     * Avoids blocking coroutine reads inside tight download loops.
+     */
+    @Volatile private var cachedHfToken: String? = null
+
+    private fun applyHuggingFaceAuth(connection: HttpURLConnection, url: String) {
+        val token = cachedHfToken
+        if (!token.isNullOrBlank() && url.contains("huggingface.co")) {
+            connection.setRequestProperty("Authorization", "Bearer $token")
+        }
+    }
 
     private fun getModelsDir(): File {
         val dir = File(context.filesDir, "ai_models")
@@ -175,6 +190,9 @@ class ModelDownloadManager @Inject constructor(
     }
 
     private suspend fun executeDownload(model: LocalAiModel) {
+        // Read the HuggingFace token once for the duration of this download
+        cachedHfToken = providerSelector.getHuggingFaceTokenOnce()
+
         val partialFile = getPartialFile(model)
         val finalFile = getFinalFile(model)
 
@@ -296,6 +314,7 @@ class ModelDownloadManager @Inject constructor(
                 setRequestProperty("User-Agent", "MedReminder/1.0")
                 setRequestProperty("Range", "bytes=0-0")
             }
+            applyHuggingFaceAuth(connection, url)
 
             val responseCode = connection.responseCode
 
@@ -351,6 +370,7 @@ class ModelDownloadManager @Inject constructor(
             setRequestProperty("Accept", "*/*")
             setRequestProperty("Range", "bytes=$rangeStart-$rangeEnd")
         }
+        applyHuggingFaceAuth(connection, url)
 
         val code = connection.responseCode
         if (code in 301..308) {
@@ -366,6 +386,7 @@ class ModelDownloadManager @Inject constructor(
                     setRequestProperty("Accept", "*/*")
                     setRequestProperty("Range", "bytes=$rangeStart-$rangeEnd")
                 }
+                applyHuggingFaceAuth(connection, loc)
             }
         }
 
@@ -602,6 +623,7 @@ class ModelDownloadManager @Inject constructor(
                     setRequestProperty("Range", "bytes=$resumeOffset-")
                 }
             }
+            applyHuggingFaceAuth(connection, url)
 
             val responseCode = connection.responseCode
 
@@ -621,6 +643,7 @@ class ModelDownloadManager @Inject constructor(
                             setRequestProperty("Range", "bytes=$resumeOffset-")
                         }
                     }
+                    applyHuggingFaceAuth(connection, redirectUrl)
                 } else {
                     throw IOException("Redirect without Location header")
                 }
@@ -632,6 +655,15 @@ class ModelDownloadManager @Inject constructor(
                 HttpURLConnection.HTTP_OK -> {
                     if (resumeOffset > 0) partialFile.delete()
                     0L
+                }
+                HttpURLConnection.HTTP_UNAUTHORIZED, HttpURLConnection.HTTP_FORBIDDEN -> {
+                    val needsToken = url.contains("huggingface.co") && cachedHfToken.isNullOrBlank()
+                    val message = if (needsToken) {
+                        "This model requires a HuggingFace access token. Add your token in Settings > Local AI > HuggingFace Token."
+                    } else {
+                        "Access denied (HTTP $finalResponseCode). Your HuggingFace token may be invalid, or you need to accept the model's license at huggingface.co."
+                    }
+                    throw IOException(message)
                 }
                 else -> {
                     val errorBody = try {

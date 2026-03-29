@@ -404,6 +404,11 @@
     <string name="api_key_hint">Enter your %1$s API key to enable cloud analysis</string>
     <string name="api_key_configured">Configured</string>
     <string name="api_key_not_set">Not set — tap to configure</string>
+    <string name="hf_token">HuggingFace Token</string>
+    <string name="hf_token_title">HuggingFace Access Token</string>
+    <string name="hf_token_hint">Required to download gated models (e.g. Llama 3). Get your token at huggingface.co/settings/tokens. You must also accept the model license on its HuggingFace page.</string>
+    <string name="hf_token_configured">Token configured</string>
+    <string name="hf_token_not_set">Required for Llama models — tap to set</string>
     <string name="claude_desc">Anthropic Claude — advanced reasoning</string>
     <string name="chatgpt_desc">OpenAI ChatGPT — versatile AI assistant</string>
     <string name="deepseek_desc">DeepSeek — efficient and cost-effective</string>
