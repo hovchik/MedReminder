@@ -227,6 +227,7 @@ val supportedLanguages = listOf(
 fun SettingsScreen(
     onNavigateToAiSetup: () -> Unit = {},
     onNavigateToSubscription: () -> Unit = {},
+    onNavigateToLegalDocument: (String) -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -905,6 +906,34 @@ fun SettingsScreen(
                 }
             }
         }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        // Legal section
+        Text(stringResource(R.string.legal), style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(vertical = 4.dp))
+
+        SettingsItem(
+            icon = Icons.Default.Description,
+            title = stringResource(R.string.legal_terms_of_use),
+            subtitle = stringResource(R.string.legal_terms_subtitle),
+            onClick = { onNavigateToLegalDocument("TERMS_OF_USE") }
+        )
+
+        SettingsItem(
+            icon = Icons.Default.PrivacyTip,
+            title = stringResource(R.string.legal_privacy_policy),
+            subtitle = stringResource(R.string.legal_privacy_subtitle),
+            onClick = { onNavigateToLegalDocument("PRIVACY_POLICY") }
+        )
+
+        SettingsItem(
+            icon = Icons.Default.LocalHospital,
+            title = stringResource(R.string.legal_medical_disclaimer),
+            subtitle = stringResource(R.string.legal_disclaimer_subtitle),
+            onClick = { onNavigateToLegalDocument("MEDICAL_DISCLAIMER") }
+        )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 

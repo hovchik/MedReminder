@@ -22,10 +22,22 @@ class UserPreferencesManager @Inject constructor(
         private val KEY_USER_NAME = stringPreferencesKey("user_name")
         private val KEY_USER_AGE = intPreferencesKey("user_age")
         private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        private val KEY_LEGAL_ACCEPTED_VERSION = intPreferencesKey("legal_accepted_version")
+        private val KEY_LEGAL_ACCEPTED_AT = longPreferencesKey("legal_accepted_at")
+
+        const val CURRENT_LEGAL_VERSION = 1
     }
 
     val isOnboardingCompleted: Flow<Boolean> =
         context.userPrefsDataStore.data.map { it[KEY_ONBOARDING_COMPLETED] ?: false }
+
+    val isLegalAccepted: Flow<Boolean> =
+        context.userPrefsDataStore.data.map {
+            (it[KEY_LEGAL_ACCEPTED_VERSION] ?: 0) >= CURRENT_LEGAL_VERSION
+        }
+
+    val legalAcceptedAt: Flow<Long> =
+        context.userPrefsDataStore.data.map { it[KEY_LEGAL_ACCEPTED_AT] ?: 0L }
 
     val userName: Flow<String> =
         context.userPrefsDataStore.data.map { it[KEY_USER_NAME] ?: "" }
@@ -57,4 +69,14 @@ class UserPreferencesManager @Inject constructor(
 
     suspend fun isOnboardingDone(): Boolean =
         context.userPrefsDataStore.data.first()[KEY_ONBOARDING_COMPLETED] ?: false
+
+    suspend fun acceptLegal() {
+        context.userPrefsDataStore.edit { prefs ->
+            prefs[KEY_LEGAL_ACCEPTED_VERSION] = CURRENT_LEGAL_VERSION
+            prefs[KEY_LEGAL_ACCEPTED_AT] = System.currentTimeMillis()
+        }
+    }
+
+    suspend fun isLegalAcceptedNow(): Boolean =
+        (context.userPrefsDataStore.data.first()[KEY_LEGAL_ACCEPTED_VERSION] ?: 0) >= CURRENT_LEGAL_VERSION
 }

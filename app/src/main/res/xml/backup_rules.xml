@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Legacy auto-backup rules used on API < 31. Excludes all health data
+  and preferences from Google Drive cloud backup to keep behavior in
+  line with the Privacy Policy.
+-->
+<full-backup-content>
+    <exclude domain="database" path="medreminder_db" />
+    <exclude domain="database" path="medreminder_db-shm" />
+    <exclude domain="database" path="medreminder_db-wal" />
+    <exclude domain="database" path="medreminder_db-journal" />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="file" path="datastore" />
+</full-backup-content>

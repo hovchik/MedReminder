@@ -13,8 +13,8 @@ android {
         applicationId = "com.medreminder"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.1"
+        versionCode = 2
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -22,13 +22,45 @@ android {
         }
     }
 
+    // Release signing config is read from ~/.gradle/gradle.properties or env vars.
+    // It's intentionally optional so open-source builds still succeed; if the
+    // keystore is missing the release build falls back to the debug signing
+    // config and the produced AAB will not be uploadable to Play.
+    val releaseStoreFile = (project.findProperty("MEDREMINDER_RELEASE_STORE_FILE") as String?)
+        ?: System.getenv("MEDREMINDER_RELEASE_STORE_FILE")
+    val releaseStorePassword = (project.findProperty("MEDREMINDER_RELEASE_STORE_PASSWORD") as String?)
+        ?: System.getenv("MEDREMINDER_RELEASE_STORE_PASSWORD")
+    val releaseKeyAlias = (project.findProperty("MEDREMINDER_RELEASE_KEY_ALIAS") as String?)
+        ?: System.getenv("MEDREMINDER_RELEASE_KEY_ALIAS")
+    val releaseKeyPassword = (project.findProperty("MEDREMINDER_RELEASE_KEY_PASSWORD") as String?)
+        ?: System.getenv("MEDREMINDER_RELEASE_KEY_PASSWORD")
+    val hasReleaseSigning = !releaseStoreFile.isNullOrBlank() &&
+        !releaseStorePassword.isNullOrBlank() &&
+        !releaseKeyAlias.isNullOrBlank() &&
+        !releaseKeyPassword.isNullOrBlank()
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
