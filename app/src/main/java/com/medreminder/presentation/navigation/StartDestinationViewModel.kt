@@ -20,11 +20,12 @@ class StartDestinationViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            val legalAccepted = userPreferencesManager.isLegalAcceptedNow()
             val onboardingDone = userPreferencesManager.isOnboardingCompleted.first()
-            _startDestination.value = if (onboardingDone) {
-                Screen.Home.route
-            } else {
-                Screen.Onboarding.route
+            _startDestination.value = when {
+                !legalAccepted -> Screen.LegalAcceptance.route
+                !onboardingDone -> Screen.Onboarding.route
+                else -> Screen.Home.route
             }
         }
     }

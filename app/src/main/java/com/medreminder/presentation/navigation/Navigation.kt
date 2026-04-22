@@ -36,8 +36,15 @@ import com.medreminder.presentation.screens.insights.AiInsightsScreen
 import com.medreminder.presentation.screens.medanalysis.MedicationAnalysisScreen
 import com.medreminder.presentation.screens.settings.SettingsScreen
 import com.medreminder.presentation.screens.subscription.SubscriptionScreen
+import com.medreminder.presentation.screens.legal.LegalAcceptanceScreen
+import com.medreminder.presentation.screens.legal.LegalDocumentScreen
+import com.medreminder.presentation.screens.legal.LegalDocumentType
 
 sealed class Screen(val route: String) {
+    data object LegalAcceptance : Screen("legal_acceptance")
+    data object LegalDocument : Screen("legal_document/{docType}") {
+        fun createRoute(docType: String) = "legal_document/$docType"
+    }
     data object Onboarding : Screen("onboarding")
     data object Home : Screen("home")
     data object AddMedication : Screen("add_medication")
@@ -140,6 +147,33 @@ fun MedReminderNavigation() {
             startDestination = startDestination!!,
             modifier = Modifier.padding(paddingValues)
         ) {
+            composable(Screen.LegalAcceptance.route) {
+                LegalAcceptanceScreen(
+                    onAccepted = { onboardingAlreadyDone ->
+                        val next = if (onboardingAlreadyDone) Screen.Home.route
+                        else Screen.Onboarding.route
+                        navController.navigate(next) {
+                            popUpTo(Screen.LegalAcceptance.route) { inclusive = true }
+                        }
+                    },
+                    onViewDocument = { docType ->
+                        navController.navigate(Screen.LegalDocument.createRoute(docType.name))
+                    }
+                )
+            }
+            composable(
+                route = Screen.LegalDocument.route,
+                arguments = listOf(navArgument("docType") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val docTypeName = backStackEntry.arguments?.getString("docType")
+                    ?: LegalDocumentType.TERMS_OF_USE.name
+                val docType = runCatching { LegalDocumentType.valueOf(docTypeName) }
+                    .getOrDefault(LegalDocumentType.TERMS_OF_USE)
+                LegalDocumentScreen(
+                    documentType = docType,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
             composable(Screen.Onboarding.route) {
                 OnboardingScreen(
                     onOnboardingComplete = {
@@ -221,7 +255,10 @@ fun MedReminderNavigation() {
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     onNavigateToAiSetup = { navController.navigate(Screen.LocalAiSetup.route) },
-                    onNavigateToSubscription = { navController.navigate(Screen.Subscription.route) }
+                    onNavigateToSubscription = { navController.navigate(Screen.Subscription.route) },
+                    onNavigateToLegalDocument = { docTypeName ->
+                        navController.navigate(Screen.LegalDocument.createRoute(docTypeName))
+                    }
                 )
             }
             composable(Screen.Subscription.route) {
