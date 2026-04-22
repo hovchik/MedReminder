@@ -66,8 +66,6 @@ class MedicationAnalysisUseCase @Inject constructor(
 
         val now = System.currentTimeMillis()
         val start30Days = DateUtils.daysAgo(30)
-        val startOfDay = DateUtils.getStartOfDay()
-        val endOfDay = DateUtils.getEndOfDay()
 
         // Load medication with schedules
         val medEntity = medicationDao.getMedicationById(medicationId)

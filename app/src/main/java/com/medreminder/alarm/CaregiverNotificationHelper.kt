@@ -225,6 +225,7 @@ object CaregiverNotificationHelper {
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun sendEmail(context: Context, email: String, subject: String, body: String) {
         // Email sending from background (BroadcastReceivers) would pop up the email
         // compose UI unexpectedly. Instead, log the notification for now.

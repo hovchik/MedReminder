@@ -318,31 +318,30 @@ class MedicationRepositoryImpl @Inject constructor(
 
     override fun getTodayDoses(startOfDay: Long, endOfDay: Long): Flow<List<DoseLog>> =
         doseLogDao.getLogsForDateRange(startOfDay, endOfDay).map { list ->
-            list.map { log ->
-                val med = medicationDao.getMedicationById(log.medicationId)
-                log.toDomain().copy(
-                    medicationName = med?.name ?: "Unknown",
-                    medicationDosage = "${med?.dosage ?: ""} ${med?.dosageUnit ?: ""}".trim(),
-                    medicationColor = med?.color ?: "#4A90D9",
-                    assignedToId = med?.assignedToId,
-                    assignedToName = med?.assignedToName ?: ""
-                )
-            }
+            enrichDoseLogs(list)
         }
 
     override fun getDoseLogsForDateRange(startTime: Long, endTime: Long): Flow<List<DoseLog>> =
         doseLogDao.getLogsForDateRange(startTime, endTime).map { list ->
-            list.map { log ->
-                val med = medicationDao.getMedicationById(log.medicationId)
-                log.toDomain().copy(
-                    medicationName = med?.name ?: "Unknown",
-                    medicationDosage = "${med?.dosage ?: ""} ${med?.dosageUnit ?: ""}".trim(),
-                    medicationColor = med?.color ?: "#4A90D9",
-                    assignedToId = med?.assignedToId,
-                    assignedToName = med?.assignedToName ?: ""
-                )
-            }
+            enrichDoseLogs(list)
         }
+
+    private suspend fun enrichDoseLogs(list: List<DoseLogEntity>): List<DoseLog> {
+        if (list.isEmpty()) return emptyList()
+        val medicationIds = list.map { it.medicationId }.toSet()
+        val medicationsById = medicationDao.getMedicationsByIds(medicationIds.toList())
+            .associateBy { it.id }
+        return list.map { log ->
+            val med = medicationsById[log.medicationId]
+            log.toDomain().copy(
+                medicationName = med?.name ?: "Unknown",
+                medicationDosage = "${med?.dosage ?: ""} ${med?.dosageUnit ?: ""}".trim(),
+                medicationColor = med?.color ?: "#4A90D9",
+                assignedToId = med?.assignedToId,
+                assignedToName = med?.assignedToName ?: ""
+            )
+        }
+    }
 
     override suspend fun getDoseLogById(id: Long): DoseLog? =
         doseLogDao.getDoseLogById(id)?.toDomain()

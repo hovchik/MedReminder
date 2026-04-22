@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -766,7 +767,7 @@ fun SettingsScreen(
 
         // SMS
         PermissionRow(
-            icon = Icons.Default.Message,
+            icon = Icons.AutoMirrored.Filled.Message,
             title = stringResource(R.string.permission_sms),
             description = stringResource(R.string.permission_sms_desc),
             isGranted = smsGranted,

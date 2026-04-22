@@ -2,6 +2,8 @@ package com.medreminder.billing
 
 import android.app.Activity
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.android.billingclient.api.*
 import com.medreminder.domain.model.SubscriptionPlans
@@ -20,9 +22,13 @@ class BillingManager @Inject constructor(
 
     companion object {
         private const val TAG = "BillingManager"
+        private const val MAX_RECONNECT_ATTEMPTS = 4
+        private const val BASE_RECONNECT_DELAY_MS = 2_000L
     }
 
     private var billingClient: BillingClient? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var reconnectAttempts = 0
 
     private val _productDetails = MutableStateFlow<Map<String, ProductDetails>>(emptyMap())
     val productDetails: StateFlow<Map<String, ProductDetails>> = _productDetails.asStateFlow()
@@ -50,19 +56,35 @@ class BillingManager @Inject constructor(
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     Log.d(TAG, "Billing client connected")
                     _billingConnectionState.value = true
+                    reconnectAttempts = 0
                     queryProductDetails()
                     queryExistingPurchases()
                 } else {
                     Log.e(TAG, "Billing setup failed: ${billingResult.debugMessage}")
                     _billingConnectionState.value = false
+                    scheduleReconnect()
                 }
             }
 
             override fun onBillingServiceDisconnected() {
                 Log.w(TAG, "Billing service disconnected")
                 _billingConnectionState.value = false
+                scheduleReconnect()
             }
         })
+    }
+
+    private fun scheduleReconnect() {
+        if (billingClient == null) return
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            Log.e(TAG, "Giving up on billing reconnection after $reconnectAttempts attempts")
+            return
+        }
+        val delay = BASE_RECONNECT_DELAY_MS shl reconnectAttempts
+        reconnectAttempts++
+        mainHandler.postDelayed({
+            if (billingClient?.isReady != true) connectToGooglePlay()
+        }, delay)
     }
 
     private fun queryProductDetails() {
@@ -95,14 +117,18 @@ class BillingManager @Inject constructor(
 
         billingClient?.queryPurchasesAsync(params) { billingResult, purchasesList ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                _currentPurchases.value = purchasesList
+                // Only treat PURCHASED purchases as active; ignore PENDING / UNSPECIFIED.
+                val active = purchasesList.filter {
+                    it.purchaseState == Purchase.PurchaseState.PURCHASED
+                }
+                _currentPurchases.value = active
                 // Acknowledge any unacknowledged purchases
-                purchasesList.forEach { purchase ->
+                active.forEach { purchase ->
                     if (!purchase.isAcknowledged) {
                         acknowledgePurchase(purchase)
                     }
                 }
-                Log.d(TAG, "Found ${purchasesList.size} active subscriptions")
+                Log.d(TAG, "Found ${active.size} active subscriptions (of ${purchasesList.size} total)")
             }
         }
     }
@@ -175,8 +201,10 @@ class BillingManager @Inject constructor(
     }
 
     fun endConnection() {
+        mainHandler.removeCallbacksAndMessages(null)
         billingClient?.endConnection()
         billingClient = null
         _billingConnectionState.value = false
+        reconnectAttempts = 0
     }
 }

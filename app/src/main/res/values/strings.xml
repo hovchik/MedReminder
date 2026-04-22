@@ -438,6 +438,9 @@
     <string name="cancel_all">Cancel all</string>
     <string name="schedule_cancelled">Schedule cancelled</string>
     <string name="time_to_take_meds_count">Time to take %1$d medications</string>
+    <string name="notification_action_taken">Taken</string>
+    <string name="notification_action_snooze">Snooze 10m</string>
+    <string name="notification_action_cancel">Cancel</string>
 
     <!-- OCR Scanner -->
     <string name="scan_medication">Scan medication</string>

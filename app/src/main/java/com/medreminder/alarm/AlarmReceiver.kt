@@ -151,7 +151,7 @@ class AlarmReceiver : BroadcastReceiver() {
             setBypassDnd(true)
             lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
         }
-        val manager = context.getSystemService(NotificationManager::class.java)
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
         manager.createNotificationChannel(channel)
     }
 
@@ -262,7 +262,7 @@ class AlarmReceiver : BroadcastReceiver() {
         }
 
         // Cancel any previous individual notifications for these dose logs
-        val manager = context.getSystemService(NotificationManager::class.java)
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
         for (id in doseLogIds) {
             manager.cancel(NOTIFICATION_ID_BASE + id.toInt())
         }
@@ -277,9 +277,9 @@ class AlarmReceiver : BroadcastReceiver() {
             .setAutoCancel(false)
             .setOngoing(true)
             .setFullScreenIntent(fullScreenPending, true)
-            .addAction(R.drawable.ic_check, "Taken", takenPending)
-            .addAction(R.drawable.ic_snooze, "Snooze 10m", snoozePending)
-            .addAction(R.drawable.ic_close, "Cancel", cancelPending)
+            .addAction(R.drawable.ic_check, context.getString(R.string.notification_action_taken), takenPending)
+            .addAction(R.drawable.ic_snooze, context.getString(R.string.notification_action_snooze), snoozePending)
+            .addAction(R.drawable.ic_close, context.getString(R.string.notification_action_cancel), cancelPending)
             .setVibrate(longArrayOf(0, 500, 200, 500, 200, 500))
             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
             .build()

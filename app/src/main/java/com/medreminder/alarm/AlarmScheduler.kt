@@ -200,12 +200,14 @@ class AlarmScheduler @Inject constructor(
             }
             com.medreminder.domain.model.ScheduleFrequency.SPECIFIC_DAYS -> {
                 if (schedule.daysOfWeek.isEmpty()) return null
+                // If today's time has already passed, start the search from tomorrow.
+                if (calendar.timeInMillis <= System.currentTimeMillis()) {
+                    calendar.add(Calendar.DAY_OF_YEAR, 1)
+                }
                 var found = false
                 for (i in 0..6) {
                     val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-                    if (schedule.daysOfWeek.contains(dayOfWeek) &&
-                        calendar.timeInMillis > System.currentTimeMillis()
-                    ) {
+                    if (schedule.daysOfWeek.contains(dayOfWeek)) {
                         found = true
                         break
                     }

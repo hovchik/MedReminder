@@ -38,8 +38,10 @@ import androidx.compose.ui.unit.sp
 import com.medreminder.R
 import com.medreminder.data.local.AppDatabase
 import kotlinx.coroutines.*
+import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 data class AlarmMedication(
     val doseLogId: Long,
@@ -54,7 +56,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
 
     companion object {
         @Volatile
-        private var currentInstance: FullScreenAlarmActivity? = null
+        private var currentInstance: WeakReference<FullScreenAlarmActivity>? = null
 
         const val EXTRA_DOSE_LOG_IDS = "dose_log_ids"
         const val EXTRA_SCHEDULE_IDS = "schedule_ids"
@@ -65,7 +67,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
 
         /** Called from TakenReceiver / SnoozeReceiver to dismiss the alarm screen. */
         fun finishIfShowing() {
-            currentInstance?.let {
+            currentInstance?.get()?.let {
                 it.stopAlarm()
                 it.finish()
             }
@@ -78,11 +80,11 @@ class FullScreenAlarmActivity : ComponentActivity() {
     private var medications: List<AlarmMedication>
         get() = _medications.value
         set(value) { _medications.value = value }
-    private var isProcessing = false
+    private val isProcessing = AtomicBoolean(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        currentInstance = this
+        currentInstance = WeakReference(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
@@ -172,6 +174,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
         try {
             val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                ?: return
             mediaPlayer = MediaPlayer().apply {
                 setAudioAttributes(
                     AudioAttributes.Builder()
@@ -185,7 +188,9 @@ class FullScreenAlarmActivity : ComponentActivity() {
                 start()
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("FullScreenAlarm", "Failed to start alarm sound", e)
+            try { mediaPlayer?.release() } catch (_: Exception) {}
+            mediaPlayer = null
         }
     }
 
@@ -202,26 +207,35 @@ class FullScreenAlarmActivity : ComponentActivity() {
     }
 
     private fun stopAlarm() {
-        mediaPlayer?.apply {
-            if (isPlaying) stop()
-            release()
+        try {
+            mediaPlayer?.apply {
+                if (isPlaying) stop()
+                release()
+            }
+        } catch (e: IllegalStateException) {
+            // MediaPlayer already released or in an invalid state
+        } finally {
+            mediaPlayer = null
         }
-        mediaPlayer = null
-        vibrator?.cancel()
-        vibrator = null
+        try {
+            vibrator?.cancel()
+        } catch (e: Exception) {
+            // ignore - vibrator may already be released
+        } finally {
+            vibrator = null
+        }
 
         val nm = getSystemService(NotificationManager::class.java)
         // Cancel combined notification
-        nm.cancel(AlarmReceiver.COMBINED_NOTIFICATION_ID)
+        nm?.cancel(AlarmReceiver.COMBINED_NOTIFICATION_ID)
         // Cancel individual notifications
         for (med in medications) {
-            nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + med.doseLogId.toInt())
+            nm?.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + med.doseLogId.toInt())
         }
     }
 
     private fun handleTakenAll() {
-        if (isProcessing) return
-        isProcessing = true
+        if (!isProcessing.compareAndSet(false, true)) return
         stopAlarm()
         lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -243,8 +257,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
     }
 
     private fun handleSnoozeAll() {
-        if (isProcessing) return
-        isProcessing = true
+        if (!isProcessing.compareAndSet(false, true)) return
         stopAlarm()
         lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -265,8 +278,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
     }
 
     private fun handleCancelAll() {
-        if (isProcessing) return
-        isProcessing = true
+        if (!isProcessing.compareAndSet(false, true)) return
         stopAlarm()
         lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -302,7 +314,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        if (currentInstance == this) currentInstance = null
+        if (currentInstance?.get() === this) currentInstance = null
         stopAlarm()
         super.onDestroy()
     }

@@ -14,6 +14,7 @@ import com.medreminder.domain.repository.MedicationRepository
 import com.medreminder.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -100,6 +101,7 @@ class HomeViewModel @Inject constructor(
         }.sortedBy { if (it.userId == null) 0 else 1 } // Self first
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun loadTodayData() {
         viewModelScope.launch {
             // Restart the Flow with fresh time bounds each time refreshTrigger is updated
