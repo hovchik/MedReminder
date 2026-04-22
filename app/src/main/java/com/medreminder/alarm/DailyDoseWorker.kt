@@ -31,16 +31,18 @@ class DailyDoseWorker @AssistedInject constructor(
                 .setRequiresBatteryNotLow(false)
                 .build()
 
-            // Run every day at midnight
+            // Run every day at 00:01. Guard against a negative delay if we're
+            // racing the clock near midnight.
             val cal = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 1)
                 set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
                 if (timeInMillis <= System.currentTimeMillis()) {
                     add(Calendar.DAY_OF_YEAR, 1)
                 }
             }
-            val initialDelay = cal.timeInMillis - System.currentTimeMillis()
+            val initialDelay = (cal.timeInMillis - System.currentTimeMillis()).coerceAtLeast(0L)
 
             val workRequest = PeriodicWorkRequestBuilder<DailyDoseWorker>(
                 1, TimeUnit.DAYS
@@ -55,7 +57,7 @@ class DailyDoseWorker @AssistedInject constructor(
                 ExistingPeriodicWorkPolicy.KEEP,
                 workRequest
             )
-            Log.d(TAG, "Daily worker scheduled")
+            Log.d(TAG, "Daily worker scheduled (initialDelay=${initialDelay}ms)")
         }
     }
 

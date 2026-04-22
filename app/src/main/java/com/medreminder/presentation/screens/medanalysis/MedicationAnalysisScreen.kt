@@ -5,6 +5,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -111,7 +113,7 @@ fun MedicationAnalysisScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, stringResource(R.string.back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -452,7 +454,7 @@ private fun DosingPredictionsCard(predictions: DosingPredictionSection) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SectionHeader(
-                icon = Icons.Default.TrendingUp,
+                icon = Icons.AutoMirrored.Filled.TrendingUp,
                 title = stringResource(R.string.med_dosing_predictions)
             )
 

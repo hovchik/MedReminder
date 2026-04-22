@@ -25,6 +25,7 @@ import com.medreminder.domain.repository.MedicationRepository
 import com.medreminder.presentation.util.translatedName
 import com.medreminder.util.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -41,6 +42,7 @@ class HistoryViewModel @Inject constructor(
 
     // Use flatMapLatest so that changing _daysBack automatically cancels the
     // previous collector and starts a new one — no leaked collectors.
+    @OptIn(ExperimentalCoroutinesApi::class)
     val logs: StateFlow<List<DoseLog>> = _daysBack.flatMapLatest { days ->
         val start = DateUtils.daysAgo(days)
         val end = DateUtils.getEndOfDay()

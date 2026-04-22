@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -348,7 +349,7 @@ private fun WelcomeStep(onContinue: () -> Unit) {
         ) {
             Text(stringResource(R.string.get_started))
             Spacer(modifier = Modifier.width(8.dp))
-            Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(18.dp))
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -576,7 +577,7 @@ private fun PermissionsStep(onContinue: () -> Unit) {
         ) {
             Text(stringResource(R.string.onboarding_continue))
             Spacer(modifier = Modifier.width(8.dp))
-            Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(18.dp))
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -675,7 +676,7 @@ private fun UserInfoStep(
         ) {
             Text(stringResource(R.string.onboarding_continue))
             Spacer(modifier = Modifier.width(8.dp))
-            Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -1225,7 +1226,7 @@ private fun DownloadProgressStep(
                 Button(onClick = onFinish, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.get_started))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(18.dp))
                 }
             }
 
@@ -1302,7 +1303,7 @@ private fun DoneStep(
         ) {
             Text(stringResource(R.string.start_using_app))
             Spacer(modifier = Modifier.width(8.dp))
-            Icon(Icons.Default.ArrowForward, null, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(18.dp))
         }
     }
 }
