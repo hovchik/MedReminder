@@ -1,9 +1,19 @@
 package com.medreminder.util
 
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 object DateUtils {
+    private val DATE_FORMATTER: DateTimeFormatter =
+        DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())
+    private val DATE_TIME_FORMATTER: DateTimeFormatter =
+        DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.getDefault())
+    private val TIME_FORMATTER: DateTimeFormatter =
+        DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
+
+
     fun getStartOfDay(timeMillis: Long = System.currentTimeMillis()): Long {
         val cal = Calendar.getInstance().apply {
             this.timeInMillis = timeMillis
@@ -59,13 +69,13 @@ object DateUtils {
     }
 
     fun formatDate(millis: Long): String =
-        SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(millis))
+        DATE_FORMATTER.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
 
     fun formatDateTime(millis: Long): String =
-        SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(millis))
+        DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
 
     fun formatTimeOnly(millis: Long): String =
-        SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(millis))
+        TIME_FORMATTER.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
 
     fun isToday(millis: Long): Boolean {
         val today = Calendar.getInstance()

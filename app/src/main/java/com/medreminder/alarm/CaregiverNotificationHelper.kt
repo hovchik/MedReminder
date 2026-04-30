@@ -18,6 +18,9 @@ object CaregiverNotificationHelper {
 
     private const val TAG = "CaregiverNotify"
 
+    private val TIME_FORMATTER: java.time.format.DateTimeFormatter =
+        java.time.format.DateTimeFormatter.ofPattern("h:mm a", java.util.Locale.getDefault())
+
     suspend fun notifyCaregiversOnMissed(
         context: Context,
         db: AppDatabase,
@@ -73,8 +76,9 @@ object CaregiverNotificationHelper {
         Log.d(TAG, "notifyCaregivers: found ${caregivers.size} caregivers (isMissed=$isMissed, isSkipped=$isSkipped)")
         if (caregivers.isEmpty()) return
 
-        val timeFormat = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
-        val now = timeFormat.format(java.util.Date())
+        val now = TIME_FORMATTER.format(
+            java.time.Instant.now().atZone(java.time.ZoneId.systemDefault())
+        )
         val dosageInfo = if (medication.dosage.isNotBlank()) " (${medication.dosage}${if (medication.dosageUnit.isNotBlank()) " ${medication.dosageUnit}" else ""})" else ""
 
         var message = when {

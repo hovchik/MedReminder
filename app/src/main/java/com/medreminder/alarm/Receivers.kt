@@ -23,7 +23,7 @@ class SnoozeReceiver : BroadcastReceiver() {
         val legacyDoseLogId = intent.getLongExtra(AlarmScheduler.EXTRA_DOSE_LOG_ID, -1)
 
         val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO).launch {
+        ReceiverScope.scope.launch {
             try {
                 val db = AppDatabase.getInstance(context)
                 val snoozeUntil = System.currentTimeMillis() + 10 * 60 * 1000
@@ -79,7 +79,7 @@ class TakenReceiver : BroadcastReceiver() {
         val legacyDoseLogId = intent.getLongExtra(AlarmScheduler.EXTRA_DOSE_LOG_ID, -1)
 
         val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO).launch {
+        ReceiverScope.scope.launch {
             try {
                 val db = AppDatabase.getInstance(context)
                 val nm = context.getSystemService(NotificationManager::class.java)
@@ -142,7 +142,7 @@ class CancelReceiver : BroadcastReceiver() {
         val legacyDoseLogId = intent.getLongExtra(AlarmScheduler.EXTRA_DOSE_LOG_ID, -1)
 
         val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO).launch {
+        ReceiverScope.scope.launch {
             try {
                 val db = AppDatabase.getInstance(context)
                 val nm = context.getSystemService(NotificationManager::class.java)
@@ -201,7 +201,7 @@ class BootReceiver : BroadcastReceiver() {
         ) {
             Log.d("BootReceiver", "Rescheduling all alarms after boot/update")
             val pendingResult = goAsync()
-            CoroutineScope(Dispatchers.IO).launch {
+            ReceiverScope.scope.launch {
                 try {
                     val db = AppDatabase.getInstance(context)
                     val scheduler = AlarmScheduler(context.applicationContext, db.scheduleDao())
