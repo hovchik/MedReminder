@@ -9,6 +9,11 @@ import android.util.Log
 import com.medreminder.data.local.ScheduleDao
 import com.medreminder.domain.model.toDomain
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.DayOfWeek
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,7 +43,7 @@ class AlarmScheduler @Inject constructor(
             val medication = swm.medication
 
             if (!medication.isActive || !schedule.isEnabled) continue
-            if (schedule.frequency.name == "AS_NEEDED") continue
+            if (schedule.frequency == com.medreminder.domain.model.ScheduleFrequency.AS_NEEDED) continue
 
             val nextAlarmTime = calculateNextAlarmTime(schedule)
             if (nextAlarmTime != null) {
@@ -96,32 +101,29 @@ class AlarmScheduler @Inject constructor(
 
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            (scheduleId and 0x7FFFFFFF).toInt(),
+            scheduleRequestCode(scheduleId),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                alarmManager.canScheduleExactAlarms()
+
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (alarmManager.canScheduleExactAlarms()) {
-                    alarmManager.setAlarmClock(
-                        AlarmManager.AlarmClockInfo(triggerTime, pendingIntent),
-                        pendingIntent
-                    )
-                } else {
-                    alarmManager.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
-                    )
-                }
-            } else {
+            if (canExact) {
                 alarmManager.setAlarmClock(
                     AlarmManager.AlarmClockInfo(triggerTime, pendingIntent),
                     pendingIntent
                 )
+            } else {
+                Log.w(TAG, "SCHEDULE_EXACT_ALARM not granted; alarm for $medicationName may drift")
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
+                )
             }
             Log.d(TAG, "Alarm set for $medicationName at ${Date(triggerTime)}")
         } catch (e: SecurityException) {
-            Log.e(TAG, "Cannot schedule exact alarm", e)
+            Log.e(TAG, "Exact alarm scheduling denied; falling back to inexact", e)
             alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
             )
@@ -133,7 +135,7 @@ class AlarmScheduler @Inject constructor(
             action = "com.medreminder.MEDICATION_ALARM"
         }
         val pendingIntent = PendingIntent.getBroadcast(
-            context, (scheduleId and 0x7FFFFFFF).toInt(), intent,
+            context, scheduleRequestCode(scheduleId), intent,
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )
         if (pendingIntent != null) {
@@ -166,85 +168,117 @@ class AlarmScheduler @Inject constructor(
             putExtra(EXTRA_DOSE_LOG_ID, doseLogId)
         }
 
-        // Use a distinct high range to avoid colliding with regular alarm request codes
-        // which use (scheduleId and 0x7FFFFFFF)
-        val requestCode = ((0x40000000L + scheduleId * 100 + doseLogId % 100) and 0x7FFFFFFF).toInt()
         val pendingIntent = PendingIntent.getBroadcast(
-            context, requestCode, intent,
+            context, snoozeRequestCode(doseLogId), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                alarmManager.canScheduleExactAlarms()
+
         try {
-            alarmManager.setAlarmClock(
-                AlarmManager.AlarmClockInfo(triggerTime, pendingIntent),
-                pendingIntent
-            )
+            if (canExact) {
+                alarmManager.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(triggerTime, pendingIntent),
+                    pendingIntent
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
+                )
+            }
         } catch (e: SecurityException) {
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
         }
     }
 
-    private fun calculateNextAlarmTime(schedule: com.medreminder.domain.model.Schedule): Long? {
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, schedule.timeHour)
-            set(Calendar.MINUTE, schedule.timeMinute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
+    /**
+     * Stable request-code mapping for regular per-schedule alarms.
+     * Uses a 32-bit mix that distributes across the int space and is
+     * disjoint from [snoozeRequestCode]'s namespace by construction.
+     */
+    private fun scheduleRequestCode(scheduleId: Long): Int =
+        (mix64(scheduleId) and 0x3FFFFFFF).toInt() // top bit 0, second bit 0
 
-        when (schedule.frequency) {
+    /**
+     * Stable request-code mapping for snooze alarms (keyed by doseLogId,
+     * which is unique per dose). Uses the 0x4000_0000 namespace bit so
+     * it never collides with a regular alarm request code.
+     */
+    private fun snoozeRequestCode(doseLogId: Long): Int =
+        ((mix64(doseLogId) and 0x3FFFFFFF) or 0x40000000).toInt()
+
+    private fun mix64(value: Long): Long {
+        // SplitMix64 finalizer — high-quality avalanche, no collisions for distinct longs.
+        var z = value
+        z = (z xor (z ushr 30)) * -4658895280553007687L  // 0xbf58476d1ce4e5b9
+        z = (z xor (z ushr 27)) * -6534734903238641935L  // 0x94d049bb133111eb
+        return z xor (z ushr 31)
+    }
+
+    private fun calculateNextAlarmTime(schedule: com.medreminder.domain.model.Schedule): Long? {
+        val zone = ZoneId.systemDefault()
+        val now = ZonedDateTime.now(zone)
+        val time = LocalTime.of(schedule.timeHour, schedule.timeMinute)
+        val todayAtTime = now.toLocalDate().atTime(time).atZone(zone)
+
+        val next: ZonedDateTime = when (schedule.frequency) {
             com.medreminder.domain.model.ScheduleFrequency.DAILY -> {
-                if (calendar.timeInMillis <= System.currentTimeMillis()) {
-                    calendar.add(Calendar.DAY_OF_YEAR, 1)
-                }
+                if (todayAtTime.isAfter(now)) todayAtTime else todayAtTime.plusDays(1)
             }
             com.medreminder.domain.model.ScheduleFrequency.SPECIFIC_DAYS -> {
                 if (schedule.daysOfWeek.isEmpty()) return null
-                // If today's time has already passed, start the search from tomorrow.
-                if (calendar.timeInMillis <= System.currentTimeMillis()) {
-                    calendar.add(Calendar.DAY_OF_YEAR, 1)
-                }
+                var candidate = if (todayAtTime.isAfter(now)) todayAtTime else todayAtTime.plusDays(1)
                 var found = false
                 for (i in 0..6) {
-                    val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-                    if (schedule.daysOfWeek.contains(dayOfWeek)) {
+                    if (schedule.daysOfWeek.contains(candidate.calendarDayOfWeek())) {
                         found = true
                         break
                     }
-                    calendar.add(Calendar.DAY_OF_YEAR, 1)
+                    candidate = candidate.plusDays(1)
                 }
                 if (!found) return null
+                candidate
             }
             com.medreminder.domain.model.ScheduleFrequency.INTERVAL -> {
                 if (schedule.intervalDays <= 0) return null
-                if (calendar.timeInMillis <= System.currentTimeMillis()) {
-                    val daysSinceStart = ((System.currentTimeMillis() - schedule.startDate) /
-                            (24 * 60 * 60 * 1000)).toInt()
-                    val nextInterval = ((daysSinceStart / schedule.intervalDays) + 1) * schedule.intervalDays
-                    calendar.timeInMillis = schedule.startDate
-                    calendar.add(Calendar.DAY_OF_YEAR, nextInterval)
-                    calendar.set(Calendar.HOUR_OF_DAY, schedule.timeHour)
-                    calendar.set(Calendar.MINUTE, schedule.timeMinute)
+                val startDate = java.time.Instant.ofEpochMilli(schedule.startDate)
+                    .atZone(zone).toLocalDate()
+                val today = now.toLocalDate()
+                val daysSinceStart = ChronoUnit.DAYS.between(startDate, today).toInt()
+                if (todayAtTime.isAfter(now) && daysSinceStart >= 0 &&
+                    daysSinceStart % schedule.intervalDays == 0
+                ) {
+                    todayAtTime
+                } else {
+                    val nextOffset = if (daysSinceStart < 0) 0
+                    else ((daysSinceStart / schedule.intervalDays) + 1) * schedule.intervalDays
+                    startDate.plusDays(nextOffset.toLong()).atTime(time).atZone(zone)
                 }
             }
             com.medreminder.domain.model.ScheduleFrequency.EVERY_X_HOURS -> {
                 if (schedule.intervalHours <= 0) return null
-                val now = System.currentTimeMillis()
-                val intervalMs = schedule.intervalHours * 60 * 60 * 1000L
-                if (calendar.timeInMillis <= now) {
-                    val elapsed = now - calendar.timeInMillis
-                    val periods = (elapsed / intervalMs) + 1
-                    calendar.timeInMillis = calendar.timeInMillis + periods * intervalMs
+                var candidate = todayAtTime
+                while (!candidate.isAfter(now)) {
+                    candidate = candidate.plusHours(schedule.intervalHours.toLong())
                 }
+                candidate
             }
             com.medreminder.domain.model.ScheduleFrequency.AS_NEEDED -> return null
         }
 
-        // Check end date
-        schedule.endDate?.let {
-            if (calendar.timeInMillis > it) return null
-        }
+        val triggerMillis = next.toInstant().toEpochMilli()
+        schedule.endDate?.let { if (triggerMillis > it) return null }
+        return triggerMillis
+    }
 
-        return calendar.timeInMillis
+    private fun ZonedDateTime.calendarDayOfWeek(): Int = when (dayOfWeek) {
+        DayOfWeek.SUNDAY -> Calendar.SUNDAY
+        DayOfWeek.MONDAY -> Calendar.MONDAY
+        DayOfWeek.TUESDAY -> Calendar.TUESDAY
+        DayOfWeek.WEDNESDAY -> Calendar.WEDNESDAY
+        DayOfWeek.THURSDAY -> Calendar.THURSDAY
+        DayOfWeek.FRIDAY -> Calendar.FRIDAY
+        DayOfWeek.SATURDAY -> Calendar.SATURDAY
     }
 }

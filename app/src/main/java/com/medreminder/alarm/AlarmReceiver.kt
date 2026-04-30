@@ -40,7 +40,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
         val pendingResult = goAsync()
 
-        CoroutineScope(Dispatchers.IO).launch {
+        ReceiverScope.scope.launch {
             try {
                 val db = AppDatabase.getInstance(context)
 
@@ -188,6 +188,14 @@ class AlarmReceiver : BroadcastReceiver() {
         dosages: Array<String>,
         colors: Array<String>
     ) {
+        // Bail out early if NotificationManager is unavailable so we don't waste work
+        // (and so the failure is logged in one place rather than silently dropped).
+        val manager = context.getSystemService(NotificationManager::class.java)
+        if (manager == null) {
+            Log.w(TAG, "NotificationManager unavailable; skipping alarm notification")
+            return
+        }
+
         val notificationId = if (doseLogIds.size > 1) {
             COMBINED_NOTIFICATION_ID
         } else {
@@ -262,7 +270,6 @@ class AlarmReceiver : BroadcastReceiver() {
         }
 
         // Cancel any previous individual notifications for these dose logs
-        val manager = context.getSystemService(NotificationManager::class.java) ?: return
         for (id in doseLogIds) {
             manager.cancel(NOTIFICATION_ID_BASE + id.toInt())
         }

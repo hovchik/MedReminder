@@ -39,9 +39,17 @@ import com.medreminder.R
 import com.medreminder.data.local.AppDatabase
 import kotlinx.coroutines.*
 import java.lang.ref.WeakReference
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
+
+private val WALL_CLOCK_FORMATTER: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
+
+private fun nowWallClock(): String =
+    WALL_CLOCK_FORMATTER.format(Instant.now().atZone(ZoneId.systemDefault()))
 
 data class AlarmMedication(
     val doseLogId: Long,
@@ -171,25 +179,26 @@ class FullScreenAlarmActivity : ComponentActivity() {
     }
 
     private fun startAlarmSound() {
+        val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            ?: return
+        val mp = MediaPlayer()
         try {
-            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                ?: return
-            mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-                setDataSource(this@FullScreenAlarmActivity, alarmUri)
-                isLooping = true
-                prepare()
-                start()
-            }
+            mp.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            mp.setDataSource(this, alarmUri)
+            mp.isLooping = true
+            mp.prepare()
+            mp.start()
+            mediaPlayer = mp
         } catch (e: Exception) {
             android.util.Log.e("FullScreenAlarm", "Failed to start alarm sound", e)
-            try { mediaPlayer?.release() } catch (_: Exception) {}
+            // Ensure the partially-initialized MediaPlayer is always released.
+            try { mp.release() } catch (_: Exception) {}
             mediaPlayer = null
         }
     }
@@ -338,11 +347,11 @@ fun AlarmScreen(
         ), label = "scale"
     )
 
-    var currentTime by remember { mutableStateOf(SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())) }
+    var currentTime by remember { mutableStateOf(nowWallClock()) }
     LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(30_000L)
-            currentTime = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
+            currentTime = nowWallClock()
         }
     }
 
@@ -491,11 +500,11 @@ fun CombinedAlarmScreen(
         ), label = "scale"
     )
 
-    var currentTime by remember { mutableStateOf(SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())) }
+    var currentTime by remember { mutableStateOf(nowWallClock()) }
     LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(30_000L)
-            currentTime = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
+            currentTime = nowWallClock()
         }
     }
 

@@ -68,24 +68,6 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATION_6_7 = object : Migration(6, 7) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE caregivers ADD COLUMN notifyOnCancelled INTEGER NOT NULL DEFAULT 0")
-            }
-        }
-
-        val MIGRATION_7_8 = object : Migration(7, 8) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE local_ai_models ADD COLUMN isThinkingModel INTEGER NOT NULL DEFAULT 0")
-            }
-        }
-
-        val MIGRATION_8_9 = object : Migration(8, 9) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE local_ai_models ADD COLUMN supportsVision INTEGER NOT NULL DEFAULT 0")
-            }
-        }
-
         val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Create family_members table
@@ -109,6 +91,24 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE schedules ADD COLUMN toleranceMinutes INTEGER NOT NULL DEFAULT 10")
                 db.execSQL("ALTER TABLE schedules ADD COLUMN durationType TEXT NOT NULL DEFAULT 'ongoing'")
                 db.execSQL("ALTER TABLE schedules ADD COLUMN durationValue INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE caregivers ADD COLUMN notifyOnCancelled INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE local_ai_models ADD COLUMN isThinkingModel INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE local_ai_models ADD COLUMN supportsVision INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

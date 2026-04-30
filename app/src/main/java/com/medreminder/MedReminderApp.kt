@@ -1,6 +1,9 @@
 package com.medreminder
 
 import android.app.Application
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
 import com.medreminder.alarm.DailyDoseWorker
 import com.medreminder.billing.BillingManager
@@ -17,5 +20,18 @@ class MedReminderApp : Application() {
         super.onCreate()
         DailyDoseWorker.schedule(this)
         billingManager.initialize()
+
+        // Tear down the billing connection (and any pending reconnect callbacks)
+        // when the app process moves to the background, so the BillingClient
+        // and Handler don't outlive their useful lifetime.
+        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStop(owner: LifecycleOwner) {
+                billingManager.endConnection()
+            }
+
+            override fun onStart(owner: LifecycleOwner) {
+                billingManager.initialize()
+            }
+        })
     }
 }
