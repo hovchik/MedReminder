@@ -10,7 +10,6 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.activity.compose.setContent
-import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -45,11 +44,9 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
-private val WALL_CLOCK_FORMATTER: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
-
 private fun nowWallClock(): String =
-    WALL_CLOCK_FORMATTER.format(Instant.now().atZone(ZoneId.systemDefault()))
+    DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
+        .format(Instant.now().atZone(ZoneId.systemDefault()))
 
 data class AlarmMedication(
     val doseLogId: Long,
@@ -73,6 +70,8 @@ class FullScreenAlarmActivity : ComponentActivity() {
         const val EXTRA_MEDICATION_DOSAGES = "medication_dosages"
         const val EXTRA_MEDICATION_COLORS = "medication_colors"
 
+        private const val AUTO_STOP_DELAY_MS = 5 * 60 * 1000L // 5 minutes
+
         /** Called from TakenReceiver / SnoozeReceiver to dismiss the alarm screen. */
         fun finishIfShowing() {
             currentInstance?.get()?.let {
@@ -89,6 +88,19 @@ class FullScreenAlarmActivity : ComponentActivity() {
         get() = _medications.value
         set(value) { _medications.value = value }
     private val isProcessing = AtomicBoolean(false)
+    private val autoStopHandler = Handler(Looper.getMainLooper())
+    private val autoStopRunnable = Runnable {
+        // Stop sound/vibration after timeout but keep the screen showing so user can still act
+        try {
+            mediaPlayer?.apply {
+                if (isPlaying) stop()
+                release()
+            }
+        } catch (_: IllegalStateException) {}
+        mediaPlayer = null
+        try { vibrator?.cancel() } catch (_: Exception) {}
+        vibrator = null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,6 +110,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
         }
+        @Suppress("DEPRECATION")
         window.addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
             WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
@@ -114,6 +127,9 @@ class FullScreenAlarmActivity : ComponentActivity() {
 
         startAlarmSound()
         startVibration()
+
+        // Auto-stop alarm sound/vibration after 5 minutes to prevent battery drain
+        autoStopHandler.postDelayed(autoStopRunnable, AUTO_STOP_DELAY_MS)
 
         setContent {
             val currentMeds = _medications.value
@@ -216,19 +232,20 @@ class FullScreenAlarmActivity : ComponentActivity() {
     }
 
     private fun stopAlarm() {
+        autoStopHandler.removeCallbacks(autoStopRunnable)
         try {
             mediaPlayer?.apply {
                 if (isPlaying) stop()
                 release()
             }
-        } catch (e: IllegalStateException) {
+        } catch (_: IllegalStateException) {
             // MediaPlayer already released or in an invalid state
         } finally {
             mediaPlayer = null
         }
         try {
             vibrator?.cancel()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // ignore - vibrator may already be released
         } finally {
             vibrator = null
@@ -239,7 +256,7 @@ class FullScreenAlarmActivity : ComponentActivity() {
         nm?.cancel(AlarmReceiver.COMBINED_NOTIFICATION_ID)
         // Cancel individual notifications
         for (med in medications) {
-            nm?.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + med.doseLogId.toInt())
+            nm?.cancel(AlarmReceiver.notificationIdForDoseLog(med.doseLogId))
         }
     }
 
@@ -250,8 +267,12 @@ class FullScreenAlarmActivity : ComponentActivity() {
             try {
                 val db = AppDatabase.getInstance(this@FullScreenAlarmActivity)
                 for (med in medications) {
-                    db.doseLogDao().updateDoseStatus(med.doseLogId, "taken")
-                    db.medicationDao().decrementStock(med.medicationId)
+                    // Guard against double-processing: only update if still pending/snoozed
+                    val current = db.doseLogDao().getDoseLogById(med.doseLogId)
+                    if (current != null && current.status in listOf("pending", "snoozed")) {
+                        db.doseLogDao().updateDoseStatus(med.doseLogId, "taken")
+                        db.medicationDao().decrementStock(med.medicationId)
+                    }
                 }
                 for (med in medications) {
                     try {
@@ -350,7 +371,7 @@ fun AlarmScreen(
     var currentTime by remember { mutableStateOf(nowWallClock()) }
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(30_000L)
+            delay(30_000L)
             currentTime = nowWallClock()
         }
     }
@@ -503,7 +524,7 @@ fun CombinedAlarmScreen(
     var currentTime by remember { mutableStateOf(nowWallClock()) }
     LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(30_000L)
+            delay(30_000L)
             currentTime = nowWallClock()
         }
     }
@@ -643,7 +664,7 @@ fun CombinedAlarmScreen(
 private fun MedicationCard(name: String, dosage: String, color: String) {
     val medColor = try {
         Color(android.graphics.Color.parseColor(color))
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         Color(0xFF4A90D9)
     }
 

@@ -174,6 +174,9 @@ class SettingsViewModel @Inject constructor(
     fun clearAllData(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
+                // Cancel all scheduled alarms before wiping the database,
+                // otherwise stale alarms fire with no backing data.
+                alarmScheduler.cancelAllAlarms()
                 repository.clearAllData()
                 onResult(true)
             } catch (_: Exception) {

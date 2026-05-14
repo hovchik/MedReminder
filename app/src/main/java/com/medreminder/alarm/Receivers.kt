@@ -39,7 +39,7 @@ class SnoozeReceiver : BroadcastReceiver() {
                             doseLogIds[i], scheduleIds[i], medicationIds[i],
                             names[i], dosages[i], colors[i], 10
                         )
-                        nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogIds[i].toInt())
+                        nm.cancel(AlarmReceiver.notificationIdForDoseLog(doseLogIds[i]))
                     }
                     nm.cancel(AlarmReceiver.COMBINED_NOTIFICATION_ID)
                 } else if (legacyDoseLogId > 0) {
@@ -53,7 +53,7 @@ class SnoozeReceiver : BroadcastReceiver() {
                     scheduler.scheduleSnoozeAlarm(
                         legacyDoseLogId, scheduleId, medicationId, name, dosage, color, 10
                     )
-                    nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + legacyDoseLogId.toInt())
+                    nm.cancel(AlarmReceiver.notificationIdForDoseLog(legacyDoseLogId))
                 }
 
                 withContext(Dispatchers.Main) {
@@ -86,12 +86,16 @@ class TakenReceiver : BroadcastReceiver() {
 
                 if (doseLogIds != null && medicationIds != null && names != null) {
                     for (i in doseLogIds.indices) {
-                        db.doseLogDao().updateDoseStatus(doseLogIds[i], "taken")
-                        db.medicationDao().decrementStock(medicationIds[i])
-                        CaregiverNotificationHelper.notifyCaregiversOnTaken(
-                            context.applicationContext, db, medicationIds[i], names[i]
-                        )
-                        nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogIds[i].toInt())
+                        // Guard against double-processing: only update if still pending/snoozed
+                        val current = db.doseLogDao().getDoseLogById(doseLogIds[i])
+                        if (current != null && current.status in listOf("pending", "snoozed")) {
+                            db.doseLogDao().updateDoseStatus(doseLogIds[i], "taken")
+                            db.medicationDao().decrementStock(medicationIds[i])
+                            CaregiverNotificationHelper.notifyCaregiversOnTaken(
+                                context.applicationContext, db, medicationIds[i], names[i]
+                            )
+                        }
+                        nm.cancel(AlarmReceiver.notificationIdForDoseLog(doseLogIds[i]))
                     }
                     nm.cancel(AlarmReceiver.COMBINED_NOTIFICATION_ID)
 
@@ -106,17 +110,18 @@ class TakenReceiver : BroadcastReceiver() {
                     }
                 } else if (legacyDoseLogId > 0) {
                     val name = intent.getStringExtra(AlarmScheduler.EXTRA_MEDICATION_NAME) ?: "Medication"
-                    db.doseLogDao().updateDoseStatus(legacyDoseLogId, "taken")
 
-                    val log = db.doseLogDao().getDoseLogById(legacyDoseLogId)
-                    log?.let {
-                        db.medicationDao().decrementStock(it.medicationId)
+                    // Guard against double-processing
+                    val current = db.doseLogDao().getDoseLogById(legacyDoseLogId)
+                    if (current != null && current.status in listOf("pending", "snoozed")) {
+                        db.doseLogDao().updateDoseStatus(legacyDoseLogId, "taken")
+                        db.medicationDao().decrementStock(current.medicationId)
                         CaregiverNotificationHelper.notifyCaregiversOnTaken(
-                            context.applicationContext, db, it.medicationId, name
+                            context.applicationContext, db, current.medicationId, name
                         )
                     }
 
-                    nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + legacyDoseLogId.toInt())
+                    nm.cancel(AlarmReceiver.notificationIdForDoseLog(legacyDoseLogId))
 
                     withContext(Dispatchers.Main) {
                         FullScreenAlarmActivity.finishIfShowing()
@@ -153,7 +158,7 @@ class CancelReceiver : BroadcastReceiver() {
                         CaregiverNotificationHelper.notifyCaregiversOnSkipped(
                             context.applicationContext, db, medicationIds[i], names[i]
                         )
-                        nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogIds[i].toInt())
+                        nm.cancel(AlarmReceiver.notificationIdForDoseLog(doseLogIds[i]))
                     }
                     nm.cancel(AlarmReceiver.COMBINED_NOTIFICATION_ID)
                 } else if (doseLogIds != null) {
@@ -166,7 +171,7 @@ class CancelReceiver : BroadcastReceiver() {
                                 context.applicationContext, db, it.medicationId, med?.name ?: "Medication"
                             )
                         }
-                        nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + doseLogIds[i].toInt())
+                        nm.cancel(AlarmReceiver.notificationIdForDoseLog(doseLogIds[i]))
                     }
                     nm.cancel(AlarmReceiver.COMBINED_NOTIFICATION_ID)
                 } else if (legacyDoseLogId > 0) {
@@ -178,7 +183,7 @@ class CancelReceiver : BroadcastReceiver() {
                             context.applicationContext, db, it.medicationId, med?.name ?: "Medication"
                         )
                     }
-                    nm.cancel(AlarmReceiver.NOTIFICATION_ID_BASE + legacyDoseLogId.toInt())
+                    nm.cancel(AlarmReceiver.notificationIdForDoseLog(legacyDoseLogId))
                 }
 
                 withContext(Dispatchers.Main) {
@@ -200,18 +205,8 @@ class BootReceiver : BroadcastReceiver() {
             intent.action == Intent.ACTION_MY_PACKAGE_REPLACED
         ) {
             Log.d("BootReceiver", "Rescheduling all alarms after boot/update")
-            val pendingResult = goAsync()
-            ReceiverScope.scope.launch {
-                try {
-                    val db = AppDatabase.getInstance(context)
-                    val scheduler = AlarmScheduler(context.applicationContext, db.scheduleDao())
-                    scheduler.scheduleAllAlarms()
-                } catch (e: Exception) {
-                    Log.e("BootReceiver", "Error rescheduling", e)
-                } finally {
-                    pendingResult.finish()
-                }
-            }
+            // Delegate to WorkManager so we are not bound by goAsync() ~10s limit.
+            RescheduleAlarmsWorker.enqueue(context)
         }
     }
 }

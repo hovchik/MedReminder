@@ -257,8 +257,12 @@ class MedicationRepositoryImpl @Inject constructor(
             }
             ScheduleFrequency.INTERVAL -> {
                 if (schedule.intervalDays <= 0) return false
-                val daysSinceStart = ((day.timeInMillis - schedule.startDate) /
-                        (24 * 60 * 60 * 1000)).toInt()
+                val startLocalDate = java.time.Instant.ofEpochMilli(schedule.startDate)
+                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                val dayLocalDate = java.time.Instant.ofEpochMilli(day.timeInMillis)
+                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                val daysSinceStart = java.time.temporal.ChronoUnit.DAYS
+                    .between(startLocalDate, dayLocalDate).toInt()
                 daysSinceStart >= 0 && daysSinceStart % schedule.intervalDays == 0
             }
             ScheduleFrequency.EVERY_X_HOURS -> true
@@ -634,77 +638,89 @@ class MedicationRepositoryImpl @Inject constructor(
             // Clear existing data first
             clearAllData()
 
-            // Import medications
+            // Import medications first (other tables reference them via FK)
             val meds = root.optJSONArray("medications")
             if (meds != null) {
                 for (i in 0 until meds.length()) {
-                    val m = meds.getJSONObject(i)
-                    medicationDao.insertMedication(MedicationEntity(
-                        id = m.getLong("id"),
-                        name = m.getString("name"),
-                        dosage = m.getString("dosage"),
-                        dosageUnit = m.getString("dosageUnit"),
-                        form = m.getString("form"),
-                        instructions = m.optString("instructions", ""),
-                        color = m.optString("color", "#4A90D9"),
-                        iconName = m.optString("iconName", "pill"),
-                        currentStock = m.optInt("currentStock", 0),
-                        refillThreshold = m.optInt("refillThreshold", 5),
-                        refillReminder = m.optBoolean("refillReminder", true),
-                        notes = m.optString("notes", ""),
-                        notifyCaregivers = m.optBoolean("notifyCaregivers", false),
-                        isEmergency = m.optBoolean("isEmergency", false),
-                        isActive = m.optBoolean("isActive", true),
-                        assignedToId = if (m.isNull("assignedToId")) null else m.optLong("assignedToId"),
-                        assignedToName = m.optString("assignedToName", ""),
-                        createdAt = m.optLong("createdAt", System.currentTimeMillis()),
-                        updatedAt = m.optLong("updatedAt", System.currentTimeMillis())
-                    ))
+                    try {
+                        val m = meds.getJSONObject(i)
+                        medicationDao.insertMedication(MedicationEntity(
+                            id = m.getLong("id"),
+                            name = m.getString("name"),
+                            dosage = m.getString("dosage"),
+                            dosageUnit = m.getString("dosageUnit"),
+                            form = m.getString("form"),
+                            instructions = m.optString("instructions", ""),
+                            color = m.optString("color", "#4A90D9"),
+                            iconName = m.optString("iconName", "pill"),
+                            currentStock = m.optInt("currentStock", 0),
+                            refillThreshold = m.optInt("refillThreshold", 5),
+                            refillReminder = m.optBoolean("refillReminder", true),
+                            notes = m.optString("notes", ""),
+                            notifyCaregivers = m.optBoolean("notifyCaregivers", false),
+                            isEmergency = m.optBoolean("isEmergency", false),
+                            isActive = m.optBoolean("isActive", true),
+                            assignedToId = if (m.isNull("assignedToId")) null else m.optLong("assignedToId"),
+                            assignedToName = m.optString("assignedToName", ""),
+                            createdAt = m.optLong("createdAt", System.currentTimeMillis()),
+                            updatedAt = m.optLong("updatedAt", System.currentTimeMillis())
+                        ))
+                    } catch (e: Exception) {
+                        android.util.Log.w("Import", "Skipping malformed medication at index $i", e)
+                    }
                 }
             }
 
-            // Import schedules
+            // Import schedules (FK: medicationId → medications)
             val schedules = root.optJSONArray("schedules")
             if (schedules != null) {
                 for (i in 0 until schedules.length()) {
-                    val s = schedules.getJSONObject(i)
-                    scheduleDao.insertSchedule(ScheduleEntity(
-                        id = s.getLong("id"),
-                        medicationId = s.getLong("medicationId"),
-                        timeHour = s.getInt("timeHour"),
-                        timeMinute = s.getInt("timeMinute"),
-                        frequency = s.getString("frequency"),
-                        daysOfWeek = s.optString("daysOfWeek", ""),
-                        intervalDays = s.optInt("intervalDays", 1),
-                        intervalHours = s.optInt("intervalHours", 0),
-                        toleranceMinutes = s.optInt("toleranceMinutes", 10),
-                        durationType = s.optString("durationType", "ongoing"),
-                        durationValue = s.optInt("durationValue", 0),
-                        startDate = s.optLong("startDate", System.currentTimeMillis()),
-                        endDate = if (s.isNull("endDate")) null else s.optLong("endDate"),
-                        isEnabled = s.optBoolean("isEnabled", true),
-                        createdAt = s.optLong("createdAt", System.currentTimeMillis())
-                    ))
+                    try {
+                        val s = schedules.getJSONObject(i)
+                        scheduleDao.insertSchedule(ScheduleEntity(
+                            id = s.getLong("id"),
+                            medicationId = s.getLong("medicationId"),
+                            timeHour = s.getInt("timeHour"),
+                            timeMinute = s.getInt("timeMinute"),
+                            frequency = s.getString("frequency"),
+                            daysOfWeek = s.optString("daysOfWeek", ""),
+                            intervalDays = s.optInt("intervalDays", 1),
+                            intervalHours = s.optInt("intervalHours", 0),
+                            toleranceMinutes = s.optInt("toleranceMinutes", 10),
+                            durationType = s.optString("durationType", "ongoing"),
+                            durationValue = s.optInt("durationValue", 0),
+                            startDate = s.optLong("startDate", System.currentTimeMillis()),
+                            endDate = if (s.isNull("endDate")) null else s.optLong("endDate"),
+                            isEnabled = s.optBoolean("isEnabled", true),
+                            createdAt = s.optLong("createdAt", System.currentTimeMillis())
+                        ))
+                    } catch (e: Exception) {
+                        android.util.Log.w("Import", "Skipping malformed schedule at index $i", e)
+                    }
                 }
             }
 
-            // Import dose logs
+            // Import dose logs (FK: medicationId → medications)
             val logs = root.optJSONArray("doseLogs")
             if (logs != null) {
                 for (i in 0 until logs.length()) {
-                    val l = logs.getJSONObject(i)
-                    doseLogDao.insertDoseLog(DoseLogEntity(
-                        id = l.getLong("id"),
-                        medicationId = l.getLong("medicationId"),
-                        scheduleId = l.getLong("scheduleId"),
-                        scheduledTime = l.getLong("scheduledTime"),
-                        actionTime = if (l.isNull("actionTime")) null else l.optLong("actionTime"),
-                        status = l.getString("status"),
-                        snoozedUntil = if (l.isNull("snoozedUntil")) null else l.optLong("snoozedUntil"),
-                        snoozeCount = l.optInt("snoozeCount", 0),
-                        notes = l.optString("notes", ""),
-                        createdAt = l.optLong("createdAt", System.currentTimeMillis())
-                    ))
+                    try {
+                        val l = logs.getJSONObject(i)
+                        doseLogDao.insertDoseLog(DoseLogEntity(
+                            id = l.getLong("id"),
+                            medicationId = l.getLong("medicationId"),
+                            scheduleId = l.getLong("scheduleId"),
+                            scheduledTime = l.getLong("scheduledTime"),
+                            actionTime = if (l.isNull("actionTime")) null else l.optLong("actionTime"),
+                            status = l.getString("status"),
+                            snoozedUntil = if (l.isNull("snoozedUntil")) null else l.optLong("snoozedUntil"),
+                            snoozeCount = l.optInt("snoozeCount", 0),
+                            notes = l.optString("notes", ""),
+                            createdAt = l.optLong("createdAt", System.currentTimeMillis())
+                        ))
+                    } catch (e: Exception) {
+                        android.util.Log.w("Import", "Skipping malformed dose log at index $i", e)
+                    }
                 }
             }
 
@@ -712,20 +728,24 @@ class MedicationRepositoryImpl @Inject constructor(
             val caregivers = root.optJSONArray("caregivers")
             if (caregivers != null) {
                 for (i in 0 until caregivers.length()) {
-                    val c = caregivers.getJSONObject(i)
-                    caregiverDao.insertCaregiver(CaregiverEntity(
-                        id = c.getLong("id"),
-                        name = c.getString("name"),
-                        phone = c.optString("phone", ""),
-                        email = c.optString("email", ""),
-                        relationship = c.optString("relationship", ""),
-                        notifyOnMissed = c.optBoolean("notifyOnMissed", true),
-                        notifyOnTaken = c.optBoolean("notifyOnTaken", false),
-                        notifyOnCancelled = c.optBoolean("notifyOnCancelled", false),
-                        notifyDelay = c.optInt("notifyDelay", 30),
-                        isActive = c.optBoolean("isActive", true),
-                        createdAt = c.optLong("createdAt", System.currentTimeMillis())
-                    ))
+                    try {
+                        val c = caregivers.getJSONObject(i)
+                        caregiverDao.insertCaregiver(CaregiverEntity(
+                            id = c.getLong("id"),
+                            name = c.getString("name"),
+                            phone = c.optString("phone", ""),
+                            email = c.optString("email", ""),
+                            relationship = c.optString("relationship", ""),
+                            notifyOnMissed = c.optBoolean("notifyOnMissed", true),
+                            notifyOnTaken = c.optBoolean("notifyOnTaken", false),
+                            notifyOnCancelled = c.optBoolean("notifyOnCancelled", false),
+                            notifyDelay = c.optInt("notifyDelay", 30),
+                            isActive = c.optBoolean("isActive", true),
+                            createdAt = c.optLong("createdAt", System.currentTimeMillis())
+                        ))
+                    } catch (e: Exception) {
+                        android.util.Log.w("Import", "Skipping malformed caregiver at index $i", e)
+                    }
                 }
             }
 
@@ -733,15 +753,19 @@ class MedicationRepositoryImpl @Inject constructor(
             val familyMembers = root.optJSONArray("familyMembers")
             if (familyMembers != null) {
                 for (i in 0 until familyMembers.length()) {
-                    val fm = familyMembers.getJSONObject(i)
-                    familyMemberDao.insertFamilyMember(FamilyMemberEntity(
-                        id = fm.getLong("id"),
-                        name = fm.getString("name"),
-                        age = fm.getInt("age"),
-                        relation = fm.optString("relation", ""),
-                        isActive = fm.optBoolean("isActive", true),
-                        createdAt = fm.optLong("createdAt", System.currentTimeMillis())
-                    ))
+                    try {
+                        val fm = familyMembers.getJSONObject(i)
+                        familyMemberDao.insertFamilyMember(FamilyMemberEntity(
+                            id = fm.getLong("id"),
+                            name = fm.getString("name"),
+                            age = fm.getInt("age"),
+                            relation = fm.optString("relation", ""),
+                            isActive = fm.optBoolean("isActive", true),
+                            createdAt = fm.optLong("createdAt", System.currentTimeMillis())
+                        ))
+                    } catch (e: Exception) {
+                        android.util.Log.w("Import", "Skipping malformed family member at index $i", e)
+                    }
                 }
             }
         }

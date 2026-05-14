@@ -62,7 +62,7 @@ data class Schedule(
         get() {
             val h = if (timeHour == 0) 12 else if (timeHour > 12) timeHour - 12 else timeHour
             val amPm = if (timeHour < 12) "AM" else "PM"
-            return String.format("%d:%02d %s", h, timeMinute, amPm)
+            return String.format(java.util.Locale.getDefault(), "%d:%02d %s", h, timeMinute, amPm)
         }
 }
 

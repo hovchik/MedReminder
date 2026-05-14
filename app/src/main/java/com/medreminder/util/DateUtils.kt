@@ -6,11 +6,12 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 
 object DateUtils {
-    private val DATE_FORMATTER: DateTimeFormatter =
+    // Formatters are created per-call so they always reflect the current Locale.
+    private fun dateFormatter(): DateTimeFormatter =
         DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())
-    private val DATE_TIME_FORMATTER: DateTimeFormatter =
+    private fun dateTimeFormatter(): DateTimeFormatter =
         DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.getDefault())
-    private val TIME_FORMATTER: DateTimeFormatter =
+    private fun timeFormatter(): DateTimeFormatter =
         DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
 
 
@@ -65,17 +66,17 @@ object DateUtils {
     fun formatTime(hour: Int, minute: Int): String {
         val h = if (hour == 0) 12 else if (hour > 12) hour - 12 else hour
         val amPm = if (hour < 12) "AM" else "PM"
-        return String.format("%d:%02d %s", h, minute, amPm)
+        return String.format(Locale.getDefault(), "%d:%02d %s", h, minute, amPm)
     }
 
     fun formatDate(millis: Long): String =
-        DATE_FORMATTER.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
+        dateFormatter().format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
 
     fun formatDateTime(millis: Long): String =
-        DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
+        dateTimeFormatter().format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
 
     fun formatTimeOnly(millis: Long): String =
-        TIME_FORMATTER.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
+        timeFormatter().format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
 
     fun isToday(millis: Long): Boolean {
         val today = Calendar.getInstance()

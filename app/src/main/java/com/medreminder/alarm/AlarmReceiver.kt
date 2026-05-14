@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
-import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.medreminder.R
@@ -26,6 +25,10 @@ class AlarmReceiver : BroadcastReceiver() {
         const val COMBINED_NOTIFICATION_ID = 9999
         const val TAG = "AlarmReceiver"
         private const val TOLERANCE_MINUTES = 2L
+
+        /** Consistent notification ID for a given doseLogId — must be used everywhere. */
+        fun notificationIdForDoseLog(doseLogId: Long): Int =
+            NOTIFICATION_ID_BASE + (doseLogId.toInt() and 0xFFFF)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -122,9 +125,9 @@ class AlarmReceiver : BroadcastReceiver() {
                     )
                 }
 
-                // Reschedule for next occurrence
-                val scheduler = AlarmScheduler(context, db.scheduleDao())
-                scheduler.scheduleAllAlarms()
+                // Reschedule for next occurrence via WorkManager to avoid
+                // exceeding the goAsync() ~10s ANR timeout.
+                RescheduleAlarmsWorker.enqueue(context)
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing alarm", e)
@@ -199,7 +202,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val notificationId = if (doseLogIds.size > 1) {
             COMBINED_NOTIFICATION_ID
         } else {
-            NOTIFICATION_ID_BASE + (doseLogIds.first().toInt() and 0xFFFF)
+            notificationIdForDoseLog(doseLogIds.first())
         }
 
         // Use stable request code base to avoid Int overflow (notificationId * 10 could overflow)
@@ -271,7 +274,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
         // Cancel any previous individual notifications for these dose logs
         for (id in doseLogIds) {
-            manager.cancel(NOTIFICATION_ID_BASE + id.toInt())
+            manager.cancel(notificationIdForDoseLog(id))
         }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)

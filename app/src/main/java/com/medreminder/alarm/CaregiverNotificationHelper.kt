@@ -18,7 +18,7 @@ object CaregiverNotificationHelper {
 
     private const val TAG = "CaregiverNotify"
 
-    private val TIME_FORMATTER: java.time.format.DateTimeFormatter =
+    private fun timeFormatter(): java.time.format.DateTimeFormatter =
         java.time.format.DateTimeFormatter.ofPattern("h:mm a", java.util.Locale.getDefault())
 
     suspend fun notifyCaregiversOnMissed(
@@ -76,7 +76,7 @@ object CaregiverNotificationHelper {
         Log.d(TAG, "notifyCaregivers: found ${caregivers.size} caregivers (isMissed=$isMissed, isSkipped=$isSkipped)")
         if (caregivers.isEmpty()) return
 
-        val now = TIME_FORMATTER.format(
+        val now = timeFormatter().format(
             java.time.Instant.now().atZone(java.time.ZoneId.systemDefault())
         )
         val dosageInfo = if (medication.dosage.isNotBlank()) " (${medication.dosage}${if (medication.dosageUnit.isNotBlank()) " ${medication.dosageUnit}" else ""})" else ""
@@ -154,7 +154,7 @@ object CaregiverNotificationHelper {
         if (stripped.isEmpty()) return ""
         val prefix = if (stripped.startsWith("+")) "+" else ""
         val digits = stripped.filter { it.isDigit() }
-        if (digits.length < 3) return "" // too short to be valid
+        if (digits.length < 7) return "" // minimum length for a valid phone number
         return prefix + digits
     }
 
@@ -215,17 +215,41 @@ object CaregiverNotificationHelper {
     }
 
     private fun makeCallFallback(context: Context, phone: String) {
+        // On Android 10+ starting activities from background is restricted.
+        // Show a notification instead so the user can tap to call.
         try {
-            // Use ACTION_DIAL (not ACTION_CALL) so the user must confirm the call.
-            // This avoids initiating unexpected phone calls from background processing.
+            val nm = context.getSystemService(android.app.NotificationManager::class.java) ?: return
+
+            val channelId = "caregiver_call_fallback"
+            val channel = android.app.NotificationChannel(
+                channelId,
+                "Caregiver Call Fallback",
+                android.app.NotificationManager.IMPORTANCE_HIGH
+            )
+            nm.createNotificationChannel(channel)
+
             val dialIntent = Intent(Intent.ACTION_DIAL).apply {
                 data = Uri.parse("tel:$phone")
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            context.startActivity(dialIntent)
-            Log.d(TAG, "Fallback dial screen opened for $phone")
+            val pendingIntent = PendingIntent.getActivity(
+                context, phone.hashCode() and 0x7FFFFFFF, dialIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = androidx.core.app.NotificationCompat.Builder(context, channelId)
+                .setSmallIcon(com.medreminder.R.drawable.ic_medication)
+                .setContentTitle("SMS failed — tap to call caregiver")
+                .setContentText("Could not send SMS to $phone. Tap to call instead.")
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .build()
+
+            nm.notify(8000 + (phone.hashCode() and 0x7FFFFFFF) % 1000, notification)
+            Log.d(TAG, "Fallback notification shown for $phone")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to open dialer for $phone", e)
+            Log.e(TAG, "Failed to show fallback notification for $phone", e)
         }
     }
 

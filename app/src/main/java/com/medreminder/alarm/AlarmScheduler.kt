@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.medreminder.data.local.ScheduleDao
+import com.medreminder.domain.model.DurationType
 import com.medreminder.domain.model.toDomain
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.DayOfWeek
@@ -143,7 +144,7 @@ class AlarmScheduler @Inject constructor(
         }
     }
 
-    private suspend fun cancelAllAlarms() {
+    suspend fun cancelAllAlarms() {
         val schedules = scheduleDao.getAllActiveSchedules()
         schedules.forEach { cancelAlarm(it.id) }
     }
@@ -187,7 +188,7 @@ class AlarmScheduler @Inject constructor(
                     AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
                 )
             }
-        } catch (e: SecurityException) {
+        } catch (_: SecurityException) {
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
         }
     }
@@ -230,7 +231,7 @@ class AlarmScheduler @Inject constructor(
                 if (schedule.daysOfWeek.isEmpty()) return null
                 var candidate = if (todayAtTime.isAfter(now)) todayAtTime else todayAtTime.plusDays(1)
                 var found = false
-                for (i in 0..6) {
+                for (unused in 0..6) {
                     if (schedule.daysOfWeek.contains(candidate.calendarDayOfWeek())) {
                         found = true
                         break
@@ -258,17 +259,36 @@ class AlarmScheduler @Inject constructor(
             }
             com.medreminder.domain.model.ScheduleFrequency.EVERY_X_HOURS -> {
                 if (schedule.intervalHours <= 0) return null
-                var candidate = todayAtTime
-                while (!candidate.isAfter(now)) {
-                    candidate = candidate.plusHours(schedule.intervalHours.toLong())
+                if (todayAtTime.isAfter(now)) {
+                    todayAtTime
+                } else {
+                    // O(1) calculation instead of looping
+                    val secondsElapsed = java.time.Duration.between(todayAtTime, now).seconds
+                    val intervalSeconds = schedule.intervalHours.toLong() * 3600
+                    val periodsElapsed = secondsElapsed / intervalSeconds
+                    todayAtTime.plusHours((periodsElapsed + 1) * schedule.intervalHours.toLong())
                 }
-                candidate
             }
             com.medreminder.domain.model.ScheduleFrequency.AS_NEEDED -> return null
         }
 
         val triggerMillis = next.toInstant().toEpochMilli()
+
+        // Check explicit endDate
         schedule.endDate?.let { if (triggerMillis > it) return null }
+
+        // Check durationType-based expiration (e.g. "for 30 days", "for 3 months")
+        if (schedule.durationType != DurationType.ONGOING && schedule.durationValue > 0) {
+            val scheduleStartDate = java.time.Instant.ofEpochMilli(schedule.startDate)
+                .atZone(zone).toLocalDate()
+            val expirationDate = when (schedule.durationType) {
+                DurationType.DAYS -> scheduleStartDate.plusDays(schedule.durationValue.toLong())
+                DurationType.MONTHS -> scheduleStartDate.plusMonths(schedule.durationValue.toLong())
+                else -> null
+            }
+            if (expirationDate != null && next.toLocalDate().isAfter(expirationDate)) return null
+        }
+
         return triggerMillis
     }
 

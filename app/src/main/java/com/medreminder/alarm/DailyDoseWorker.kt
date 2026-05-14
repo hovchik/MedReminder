@@ -54,7 +54,7 @@ class DailyDoseWorker @AssistedInject constructor(
 
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 WORK_NAME,
-                ExistingPeriodicWorkPolicy.KEEP,
+                ExistingPeriodicWorkPolicy.UPDATE,
                 workRequest
             )
             Log.d(TAG, "Daily worker scheduled (initialDelay=${initialDelay}ms)")
@@ -170,8 +170,11 @@ class DailyDoseWorker @AssistedInject constructor(
             }
             ScheduleFrequency.INTERVAL -> {
                 if (schedule.intervalDays <= 0) return false
-                val daysSinceStart = ((today.timeInMillis - schedule.startDate) /
-                        (24 * 60 * 60 * 1000)).toInt()
+                val startLocalDate = java.time.Instant.ofEpochMilli(schedule.startDate)
+                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                val todayLocalDate = java.time.LocalDate.now()
+                val daysSinceStart = java.time.temporal.ChronoUnit.DAYS
+                    .between(startLocalDate, todayLocalDate).toInt()
                 daysSinceStart >= 0 && daysSinceStart % schedule.intervalDays == 0
             }
             ScheduleFrequency.EVERY_X_HOURS -> true // always scheduled, alarm handles timing
