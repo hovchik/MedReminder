@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MedReminder – Play Store Graphics Generator</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; padding: 24px; }
+  h1 { color: #1565C0; }
+  .card { background: #fff; border-radius: 12px; padding: 24px; margin: 24px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  canvas { border: 1px solid #ddd; border-radius: 8px; display: block; margin: 12px 0; }
+  button { background: #1565C0; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 8px 4px; }
+  button:hover { background: #0D47A1; }
+  .note { color: #666; font-size: 14px; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<h1>🏥 MedReminder – Google Play Store Graphics</h1>
+<p>Click each <strong>Download</strong> button to save the graphic as PNG.</p>
+
+<!-- ==================== APP ICON 512x512 ==================== -->
+<div class="card">
+  <h2>App Icon (512 × 512 px)</h2>
+  <canvas id="iconCanvas" width="512" height="512"></canvas>
+  <button onclick="download('iconCanvas','medreminder_icon_512.png')">⬇ Download Icon PNG</button>
+  <p class="note">Upload this as the <strong>App icon</strong> in Google Play Console → Store listing.</p>
+</div>
+
+<!-- ==================== FEATURE GRAPHIC 1024x500 ==================== -->
+<div class="card">
+  <h2>Feature Graphic (1024 × 500 px)</h2>
+  <canvas id="featureCanvas" width="1024" height="500"></canvas>
+  <button onclick="download('featureCanvas','medreminder_feature_graphic.png')">⬇ Download Feature Graphic PNG</button>
+  <p class="note">Upload this as the <strong>Feature graphic</strong> in Google Play Console → Store listing.</p>
+</div>
+
+<script>
+/* ─── Utility ─── */
+function download(canvasId, filename) {
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = document.getElementById(canvasId).toDataURL('image/png');
+  a.click();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+/* ─── Draw capsule icon element ─── */
+function drawCapsule(ctx, cx, cy, scale) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+
+  // Left half (white)
+  ctx.beginPath();
+  ctx.moveTo(-18, -24);
+  ctx.lineTo(0, -24);
+  ctx.lineTo(0, 24);
+  ctx.lineTo(-18, 24);
+  ctx.arc(-18, 0, 24, Math.PI/2, -Math.PI/2, false);
+  ctx.closePath();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+  ctx.strokeStyle = '#B0BEC5';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Right half (blue)
+  ctx.beginPath();
+  ctx.moveTo(0, -24);
+  ctx.lineTo(18, -24);
+  ctx.arc(18, 0, 24, -Math.PI/2, Math.PI/2, false);
+  ctx.lineTo(0, 24);
+  ctx.closePath();
+  ctx.fillStyle = '#1565C0';
+  ctx.fill();
+
+  // Shine
+  ctx.beginPath();
+  ctx.moveTo(8, -20);
+  ctx.quadraticCurveTo(30, -10, 30, 0);
+  ctx.lineTo(28, -16);
+  ctx.quadraticCurveTo(20, -22, 8, -20);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(66,165,245,0.45)';
+  ctx.fill();
+
+  // Plus sign on right half
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(12, -6, 16, 4);
+  ctx.fillRect(18, -12, 4, 16);
+
+  ctx.restore();
+}
+
+/* ─── Draw heart ─── */
+function drawHeart(ctx, cx, cy, size) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(size, size);
+  ctx.beginPath();
+  ctx.moveTo(0, 3);
+  ctx.bezierCurveTo(-5, -2, -9, 2, -5, 6);
+  ctx.lineTo(0, 11);
+  ctx.lineTo(5, 6);
+  ctx.bezierCurveTo(9, 2, 5, -2, 0, 3);
+  ctx.closePath();
+  ctx.fillStyle = '#E53935';
+  ctx.fill();
+  ctx.restore();
+}
+
+/* ─── Draw heartbeat line ─── */
+function drawHeartbeat(ctx, x, y, width, color, lineWidth) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const segW = width / 10;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + segW * 2, y);
+  ctx.lineTo(x + segW * 3, y - segW * 1.5);
+  ctx.lineTo(x + segW * 4, y + segW * 2);
+  ctx.lineTo(x + segW * 5, y - segW * 0.8);
+  ctx.lineTo(x + segW * 6, y);
+  ctx.lineTo(x + segW * 7, y);
+  ctx.lineTo(x + segW * 7.5, y - segW * 1.5);
+  ctx.lineTo(x + segW * 8.5, y + segW * 2);
+  ctx.lineTo(x + segW * 9, y);
+  ctx.lineTo(x + segW * 10, y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ═══════════════════════════════════════
+   1. APP ICON  (512×512)
+   ═══════════════════════════════════════ */
+(function() {
+  const c = document.getElementById('iconCanvas');
+  const ctx = c.getContext('2d');
+  const S = 512;
+
+  // Background – soft gradient
+  const bg = ctx.createRadialGradient(S/2, S/2, 0, S/2, S/2, S * 0.7);
+  bg.addColorStop(0, '#E3F2FD');
+  bg.addColorStop(1, '#BBDEFB');
+  roundRect(ctx, 0, 0, S, S, 100);
+  ctx.fillStyle = bg;
+  ctx.fill();
+
+  // Subtle circle glow
+  ctx.beginPath();
+  ctx.arc(S/2, S/2, 190, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(187,222,251,0.45)';
+  ctx.fill();
+
+  // Capsule
+  drawCapsule(ctx, S/2, S/2 - 30, 4.5);
+
+  // Heart
+  drawHeart(ctx, S/2 - 40, S/2 + 50, 3.5);
+
+  // Heartbeat line
+  drawHeartbeat(ctx, S/2 - 100, S/2 + 110, 200, '#1565C0', 4);
+
+  // Clock circle
+  ctx.beginPath();
+  ctx.arc(S/2 + 70, S/2 + 55, 22, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(21,101,192,0.85)';
+  ctx.fill();
+  // Clock hands
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(S/2 + 70, S/2 + 45);
+  ctx.lineTo(S/2 + 70, S/2 + 55);
+  ctx.lineTo(S/2 + 82, S/2 + 55);
+  ctx.stroke();
+})();
+
+/* ═══════════════════════════════════════
+   2. FEATURE GRAPHIC  (1024×500)
+   ═══════════════════════════════════════ */
+(function() {
+  const c = document.getElementById('featureCanvas');
+  const ctx = c.getContext('2d');
+  const W = 1024, H = 500;
+
+  // Background gradient
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#0D47A1');
+  bg.addColorStop(0.5, '#1565C0');
+  bg.addColorStop(1, '#1E88E5');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Decorative circles
+  ctx.beginPath();
+  ctx.arc(100, 400, 200, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(900, 100, 250, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(500, 480, 150, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  ctx.fill();
+
+  // Heartbeat line across the background
+  drawHeartbeat(ctx, 40, H/2 + 60, W - 80, 'rgba(255,255,255,0.12)', 3);
+
+  // Capsule icon on the left
+  drawCapsule(ctx, 220, H/2 - 10, 5);
+  drawHeart(ctx, 175, H/2 + 65, 3);
+
+  // Clock
+  ctx.beginPath();
+  ctx.arc(290, H/2 + 55, 20, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(21,101,192,0.9)';
+  ctx.fill();
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(290, H/2 + 46);
+  ctx.lineTo(290, H/2 + 55);
+  ctx.lineTo(300, H/2 + 55);
+  ctx.stroke();
+
+  // App name
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 72px "Segoe UI", Helvetica, Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('MedReminder', 400, H/2 - 30);
+
+  // Tagline
+  ctx.font = '28px "Segoe UI", Helvetica, Arial, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fillText('Never miss a dose. Your health, your privacy.', 400, H/2 + 20);
+
+  // Feature pills
+  const tags = ['⏰ Smart Alarms', '🤖 AI Insights', '👨‍👩‍👧 Family', '🔒 Privacy'];
+  let tx = 400;
+  ctx.font = '20px "Segoe UI", Helvetica, Arial, sans-serif';
+  tags.forEach(tag => {
+    const tw = ctx.measureText(tag).width + 28;
+    roundRect(ctx, tx, H/2 + 50, tw, 36, 18);
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'left';
+    ctx.fillText(tag, tx + 14, H/2 + 74);
+    tx += tw + 12;
+  });
+})();
+</script>
+</body>
+</html>
+

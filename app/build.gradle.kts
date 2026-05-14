@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.medreminder"
+    namespace = "med.reminder.com"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.medreminder"
+        applicationId = "med.reminder.com"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

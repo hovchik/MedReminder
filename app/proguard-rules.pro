@@ -90,6 +90,6 @@
 }
 
 # App models serialized across processes (Room entities, nav args, Intent extras).
--keep class com.medreminder.data.database.** { *; }
--keep class com.medreminder.data.model.** { *; }
--keep class com.medreminder.domain.model.** { *; }
+-keep class med.reminder.com.data.database.** { *; }
+-keep class med.reminder.com.data.model.** { *; }
+-keep class med.reminder.com.domain.model.** { *; }

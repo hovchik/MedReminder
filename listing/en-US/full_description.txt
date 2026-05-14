@@ -1,0 +1,43 @@
+MedReminder is the privacy-first medication reminder app that helps you and your family stay on track with prescriptions, vitamins, and supplements. Set up your medications in seconds — scan a label with your camera or let on-device AI auto-fill the details — and receive reliable, on-time reminders that even wake your screen.
+
+🔔 SMART REMINDERS
+• Exact-time alarms with full-screen alerts — never sleep through a dose
+• Flexible schedules: daily, specific days, every X days, or every X hours
+• Snooze, mark taken, or skip right from the notification
+• Automatic rescheduling after reboot
+
+💊 EASY MEDICATION SETUP
+• Scan medication labels or barcodes with your camera (OCR & barcode support)
+• AI auto-fill: enter just the name and AI suggests dosage, form, and instructions
+• Track pills, capsules, liquids, injections, patches, sprays, drops, inhalers, and creams
+• Stock tracking with low-supply refill reminders
+
+👨‍👩‍👧 FAMILY & CAREGIVER SUPPORT
+• Add family members and manage their medications too
+• Caregiver notifications via SMS when doses are taken, missed, or cancelled
+• Emergency mode: missed critical medications trigger an SMS with your live location
+• Automatic phone call fallback when SMS delivery fails
+
+🤖 AI-POWERED INSIGHTS
+• On-device AI keeps your health data 100 % private
+• Daily and weekly adherence analysis with personalized recommendations
+• Deep medication analysis: interactions, side effects, body targets, and more
+• Choose from on-device AI, cloud AI (Claude, ChatGPT, Gemini, DeepSeek), or auto
+
+📊 STATS & HISTORY
+• Visual adherence tracking — daily, weekly, monthly, and yearly
+• Current streak counter to keep you motivated
+• Full dose history: taken, missed, snoozed, and cancelled
+• Export your data as JSON for backup or doctor visits
+
+🔒 PRIVACY BY DESIGN
+• All data stored locally on your device — no cloud sync, no accounts
+• No ads, no tracking, no analytics
+• Camera images processed on-device only
+• Cloud AI is optional and off by default
+
+🌍 MULTILINGUAL
+Available in English, Spanish, Russian, Armenian, Hindi, Japanese, Chinese, and Farsi.
+
+Whether you take one daily vitamin or manage a complex regimen for the whole family, MedReminder is designed to be simple, reliable, and respectful of your privacy. Download it today and never miss a dose again.
+

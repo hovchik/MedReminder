@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy – MedReminder</title>
+<style>
+  :root { --primary: #1565C0; --bg: #FAFAFA; --card: #FFFFFF; --text: #212121; --muted: #616161; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+  header { background: var(--primary); color: #fff; padding: 40px 24px; text-align: center; }
+  header h1 { font-size: 28px; font-weight: 700; }
+  header p { margin-top: 8px; opacity: 0.85; font-size: 15px; }
+  nav.legal-nav { background: #0D47A1; text-align: center; padding: 12px; }
+  nav.legal-nav a { color: rgba(255,255,255,0.85); text-decoration: none; margin: 0 16px; font-size: 14px; font-weight: 500; }
+  nav.legal-nav a:hover, nav.legal-nav a.active { color: #fff; text-decoration: underline; }
+  main { max-width: 800px; margin: 32px auto; padding: 0 20px; }
+  .card { background: var(--card); border-radius: 12px; padding: 32px 36px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 32px; }
+  h2 { color: var(--primary); font-size: 20px; margin: 28px 0 12px; }
+  h2:first-child { margin-top: 0; }
+  p, li { font-size: 15px; margin-bottom: 10px; }
+  ul { padding-left: 24px; margin-bottom: 12px; }
+  li { margin-bottom: 6px; }
+  .updated { color: var(--muted); font-size: 14px; font-style: italic; margin-bottom: 20px; }
+  footer { text-align: center; padding: 32px 20px; color: var(--muted); font-size: 13px; }
+  @media (max-width: 600px) { .card { padding: 20px 18px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏥 MedReminder</h1>
+  <p>Medication Tracker &amp; Pill Reminder</p>
+</header>
+
+<nav class="legal-nav">
+  <a href="privacy_policy.html" class="active">Privacy Policy</a>
+  <a href="terms_of_use.html">Terms of Use</a>
+  <a href="medical_disclaimer.html">Medical Disclaimer</a>
+</nav>
+
+<main>
+<div class="card">
+
+<h1 style="font-size:24px; margin-bottom:8px;">Privacy Policy</h1>
+<p class="updated">Last updated: April 2026</p>
+
+<h2>1. Introduction</h2>
+<p>This Privacy Policy explains how MedReminder ("we", "us") handles information when you use the App. It is written to comply with the Google Play Developer Programme Policies (including the User Data, Health Apps, Permissions, and Families policies) as well as applicable data-protection laws such as the GDPR, UK GDPR, and the CCPA.</p>
+
+<h2>2. Data We Handle On-Device</h2>
+<p>MedReminder is designed to work primarily on your device. The following categories are stored locally on your device and are <strong>NOT</strong> uploaded to our servers or to Google Drive auto-backup:</p>
+<ul>
+  <li><strong>Personal info:</strong> your first name and age (as entered during onboarding).</li>
+  <li><strong>Health &amp; fitness info:</strong> medication names, dosages, strengths, forms, schedules, dose logs, adherence history, and notes you add.</li>
+  <li><strong>Contacts:</strong> caregiver names and phone numbers you choose to enter.</li>
+  <li><strong>Photos or videos:</strong> images captured by the in-app camera for medication-label OCR. Images are processed on-device only and are not stored or uploaded.</li>
+  <li><strong>App activity and preferences:</strong> theme, language, notification and alarm settings, and the date/time you accepted this Policy.</li>
+</ul>
+
+<h2>3. Data Shared With Third-Party Services</h2>
+<p>Some optional features send data off-device. They are <strong>OFF by default</strong> and require your explicit opt-in:</p>
+<ul>
+  <li><strong>Cloud AI (optional):</strong> if you choose to enable a cloud AI provider, the medication details and questions you submit are sent to that provider (for example, an AI inference API) solely to generate the requested analysis. We do not enrich that data with other identifiers and it is not used for advertising.</li>
+  <li><strong>Google Play Billing:</strong> when you purchase a subscription, the transaction is processed by Google Play. We receive only the purchase state, not your payment details.</li>
+  <li><strong>SMS / Dialer hand-off (optional):</strong> when you use the caregiver alert feature, medication status and (if you enable emergency mode) a Google Maps link derived from your last known device location are sent as a regular SMS via your mobile carrier to the caregiver number YOU configured. The message leaves your device through your carrier, not through our servers.</li>
+</ul>
+
+<h2>4. Permissions and Why We Request Them</h2>
+<ul>
+  <li><strong>Notifications (POST_NOTIFICATIONS):</strong> to deliver medication reminders.</li>
+  <li><strong>Exact alarms (USE_EXACT_ALARM / SCHEDULE_EXACT_ALARM) and Full-screen intent:</strong> to trigger reminders at the exact time you scheduled, even while the device is idle — this is the primary purpose of the App and the reason Google Play permits these permissions.</li>
+  <li><strong>Boot completed &amp; Wake lock:</strong> to reschedule reminders after a reboot and wake the screen for an alarm.</li>
+  <li><strong>Foreground service:</strong> to keep critical alarm handling alive.</li>
+  <li><strong>Camera:</strong> to scan medication labels locally. Images never leave the device.</li>
+  <li><strong>SMS (SEND_SMS):</strong> only used, with your opt-in, to deliver caregiver alerts to the number you configured.</li>
+  <li><strong>Location (ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION):</strong> only used, with your opt-in, to include a map link in emergency caregiver SMS. Your location is never stored in the App or transmitted to us.</li>
+  <li><strong>Internet / Network state:</strong> to download optional on-device AI models and, if you opt-in, reach a Cloud AI provider.</li>
+  <li><strong>Vibrate:</strong> reminder haptics.</li>
+</ul>
+
+<h2>5. Analytics, Advertising, and Tracking</h2>
+<p>MedReminder contains no third-party advertising SDKs, no behavioural tracking, no cross-app identifiers, and no analytics that would tie usage to your identity. We do not sell or rent personal information.</p>
+
+<h2>6. Cloud Backup</h2>
+<p>We explicitly exclude the medical database and app preferences from Android Auto Backup to Google Drive. Local device-to-device transfer initiated by you during a new-device setup may include this data because it does not leave your control.</p>
+
+<h2>7. Children</h2>
+<p>The App is not directed to children under 13 (or the equivalent minimum age in your jurisdiction). We do not knowingly collect personal information from children. A parent or legal guardian may use the App to manage medications on a minor's behalf, in which case the adult is responsible for the data entered.</p>
+
+<h2>8. Data Retention and Deletion</h2>
+<p>Because your data is stored locally, you can delete all of it at any time using the "Clear all data" option in the Settings screen, or by uninstalling the App. There is no server-side account to delete. If you have contacted our support email, we retain that correspondence only for as long as is necessary to resolve your request.</p>
+
+<h2>9. Data Export and Portability</h2>
+<p>You can export your data as a JSON file from Settings to keep a backup or move it to another device.</p>
+
+<h2>10. Security</h2>
+<p>Your data is protected by the Android app sandbox and your device's encryption. However, no system is completely secure. We strongly recommend protecting your device with a screen lock and keeping Android up to date.</p>
+
+<h2>11. Your Rights</h2>
+<p>Depending on your jurisdiction (including the EEA/UK under GDPR, California under CCPA/CPRA, and others), you may have the right to access, correct, delete, restrict, or port your personal information, and to withdraw consent. Because we do not store your data on our servers, most of these rights can be exercised from within the App itself (Settings → Clear all data, Settings → Export data). You also have the right to lodge a complaint with your local data-protection authority.</p>
+
+<h2>12. International Transfers</h2>
+<p>If you opt in to a Cloud AI provider, the content you submit may be processed in a country different from yours. You consent to this transfer by enabling the feature.</p>
+
+<h2>13. Changes</h2>
+<p>We may update this Privacy Policy. If changes are material, you will be asked to accept the updated version before continuing to use the App. The "Last updated" date above reflects the current version.</p>
+
+<h2>14. Contact</h2>
+<p>You can reach the developer for privacy questions via the email address listed on the app's Google Play store listing. For users in the EU/UK, please use the same address to reach the data controller.</p>
+
+</div>
+</main>
+
+<footer>
+  &copy; 2026 MedReminder. All rights reserved.
+</footer>
+
+</body>
+</html>
+

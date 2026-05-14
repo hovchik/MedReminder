@@ -1,0 +1,13 @@
+Initial release of MedReminder
+
+• Smart medication reminders with full-screen alarms
+• OCR label scanning and barcode lookup
+• AI-powered auto-fill and medication analysis
+• Family member & caregiver management
+• Emergency SMS alerts with location
+• Adherence stats — daily, weekly, monthly
+• Stock tracking with refill reminders
+• Data export/import (JSON)
+• On-device AI for complete privacy
+• Available in 8 languages
+
