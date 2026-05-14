@@ -160,49 +160,125 @@ class MedicationAnalysisUseCase @Inject constructor(
         return generateFallbackResult(input, provider.type, latencyMs)
     }
 
+    /**
+     * Sanitizes raw AI-generated JSON by escaping unescaped control characters
+     * (newlines, tabs, etc.) that appear inside JSON string values, then
+     * repairs truncated JSON by closing any open strings, arrays, and objects.
+     */
+    private fun sanitizeAndRepairJson(raw: String): String {
+        // Step 1: escape control characters inside JSON string values
+        val sb = StringBuilder(raw.length)
+        var inString = false
+        var escaped = false
+        for (ch in raw) {
+            when {
+                escaped -> {
+                    sb.append(ch)
+                    escaped = false
+                }
+                ch == '\\' && inString -> {
+                    sb.append(ch)
+                    escaped = true
+                }
+                ch == '"' -> {
+                    inString = !inString
+                    sb.append(ch)
+                }
+                inString && ch == '\n' -> sb.append("\\n")
+                inString && ch == '\r' -> sb.append("\\r")
+                inString && ch == '\t' -> sb.append("\\t")
+                else -> sb.append(ch)
+            }
+        }
+
+        // Step 2: repair truncated JSON by closing open structures
+        var sanitized = sb.toString().trimEnd()
+
+        // If we ended inside an escape sequence, drop the trailing backslash
+        if (sanitized.endsWith("\\")) {
+            sanitized = sanitized.dropLast(1)
+        }
+
+        // Re-scan to find what structures are still open
+        var inStr = false
+        var esc = false
+        val stack = ArrayDeque<Char>() // tracks open '{' and '['
+        for (ch in sanitized) {
+            when {
+                esc -> esc = false
+                ch == '\\' && inStr -> esc = true
+                ch == '"' -> inStr = !inStr
+                !inStr && ch == '{' -> stack.addLast('{')
+                !inStr && ch == '[' -> stack.addLast('[')
+                !inStr && ch == '}' -> { if (stack.isNotEmpty() && stack.last() == '{') stack.removeLast() }
+                !inStr && ch == ']' -> { if (stack.isNotEmpty() && stack.last() == '[') stack.removeLast() }
+            }
+        }
+
+        val repair = StringBuilder(sanitized)
+
+        // Close an unterminated string
+        if (inStr) {
+            repair.append('"')
+        }
+
+        // Remove any trailing comma or colon (invalid trailing token before closing)
+        val trimmed = repair.toString().trimEnd()
+        if (trimmed.endsWith(",") || trimmed.endsWith(":")) {
+            repair.clear()
+            repair.append(trimmed.dropLast(1))
+        }
+
+        // Close all open arrays / objects in reverse order
+        while (stack.isNotEmpty()) {
+            when (stack.removeLast()) {
+                '[' -> repair.append(']')
+                '{' -> repair.append('}')
+            }
+        }
+
+        return repair.toString()
+    }
+
     private fun parseMedicationResult(
         jsonStr: String,
         providerType: AiProviderType,
         latencyMs: Long
     ): MedicationAnalysisResult {
-        val json = JSONObject(jsonStr)
+        val json = JSONObject(sanitizeAndRepairJson(jsonStr))
 
-        val infoJson = json.getJSONObject("medicationInfo")
-        val info = MedicationInfoSection(
+        val infoJson = json.optJSONObject("medicationInfo")
+        val info = if (infoJson != null) MedicationInfoSection(
             description = infoJson.optString("description", ""),
             drugClass = infoJson.optString("drugClass", ""),
+            genericName = infoJson.optString("genericName", ""),
+            brandNames = jsonArrayToList(infoJson.optJSONArray("brandNames")),
             commonUses = jsonArrayToList(infoJson.optJSONArray("commonUses")),
+            mechanismOfAction = infoJson.optString("mechanismOfAction", ""),
             sideEffects = jsonArrayToList(infoJson.optJSONArray("sideEffects")),
+            seriousSideEffects = jsonArrayToList(infoJson.optJSONArray("seriousSideEffects")),
             importantWarnings = jsonArrayToList(infoJson.optJSONArray("importantWarnings")),
-            interactions = jsonArrayToList(infoJson.optJSONArray("interactions"))
-        )
+            contraindications = jsonArrayToList(infoJson.optJSONArray("contraindications")),
+            interactions = jsonArrayToList(infoJson.optJSONArray("interactions")),
+            foodInteractions = jsonArrayToList(infoJson.optJSONArray("foodInteractions")),
+            pregnancyCategory = infoJson.optString("pregnancyCategory", ""),
+            storageInstructions = infoJson.optString("storageInstructions", ""),
+            halfLife = infoJson.optString("halfLife", ""),
+            onsetOfAction = infoJson.optString("onsetOfAction", ""),
+            missedDoseAdvice = infoJson.optString("missedDoseAdvice", "")
+        ) else MedicationInfoSection()
 
-        val dosingJson = json.getJSONObject("dosingPredictions")
-        val dosing = DosingPredictionSection(
+        val dosingJson = json.optJSONObject("dosingPredictions")
+        val dosing = if (dosingJson != null) DosingPredictionSection(
             adherenceForecast = dosingJson.optString("adherenceForecast", ""),
             optimizationTips = jsonArrayToList(dosingJson.optJSONArray("optimizationTips")),
             stockForecast = dosingJson.optString("stockForecast", ""),
             riskAssessment = dosingJson.optString("riskAssessment", "")
-        )
-
-        val regionsArray = json.optJSONArray("bodyRegions") ?: JSONArray()
-        val bodyRegions = (0 until regionsArray.length()).mapNotNull { i ->
-            val regionStr = regionsArray.optString(i, "")
-            try {
-                BodyRegion.valueOf(regionStr)
-            } catch (_: Exception) {
-                // Try matching by display name
-                BodyRegion.entries.find {
-                    it.name.equals(regionStr, ignoreCase = true) ||
-                    it.displayName.equals(regionStr, ignoreCase = true)
-                }
-            }
-        }
+        ) else DosingPredictionSection()
 
         return MedicationAnalysisResult(
             medicationInfo = info,
             dosingPredictions = dosing,
-            bodyRegions = bodyRegions.ifEmpty { listOf(BodyRegion.FULL_BODY) },
             providerUsed = providerType,
             latencyMs = latencyMs
         )
@@ -213,7 +289,6 @@ class MedicationAnalysisUseCase @Inject constructor(
         providerType: AiProviderType,
         latencyMs: Long
     ): MedicationAnalysisResult {
-        val bodyRegions = guessBodyRegions(input.medicationName, input.instructions, input.form)
 
         val stockForecast = if (input.currentStock > 0 && input.takenCount > 0 && input.periodDays > 0) {
             val dailyRate = input.takenCount.toFloat() / input.periodDays
@@ -247,7 +322,6 @@ class MedicationAnalysisUseCase @Inject constructor(
                     else -> "High risk — significant number of missed doses detected."
                 }
             ),
-            bodyRegions = bodyRegions,
             providerUsed = providerType,
             latencyMs = latencyMs
         )
@@ -268,46 +342,6 @@ class MedicationAnalysisUseCase @Inject constructor(
         }
     }
 
-    private fun guessBodyRegions(name: String, instructions: String, form: String): List<BodyRegion> {
-        val text = "$name $instructions".lowercase()
-        val regions = mutableSetOf<BodyRegion>()
-
-        // Map common medication keywords to body regions
-        val mappings = mapOf(
-            listOf("aspirin", "ibuprofen", "naproxen", "acetaminophen", "paracetamol", "tylenol", "advil", "pain", "analgesic", "nsaid") to BodyRegion.JOINTS,
-            listOf("heart", "cardiac", "cardio", "atenolol", "metoprolol", "amlodipine", "lisinopril", "losartan", "blood pressure", "hypertension", "beta-blocker") to BodyRegion.HEART,
-            listOf("lung", "breath", "asthma", "inhaler", "bronch", "salbutamol", "albuterol", "fluticasone", "montelukast") to BodyRegion.LUNGS,
-            listOf("stomach", "antacid", "omeprazole", "pantoprazole", "ranitidine", "digest", "gastro", "acid reflux", "gerd", "nausea") to BodyRegion.STOMACH,
-            listOf("liver", "hepat", "ursodiol") to BodyRegion.LIVER,
-            listOf("kidney", "renal", "diuretic", "furosemide") to BodyRegion.KIDNEYS,
-            listOf("brain", "head", "migraine", "headache", "neuro", "seizure", "epilep", "gabapentin", "pregabalin", "sumatriptan") to BodyRegion.HEAD,
-            listOf("eye", "ophthalm", "glaucoma", "timolol", "latanoprost") to BodyRegion.EYES,
-            listOf("ear", "otic") to BodyRegion.EARS,
-            listOf("throat", "cough", "pharyn", "tonsil") to BodyRegion.THROAT,
-            listOf("skin", "derma", "eczema", "psoriasis", "rash", "topical", "cream", "ointment") to BodyRegion.SKIN,
-            listOf("blood", "coagul", "warfarin", "heparin", "anemia", "iron", "clot", "anticoagul") to BodyRegion.BLOOD,
-            listOf("immune", "allerg", "antihist", "cetirizine", "loratadine", "fexofenadine", "prednisone", "autoimmune") to BodyRegion.IMMUNE,
-            listOf("thyroid", "hormone", "insulin", "diabetes", "metformin", "levothyroxine", "endocrine", "testosterone", "estrogen") to BodyRegion.HORMONES,
-            listOf("anxiety", "depress", "ssri", "sertraline", "fluoxetine", "escitalopram", "venlafaxine", "duloxetine", "mental", "mood", "sleep", "melatonin", "zolpidem") to BodyRegion.NERVOUS_SYSTEM,
-            listOf("bone", "osteo", "calcium", "vitamin d", "alendronate", "fracture") to BodyRegion.BONES,
-            listOf("antibiotic", "amoxicillin", "azithromycin", "ciprofloxacin", "infection", "antiviral", "antifungal") to BodyRegion.IMMUNE
-        )
-
-        for ((keywords, region) in mappings) {
-            if (keywords.any { it in text }) {
-                regions.add(region)
-            }
-        }
-
-        // Form-based hints
-        when (form.lowercase()) {
-            "inhaler" -> regions.add(BodyRegion.LUNGS)
-            "cream" -> regions.add(BodyRegion.SKIN)
-            "drops" -> if (regions.isEmpty()) regions.add(BodyRegion.EYES)
-        }
-
-        return regions.toList().ifEmpty { listOf(BodyRegion.FULL_BODY) }
-    }
 
     private fun buildMedicationPrompt(input: MedicationAnalysisInput): String {
         val eventsSection = if (input.recentDoseEvents.isNotEmpty()) {
@@ -334,10 +368,9 @@ class MedicationAnalysisUseCase @Inject constructor(
             if (input.userAge > 0) add("Age: ${input.userAge}")
         }.let { if (it.isNotEmpty()) "\n${it.joinToString(", ")}" else "" }
 
-        val bodyRegionValues = BodyRegion.entries.joinToString(", ") { it.name }
 
         return """
-            |You are a pharmaceutical analysis AI inside a medication management app. Provide a comprehensive analysis of a SINGLE medication including drug information, dosing predictions, and which body systems it targets.
+            |You are a comprehensive pharmaceutical analysis AI inside a medication management app. Provide the MOST DETAILED and THOROUGH analysis possible of this medication. Act as if you are a senior clinical pharmacist giving a full drug monograph to a patient.
             |$userSection
             |
             |== MEDICATION ==
@@ -365,28 +398,37 @@ class MedicationAnalysisUseCase @Inject constructor(
             |$eventsSection
             |
             |== INSTRUCTIONS ==
-            |Provide a deep analysis of this medication in the following JSON format. Be specific, data-driven, and reference the patient's actual adherence patterns.
+            |Provide an EXHAUSTIVE pharmaceutical analysis of this medication. Include ALL available clinical knowledge. Be specific, data-driven, and reference the patient's actual adherence patterns where relevant.
             |
-            |For "bodyRegions", use ONLY values from this list: $bodyRegionValues
-            |Choose the body regions this medication primarily acts on (1-3 regions typically).
+            |IMPORTANT: Fill EVERY field as completely as possible. Provide at least 4-6 items for lists like sideEffects, commonUses, interactions. Do NOT leave fields empty or with placeholder text. Use real pharmaceutical knowledge.
             |
             |Respond ONLY with valid JSON (no markdown, no extra text):
             |{
             |  "medicationInfo": {
-            |    "description": "What this medication is and what it does (2-3 sentences)",
-            |    "drugClass": "The pharmacological class (e.g., NSAID, Beta-blocker, SSRI)",
-            |    "commonUses": ["Use 1", "Use 2", "Use 3"],
-            |    "sideEffects": ["Side effect 1", "Side effect 2", "Side effect 3"],
-            |    "importantWarnings": ["Warning 1", "Warning 2"],
-            |    "interactions": ["Interaction 1", "Interaction 2"]
+            |    "description": "Comprehensive description of the medication: what it is, how it works at a high level, its therapeutic purpose, and why it's prescribed. Write 4-6 detailed sentences.",
+            |    "drugClass": "Full pharmacological classification (e.g., 'Selective Serotonin Reuptake Inhibitor (SSRI) — Antidepressant')",
+            |    "genericName": "The International Nonproprietary Name (INN) / generic name of the active ingredient",
+            |    "brandNames": ["Brand 1", "Brand 2", "Brand 3", "Brand 4"],
+            |    "commonUses": ["Primary indication with detail", "Secondary indication", "Off-label use 1", "Off-label use 2"],
+            |    "mechanismOfAction": "Detailed explanation of HOW the drug works at the molecular/cellular level, which receptors/enzymes it targets, and how this produces the therapeutic effect. Write 3-4 sentences.",
+            |    "sideEffects": ["Common side effect 1 (frequency %)", "Common side effect 2", "Common side effect 3", "Common side effect 4", "Common side effect 5", "Common side effect 6"],
+            |    "seriousSideEffects": ["Rare but serious side effect 1 — seek immediate medical attention", "Serious side effect 2", "Serious side effect 3"],
+            |    "importantWarnings": ["Critical warning 1 with context", "Warning 2", "Black box warning if applicable"],
+            |    "contraindications": ["When NOT to take this medication 1", "Contraindication 2", "Contraindication 3"],
+            |    "interactions": ["Drug interaction 1 — what happens and why", "Drug interaction 2", "Drug interaction 3", "Drug interaction 4"],
+            |    "foodInteractions": ["Food/drink interaction 1 (e.g., grapefruit, alcohol, dairy)", "Food interaction 2"],
+            |    "pregnancyCategory": "FDA pregnancy category (A/B/C/D/X) with brief explanation",
+            |    "storageInstructions": "How to properly store this medication (temperature, light, moisture)",
+            |    "halfLife": "Approximate elimination half-life (e.g., '4-6 hours') and what this means for dosing",
+            |    "onsetOfAction": "How long until the patient feels the effect (e.g., '30-60 minutes for pain relief; 2-4 weeks for full antidepressant effect')",
+            |    "missedDoseAdvice": "Specific guidance on what to do if a dose is missed — take ASAP, skip, or never double dose"
             |  },
             |  "dosingPredictions": {
-            |    "adherenceForecast": "Prediction about future adherence based on patterns (2-3 sentences)",
-            |    "optimizationTips": ["Tip 1 specific to this patient's data", "Tip 2"],
-            |    "stockForecast": "When they'll need a refill based on current usage rate",
-            |    "riskAssessment": "Overall risk assessment for this medication's adherence (2-3 sentences)"
-            |  },
-            |  "bodyRegions": ["REGION_1", "REGION_2"]
+            |    "adherenceForecast": "Detailed prediction about future adherence based on the patient's specific patterns — reference their actual data (missed doses times, delay patterns, snooze behavior). Write 3-4 sentences.",
+            |    "optimizationTips": ["Highly specific tip 1 referencing patient's actual time-of-day data", "Tip 2 about their snooze/delay pattern", "Tip 3 about medication-specific best practices", "Tip 4"],
+            |    "stockForecast": "Calculate exactly when they'll need a refill based on their current stock and actual daily consumption rate. Be precise with dates.",
+            |    "riskAssessment": "Comprehensive risk assessment: what are the clinical consequences of their current adherence pattern for THIS specific medication? What could happen if they continue missing doses at this rate? Write 3-4 sentences."
+            |  }
             |}${AiLanguageHelper.getLanguageInstruction()}
         """.trimMargin()
     }

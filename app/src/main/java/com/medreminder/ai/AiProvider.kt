@@ -154,25 +154,35 @@ data class MedicationAnalysisInput(
 data class MedicationAnalysisResult(
     val medicationInfo: MedicationInfoSection,
     val dosingPredictions: DosingPredictionSection,
-    val bodyRegions: List<BodyRegion>,
     val providerUsed: AiProviderType = AiProviderType.CLOUD,
     val latencyMs: Long = 0
 )
 
 data class MedicationInfoSection(
-    val description: String,            // What this medication is / does
-    val drugClass: String,              // e.g. "NSAID", "Beta-blocker"
-    val commonUses: List<String>,       // e.g. ["Pain relief", "Inflammation"]
-    val sideEffects: List<String>,      // Common side effects
-    val importantWarnings: List<String>, // Critical warnings
-    val interactions: List<String>       // Known drug interactions to watch
+    val description: String = "",            // What this medication is / does
+    val drugClass: String = "",              // e.g. "NSAID", "Beta-blocker"
+    val genericName: String = "",       // Generic / INN name
+    val brandNames: List<String> = emptyList(), // Known brand names
+    val commonUses: List<String> = emptyList(),       // e.g. ["Pain relief", "Inflammation"]
+    val mechanismOfAction: String = "", // How the drug works in the body
+    val sideEffects: List<String> = emptyList(),      // Common side effects
+    val seriousSideEffects: List<String> = emptyList(), // Rare but serious side effects
+    val importantWarnings: List<String> = emptyList(), // Critical warnings
+    val contraindications: List<String> = emptyList(), // When NOT to take this drug
+    val interactions: List<String> = emptyList(),      // Known drug interactions to watch
+    val foodInteractions: List<String> = emptyList(), // Food/drink interactions
+    val pregnancyCategory: String = "", // FDA pregnancy safety category
+    val storageInstructions: String = "", // How to store the medication
+    val halfLife: String = "",          // Approximate half-life
+    val onsetOfAction: String = "",     // How long until it starts working
+    val missedDoseAdvice: String = ""   // What to do if a dose is missed
 )
 
 data class DosingPredictionSection(
-    val adherenceForecast: String,      // e.g. "Based on your pattern, you're likely to miss evening doses"
-    val optimizationTips: List<String>,  // Personalized timing suggestions
-    val stockForecast: String,          // e.g. "At current rate, you'll run out in ~12 days"
-    val riskAssessment: String          // Overall risk summary for this specific med
+    val adherenceForecast: String = "",      // e.g. "Based on your pattern, you're likely to miss evening doses"
+    val optimizationTips: List<String> = emptyList(),  // Personalized timing suggestions
+    val stockForecast: String = "",          // e.g. "At current rate, you'll run out in ~12 days"
+    val riskAssessment: String = ""          // Overall risk summary for this specific med
 )
 
 /** Represents a body region the medication targets */

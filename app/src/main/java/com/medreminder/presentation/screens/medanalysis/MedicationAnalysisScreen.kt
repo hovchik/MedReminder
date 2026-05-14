@@ -182,8 +182,6 @@ fun MedicationAnalysisScreen(
             }
 
             analysis?.let { result ->
-                // Anatomical Body View
-                AnatomyCard(result.bodyRegions)
 
                 // Medication Info Section
                 MedicationInfoCard(result.medicationInfo)
@@ -332,33 +330,6 @@ private fun MedicationHeaderCard(med: Medication) {
     }
 }
 
-@Composable
-private fun AnatomyCard(bodyRegions: List<BodyRegion>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SectionHeader(
-                icon = Icons.Default.Accessibility,
-                title = stringResource(R.string.med_body_targets)
-            )
-
-            AnatomyBodyView(
-                highlightedRegions = bodyRegions,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            )
-        }
-    }
-}
 
 @Composable
 private fun MedicationInfoCard(info: MedicationInfoSection) {
@@ -397,6 +368,36 @@ private fun MedicationInfoCard(info: MedicationInfoSection) {
                 }
             }
 
+            // Generic name & brand names
+            if (info.genericName.isNotBlank()) {
+                InfoTextRow(
+                    label = stringResource(R.string.med_generic_name),
+                    value = info.genericName
+                )
+            }
+            if (info.brandNames.isNotEmpty()) {
+                InfoTextRow(
+                    label = stringResource(R.string.med_brand_names),
+                    value = info.brandNames.joinToString(", ")
+                )
+            }
+
+            // Mechanism of Action
+            if (info.mechanismOfAction.isNotBlank()) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                Text(
+                    stringResource(R.string.med_mechanism),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    info.mechanismOfAction,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             // Common uses
             if (info.commonUses.isNotEmpty()) {
                 InfoListSection(
@@ -407,6 +408,46 @@ private fun MedicationInfoCard(info: MedicationInfoSection) {
                 )
             }
 
+            // Pharmacokinetics row: onset, half-life
+            if (info.onsetOfAction.isNotBlank() || info.halfLife.isNotBlank()) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (info.onsetOfAction.isNotBlank()) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.med_onset),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                info.onsetOfAction,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    if (info.halfLife.isNotBlank()) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.med_half_life),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                info.halfLife,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
             // Side effects
             if (info.sideEffects.isNotEmpty()) {
                 InfoListSection(
@@ -414,6 +455,16 @@ private fun MedicationInfoCard(info: MedicationInfoSection) {
                     items = info.sideEffects,
                     icon = Icons.Default.ReportProblem,
                     iconColor = Color(0xFFF39C12)
+                )
+            }
+
+            // Serious side effects
+            if (info.seriousSideEffects.isNotEmpty()) {
+                InfoListSection(
+                    title = stringResource(R.string.med_serious_side_effects),
+                    items = info.seriousSideEffects,
+                    icon = Icons.Default.Error,
+                    iconColor = MaterialTheme.colorScheme.error
                 )
             }
 
@@ -427,7 +478,17 @@ private fun MedicationInfoCard(info: MedicationInfoSection) {
                 )
             }
 
-            // Interactions
+            // Contraindications
+            if (info.contraindications.isNotEmpty()) {
+                InfoListSection(
+                    title = stringResource(R.string.med_contraindications),
+                    items = info.contraindications,
+                    icon = Icons.Default.Block,
+                    iconColor = MaterialTheme.colorScheme.error
+                )
+            }
+
+            // Drug interactions
             if (info.interactions.isNotEmpty()) {
                 InfoListSection(
                     title = stringResource(R.string.med_interactions),
@@ -435,6 +496,59 @@ private fun MedicationInfoCard(info: MedicationInfoSection) {
                     icon = Icons.Default.SwapHoriz,
                     iconColor = MaterialTheme.colorScheme.primary
                 )
+            }
+
+            // Food interactions
+            if (info.foodInteractions.isNotEmpty()) {
+                InfoListSection(
+                    title = stringResource(R.string.med_food_interactions),
+                    items = info.foodInteractions,
+                    icon = Icons.Default.Restaurant,
+                    iconColor = Color(0xFFF39C12)
+                )
+            }
+
+            // Pregnancy category
+            if (info.pregnancyCategory.isNotBlank()) {
+                InfoTextRow(
+                    label = stringResource(R.string.med_pregnancy_category),
+                    value = info.pregnancyCategory
+                )
+            }
+
+            // Storage
+            if (info.storageInstructions.isNotBlank()) {
+                InfoTextRow(
+                    label = stringResource(R.string.med_storage),
+                    value = info.storageInstructions
+                )
+            }
+
+            // Missed dose advice
+            if (info.missedDoseAdvice.isNotBlank()) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                Row(verticalAlignment = Alignment.Top) {
+                    Icon(
+                        Icons.Default.NotificationsActive,
+                        null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Column {
+                        Text(
+                            stringResource(R.string.med_missed_dose),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            info.missedDoseAdvice,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
     }
@@ -581,5 +695,26 @@ private fun PredictionItem(icon: ImageVector, title: String, content: String) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+@Composable
+private fun InfoTextRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            "$label:",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
     }
 }

@@ -30,7 +30,7 @@ class PromptAdapter @Inject constructor() {
         } ?: ""
 
         val doseEventsInfo = if (input.recentDoseEvents.isNotEmpty()) {
-            "\nRecent events:\n" + input.recentDoseEvents.take(15).joinToString("\n") { ev ->
+            "\nRecent events:\n" + input.recentDoseEvents.take(5).joinToString("\n") { ev ->
                 val delay = if (ev.delayMinutes > 0) " (${ev.delayMinutes}min late)" else ""
                 "  ${ev.scheduledTime} ${ev.medicationName} ${ev.status}$delay"
             }

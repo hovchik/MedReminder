@@ -1,5 +1,7 @@
 package com.medreminder.presentation.navigation
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -87,6 +89,26 @@ val bottomNavItems = listOf(
     BottomNavItem(Screen.Settings, R.string.nav_settings, Icons.Filled.Settings, Icons.Outlined.Settings)
 )
 
+// Shared transition specs for navigation
+private const val NAV_ANIM_DURATION = 300
+
+private val enterTransition: AnimatedContentTransitionScope<*>.() -> EnterTransition = {
+    fadeIn(animationSpec = tween(NAV_ANIM_DURATION)) +
+            slideInHorizontally(animationSpec = tween(NAV_ANIM_DURATION)) { it / 4 }
+}
+private val exitTransition: AnimatedContentTransitionScope<*>.() -> ExitTransition = {
+    fadeOut(animationSpec = tween(NAV_ANIM_DURATION)) +
+            slideOutHorizontally(animationSpec = tween(NAV_ANIM_DURATION)) { -it / 4 }
+}
+private val popEnterTransition: AnimatedContentTransitionScope<*>.() -> EnterTransition = {
+    fadeIn(animationSpec = tween(NAV_ANIM_DURATION)) +
+            slideInHorizontally(animationSpec = tween(NAV_ANIM_DURATION)) { -it / 4 }
+}
+private val popExitTransition: AnimatedContentTransitionScope<*>.() -> ExitTransition = {
+    fadeOut(animationSpec = tween(NAV_ANIM_DURATION)) +
+            slideOutHorizontally(animationSpec = tween(NAV_ANIM_DURATION)) { it / 4 }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedReminderNavigation() {
@@ -107,7 +129,10 @@ fun MedReminderNavigation() {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar(tonalElevation = 0.dp) {
+                NavigationBar(
+                    tonalElevation = 2.dp,
+                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
+                ) {
                     bottomNavItems.forEach { item ->
                         val selected = currentRoute == item.screen.route
                         NavigationBarItem(
@@ -135,7 +160,10 @@ fun MedReminderNavigation() {
                                         restoreState = true
                                     }
                                 }
-                            }
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
                         )
                     }
                 }
@@ -145,7 +173,11 @@ fun MedReminderNavigation() {
         NavHost(
             navController = navController,
             startDestination = startDestination!!,
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(paddingValues),
+            enterTransition = enterTransition,
+            exitTransition = exitTransition,
+            popEnterTransition = popEnterTransition,
+            popExitTransition = popExitTransition
         ) {
             composable(Screen.LegalAcceptance.route) {
                 LegalAcceptanceScreen(

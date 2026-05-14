@@ -7,9 +7,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.medreminder.R
 import com.medreminder.domain.model.DoseLog
@@ -78,6 +83,7 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val expandedGroups = remember { mutableStateMapOf<String, Boolean>() }
     var selectedDose by remember { mutableStateOf<DoseLog?>(null) }
+    val haptic = LocalHapticFeedback.current
 
     // Show bottom sheet with schedule details when a dose card is tapped
     if (selectedDose != null) {
@@ -95,9 +101,9 @@ fun HomeScreen(
     // Regenerate today's doses every time the screen becomes visible (e.g. after
     // editing a schedule and navigating back). LaunchedEffect(Unit) only runs on
     // first composition; lifecycle-aware observation ensures we also run on resume.
-    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.generateTodayDoses()
         }
     }
@@ -308,9 +314,18 @@ fun HomeScreen(
                             currentStock = medication?.currentStock ?: 0,
                             refillThreshold = medication?.refillThreshold ?: 0,
                             onClick = { selectedDose = dose },
-                            onTaken = { viewModel.markDoseTaken(dose.id) },
-                            onCancel = { viewModel.markDoseSkipped(dose.id) },
-                            onSnooze = { viewModel.snoozeDose(dose) }
+                            onTaken = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.markDoseTaken(dose.id)
+                            },
+                            onCancel = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.markDoseSkipped(dose.id)
+                            },
+                            onSnooze = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.snoozeDose(dose)
+                            }
                         )
                     }
                 }
@@ -339,7 +354,7 @@ fun HomeScreen(
     }
 
     // Pull-to-refresh active indicator
-    androidx.compose.animation.AnimatedVisibility(
+    AnimatedVisibility(
         visible = isRefreshing,
         enter = fadeIn(),
         exit = fadeOut(),
@@ -913,6 +928,7 @@ fun StatusChip(text: String, color: Color) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DoseDetailDialog(
     dose: DoseLog,
@@ -921,44 +937,56 @@ private fun DoseDetailDialog(
     onDismiss: () -> Unit
 ) {
     val pillColor = try { Color(dose.medicationColor.toColorInt()) } catch (_: Exception) { Color(0xFF4A90D9) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.close_label))
-            }
-        },
-        shape = RoundedCornerShape(24.dp),
-        icon = {
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Pill icon header
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(64.dp)
                     .background(pillColor.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text("\uD83D\uDC8A", fontSize = 28.sp)
+                Text("\uD83D\uDC8A", fontSize = 32.sp)
             }
-        },
-        title = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = dose.medicationName,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            if (dose.medicationDosage.isNotBlank()) {
                 Text(
-                    text = dose.medicationName,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    text = dose.medicationDosage,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (dose.medicationDosage.isNotBlank()) {
-                    Text(
-                        text = dose.medicationDosage,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+            Spacer(modifier = Modifier.height(20.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 // Scheduled time
                 DetailRow(
                     icon = Icons.Default.Schedule,
@@ -1034,7 +1062,7 @@ private fun DoseDetailDialog(
                     }
                 }
 
-                HorizontalDivider()
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 // Medication form
                 if (medication != null) {
@@ -1087,7 +1115,7 @@ private fun DoseDetailDialog(
                 )
             }
         }
-    )
+    }
 }
 
 @Composable

@@ -1,9 +1,13 @@
 package com.medreminder.presentation.screens.addmed
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.medreminder.R
+import com.medreminder.ai.AiLanguageHelper
+import com.medreminder.ai.MedicationInfoSection
+import com.medreminder.ai.local.AiProviderSelector
 import com.medreminder.alarm.AlarmScheduler
 import com.medreminder.billing.SubscriptionRepository
 import com.medreminder.domain.model.*
@@ -12,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import javax.inject.Inject
 
 data class AddEditUiState(
@@ -34,7 +39,11 @@ data class AddEditUiState(
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    // AI suggestion state
+    val isAiSuggesting: Boolean = false,
+    val aiMedInfo: MedicationInfoSection? = null,
+    val aiSuggestionError: String? = null
 )
 
 data class ScheduleInput(
@@ -55,6 +64,7 @@ class AddEditMedicationViewModel @Inject constructor(
     private val repository: MedicationRepository,
     private val alarmScheduler: AlarmScheduler,
     private val subscriptionRepository: SubscriptionRepository,
+    private val providerSelector: AiProviderSelector,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -126,6 +136,181 @@ class AddEditMedicationViewModel @Inject constructor(
 
     fun updateAssignedTo(id: Long?, name: String) {
         _uiState.update { it.copy(assignedToId = id, assignedToName = name) }
+    }
+
+    fun dismissAiInfo() {
+        _uiState.update { it.copy(aiMedInfo = null, aiSuggestionError = null) }
+    }
+
+    fun requestAiSuggestion() {
+        val name = _uiState.value.name.trim()
+        if (name.isBlank()) {
+            _uiState.update { it.copy(aiSuggestionError = context.getString(R.string.ai_enter_name_first)) }
+            return
+        }
+
+        _uiState.update { it.copy(isAiSuggesting = true, aiSuggestionError = null, aiMedInfo = null) }
+
+        viewModelScope.launch {
+            try {
+                val provider = providerSelector.selectProvider()
+                val prompt = buildAiSuggestionPrompt(name)
+                val rawJson: String? = provider.generateRawCompletion(prompt)
+
+                if (rawJson != null) {
+                    val result = parseAiSuggestion(rawJson as String)
+                    if (result != null) {
+                        // Apply suggested fields to the form
+                        applySuggestion(result)
+                        _uiState.update { it.copy(isAiSuggesting = false, aiMedInfo = result.medInfo) }
+                    } else {
+                        _uiState.update {
+                            it.copy(isAiSuggesting = false, aiSuggestionError = context.getString(R.string.ai_suggestion_failed))
+                        }
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(isAiSuggesting = false, aiSuggestionError = context.getString(R.string.ai_suggestion_failed))
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("AddEditMedVM", "AI suggestion failed", e)
+                _uiState.update {
+                    it.copy(isAiSuggesting = false, aiSuggestionError = context.getString(R.string.ai_suggestion_failed))
+                }
+            }
+        }
+    }
+
+    private fun buildAiSuggestionPrompt(medicationName: String): String {
+        return """
+            |You are a pharmaceutical assistant inside a medication reminder app.
+            |The user is adding a new medication named "$medicationName".
+            |
+            |Suggest the most common/default values for this medication and provide brief medical information.
+            |
+            |Respond ONLY with valid JSON (no markdown, no extra text):
+            |{
+            |  "suggestion": {
+            |    "dosage": "Most common dosage amount as a number string (e.g., '500', '10', '50')",
+            |    "dosageUnit": "Most common unit: one of mg, g, ml, mcg, IU, units, drops, puffs, tablets",
+            |    "form": "One of: PILL, CAPSULE, LIQUID, INJECTION, PATCH, SPRAY, DROPS, INHALER, CREAM, OTHER",
+            |    "instructions": "Brief standard instructions (e.g., 'Take with food', 'Take on empty stomach 30 min before breakfast')",
+            |    "frequencyTimesPerDay": 1
+            |  },
+            |  "medInfo": {
+            |    "description": "Brief 2-3 sentence description of what this medication is and does",
+            |    "drugClass": "Pharmacological class (e.g., 'NSAID', 'Beta-blocker', 'SSRI Antidepressant')",
+            |    "genericName": "Generic / INN name of the active ingredient",
+            |    "commonUses": ["Primary use", "Secondary use"],
+            |    "sideEffects": ["Common side effect 1", "Common side effect 2", "Common side effect 3"],
+            |    "importantWarnings": ["Key warning 1", "Key warning 2"]
+            |  }
+            |}${AiLanguageHelper.getLanguageInstruction()}
+        """.trimMargin()
+    }
+
+    private data class AiSuggestionResult(
+        val dosage: String,
+        val dosageUnit: String,
+        val form: MedicationForm,
+        val instructions: String,
+        val frequencyTimesPerDay: Int,
+        val medInfo: MedicationInfoSection
+    )
+
+    private fun parseAiSuggestion(rawJson: String): AiSuggestionResult? {
+        return try {
+            val repaired = sanitizeAndRepairJson(rawJson)
+            val json = JSONObject(repaired)
+
+            val suggestion = json.optJSONObject("suggestion") ?: return null
+            val medInfoJson = json.optJSONObject("medInfo")
+
+            val dosage = suggestion.optString("dosage", "")
+            val dosageUnit = suggestion.optString("dosageUnit", "mg")
+            val formStr = suggestion.optString("form", "PILL")
+            val form = try { MedicationForm.valueOf(formStr.uppercase()) } catch (_: Exception) { MedicationForm.PILL }
+            val instructions = suggestion.optString("instructions", "")
+            val freqPerDay = suggestion.optInt("frequencyTimesPerDay", 1)
+
+            val medInfo = if (medInfoJson != null) {
+                MedicationInfoSection(
+                    description = medInfoJson.optString("description", ""),
+                    drugClass = medInfoJson.optString("drugClass", ""),
+                    genericName = medInfoJson.optString("genericName", ""),
+                    commonUses = jsonArrayToList(medInfoJson.optJSONArray("commonUses")),
+                    sideEffects = jsonArrayToList(medInfoJson.optJSONArray("sideEffects")),
+                    importantWarnings = jsonArrayToList(medInfoJson.optJSONArray("importantWarnings"))
+                )
+            } else MedicationInfoSection()
+
+            AiSuggestionResult(dosage, dosageUnit, form, instructions, freqPerDay, medInfo)
+        } catch (e: Exception) {
+            Log.e("AddEditMedVM", "Failed to parse AI suggestion JSON", e)
+            null
+        }
+    }
+
+    private fun applySuggestion(result: AiSuggestionResult) {
+        _uiState.update { state ->
+            state.copy(
+                dosage = if (state.dosage.isBlank()) result.dosage else state.dosage,
+                dosageUnit = result.dosageUnit.lowercase().let { unit ->
+                    if (unit in listOf("mg", "g", "ml", "mcg", "iu", "units", "drops", "puffs", "tablets")) unit else state.dosageUnit
+                },
+                form = result.form,
+                instructions = if (state.instructions.isBlank()) result.instructions else state.instructions
+            )
+        }
+    }
+
+    private fun sanitizeAndRepairJson(raw: String): String {
+        val sb = StringBuilder(raw.length)
+        var inString = false
+        var escaped = false
+        for (ch in raw) {
+            when {
+                escaped -> { sb.append(ch); escaped = false }
+                ch == '\\' && inString -> { sb.append(ch); escaped = true }
+                ch == '"' -> { inString = !inString; sb.append(ch) }
+                inString && ch == '\n' -> sb.append("\\n")
+                inString && ch == '\r' -> sb.append("\\r")
+                inString && ch == '\t' -> sb.append("\\t")
+                else -> sb.append(ch)
+            }
+        }
+        var sanitized = sb.toString().trimEnd()
+        if (sanitized.endsWith("\\")) sanitized = sanitized.dropLast(1)
+
+        var inStr = false; var esc = false
+        val stack = ArrayDeque<Char>()
+        for (ch in sanitized) {
+            when {
+                esc -> esc = false
+                ch == '\\' && inStr -> esc = true
+                ch == '"' -> inStr = !inStr
+                !inStr && ch == '{' -> stack.addLast('{')
+                !inStr && ch == '[' -> stack.addLast('[')
+                !inStr && ch == '}' -> { if (stack.isNotEmpty() && stack.last() == '{') stack.removeLast() }
+                !inStr && ch == ']' -> { if (stack.isNotEmpty() && stack.last() == '[') stack.removeLast() }
+            }
+        }
+        val repair = StringBuilder(sanitized)
+        if (inStr) repair.append('"')
+        val trimmed = repair.toString().trimEnd()
+        if (trimmed.endsWith(",") || trimmed.endsWith(":")) {
+            repair.clear(); repair.append(trimmed.dropLast(1))
+        }
+        while (stack.isNotEmpty()) {
+            when (stack.removeLast()) { '[' -> repair.append(']'); '{' -> repair.append('}') }
+        }
+        return repair.toString()
+    }
+
+    private fun jsonArrayToList(array: org.json.JSONArray?): List<String> {
+        if (array == null) return emptyList()
+        return (0 until array.length()).map { array.getString(it) }
     }
 
     fun addSchedule() {

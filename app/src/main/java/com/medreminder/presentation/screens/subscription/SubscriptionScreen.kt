@@ -83,6 +83,16 @@ fun SubscriptionScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Free trial card
+            FreeTrialCard(
+                isTrialActive = uiState.isTrialActive,
+                hasTrialBeenUsed = uiState.hasTrialBeenUsed,
+                trialRemainingMs = uiState.trialRemainingMs,
+                onStartTrial = { viewModel.startFreeTrial() }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Plan cards
             plans.forEach { plan ->
                 PlanCard(
@@ -384,3 +394,109 @@ private fun FeatureRow(feature: SubscriptionFeature) {
         )
     }
 }
+
+@Composable
+private fun FreeTrialCard(
+    isTrialActive: Boolean,
+    hasTrialBeenUsed: Boolean,
+    trialRemainingMs: Long,
+    onStartTrial: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = when {
+                isTrialActive -> MaterialTheme.colorScheme.primaryContainer
+                hasTrialBeenUsed -> MaterialTheme.colorScheme.surfaceVariant
+                else -> MaterialTheme.colorScheme.secondaryContainer
+            }
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = when {
+                        isTrialActive -> Icons.Default.Stars
+                        hasTrialBeenUsed -> Icons.Default.TimerOff
+                        else -> Icons.Default.CardGiftcard
+                    },
+                    contentDescription = null,
+                    tint = when {
+                        isTrialActive -> MaterialTheme.colorScheme.primary
+                        hasTrialBeenUsed -> MaterialTheme.colorScheme.onSurfaceVariant
+                        else -> MaterialTheme.colorScheme.secondary
+                    },
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = when {
+                        isTrialActive -> stringResource(R.string.subscription_trial_active)
+                        hasTrialBeenUsed -> stringResource(R.string.subscription_trial_expired)
+                        else -> stringResource(R.string.subscription_free_trial)
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            when {
+                isTrialActive -> {
+                    val remaining = formatTrialRemaining(trialRemainingMs)
+                    Text(
+                        text = stringResource(R.string.subscription_trial_remaining, remaining),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                hasTrialBeenUsed -> {
+                    Text(
+                        text = stringResource(R.string.subscription_trial_expired),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                else -> {
+                    Text(
+                        text = stringResource(R.string.subscription_trial_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Button(
+                        onClick = onStartTrial,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.subscription_free_trial),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun formatTrialRemaining(ms: Long): String {
+    val totalMinutes = ms / (60 * 1000)
+    val totalHours = totalMinutes / 60
+    val days = totalHours / 24
+    val hours = totalHours % 24
+    val minutes = totalMinutes % 60
+
+    return if (days > 0) {
+        stringResource(R.string.subscription_trial_days_left, days, hours)
+    } else {
+        stringResource(R.string.subscription_trial_hours_left, hours, minutes)
+    }
+}
+

@@ -446,6 +446,10 @@ fun SettingsScreen(
             onSelectService = { service ->
                 showCloudServiceDialog = false
                 viewModel.setCloudService(service)
+                // Auto-configure DeepSeek with built-in key
+                if (service == CloudAiService.DEEPSEEK) {
+                    viewModel.setApiKey(service, "sk-1d441286bef244e992d3b755a539f87a")
+                }
             }
         )
     }
@@ -614,16 +618,18 @@ fun SettingsScreen(
                         onClick = { showGeminiModelDialog = true }
                     )
                 }
-                SettingsItem(
-                    icon = Icons.Default.VpnKey,
-                    title = stringResource(R.string.api_key),
-                    subtitle = if (!currentApiKey.isNullOrBlank()) {
-                        stringResource(R.string.api_key_configured)
-                    } else {
-                        stringResource(R.string.api_key_not_set)
-                    },
-                    onClick = { showApiKeyDialog = true }
-                )
+                if (selectedCloudService != CloudAiService.DEEPSEEK) {
+                    SettingsItem(
+                        icon = Icons.Default.VpnKey,
+                        title = stringResource(R.string.api_key),
+                        subtitle = if (!currentApiKey.isNullOrBlank()) {
+                            stringResource(R.string.api_key_configured)
+                        } else {
+                            stringResource(R.string.api_key_not_set)
+                        },
+                        onClick = { showApiKeyDialog = true }
+                    )
+                }
             }
             AiProviderType.CUSTOM_LOCAL -> {
                 // Local AI: show active model picker + setup wizard

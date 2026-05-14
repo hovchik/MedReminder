@@ -1,6 +1,7 @@
 package com.medreminder.presentation.screens.addmed
 
 import android.app.TimePickerDialog
+import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -142,15 +143,75 @@ fun AddEditMedicationScreen(
                 onAssignedToChange = { id, name -> viewModel.updateAssignedTo(id, name) }
             )
 
-            // Name
-            OutlinedTextField(
-                value = uiState.name,
-                onValueChange = viewModel::updateName,
-                label = { Text(stringResource(R.string.medication_name)) },
+            // Name + AI button
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp)
-            )
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = uiState.name,
+                    onValueChange = viewModel::updateName,
+                    label = { Text(stringResource(R.string.medication_name)) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                // AI auto-fill button
+                Button(
+                    onClick = { viewModel.requestAiSuggestion() },
+                    enabled = !uiState.isAiSuggesting && uiState.name.isNotBlank(),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                ) {
+                    if (uiState.isAiSuggesting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            contentDescription = stringResource(R.string.ai_suggest_fields),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        stringResource(R.string.ai_autofill),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            // AI suggestion error
+            uiState.aiSuggestionError?.let { error ->
+                Text(
+                    error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            // AI brief medical info card
+            AnimatedVisibility(
+                visible = uiState.aiMedInfo != null,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                uiState.aiMedInfo?.let { info ->
+                    AiBriefInfoCard(
+                        info = info,
+                        onDismiss = { viewModel.dismissAiInfo() }
+                    )
+                }
+            }
 
             // Dosage row
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -698,4 +759,139 @@ private fun NumericTextField(
         shape = RoundedCornerShape(8.dp),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
     )
+}
+
+@Composable
+private fun AiBriefInfoCard(
+    info: com.medreminder.ai.MedicationInfoSection,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f)
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        stringResource(R.string.ai_brief_info),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+                IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = stringResource(R.string.ai_dismiss),
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Description
+            if (info.description.isNotBlank()) {
+                Text(
+                    info.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            // Drug class & generic name
+            if (info.drugClass.isNotBlank()) {
+                InfoRow(label = stringResource(R.string.ai_drug_class), value = info.drugClass)
+            }
+            if (info.genericName.isNotBlank() && info.genericName != info.drugClass) {
+                InfoRow(label = stringResource(R.string.medication_name), value = info.genericName)
+            }
+
+            // Common uses
+            if (info.commonUses.isNotEmpty()) {
+                Text(
+                    stringResource(R.string.ai_common_uses),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                info.commonUses.forEach { use ->
+                    Row(modifier = Modifier.padding(start = 8.dp)) {
+                        Text("• ", style = MaterialTheme.typography.bodySmall)
+                        Text(use, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
+
+            // Side effects
+            if (info.sideEffects.isNotEmpty()) {
+                Text(
+                    stringResource(R.string.ai_side_effects),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                info.sideEffects.forEach { effect ->
+                    Row(modifier = Modifier.padding(start = 8.dp)) {
+                        Text("• ", style = MaterialTheme.typography.bodySmall)
+                        Text(effect, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+
+            // Important warnings
+            if (info.importantWarnings.isNotEmpty()) {
+                Text(
+                    stringResource(R.string.ai_important_warnings),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.error
+                )
+                info.importantWarnings.forEach { warning ->
+                    Row(modifier = Modifier.padding(start = 8.dp)) {
+                        Text("⚠ ", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                        Text(warning, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error.copy(alpha = 0.85f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            "$label:",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
 }

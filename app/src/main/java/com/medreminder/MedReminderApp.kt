@@ -5,16 +5,25 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
+import androidx.hilt.work.HiltWorkerFactory
 import com.medreminder.alarm.DailyDoseWorker
 import com.medreminder.billing.BillingManager
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
 @HiltAndroidApp
-class MedReminderApp : Application() {
+class MedReminderApp : Application(), Configuration.Provider {
 
     @Inject
     lateinit var billingManager: BillingManager
+
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 
     override fun onCreate() {
         super.onCreate()

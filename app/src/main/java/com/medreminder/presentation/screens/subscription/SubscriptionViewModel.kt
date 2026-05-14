@@ -17,7 +17,10 @@ data class SubscriptionUiState(
     val selectedTier: SubscriptionTier = SubscriptionTier.PRO,
     val prices: Map<SubscriptionTier, String> = emptyMap(),
     val isBillingReady: Boolean = false,
-    val purchaseError: String? = null
+    val purchaseError: String? = null,
+    val isTrialActive: Boolean = false,
+    val hasTrialBeenUsed: Boolean = false,
+    val trialRemainingMs: Long = 0L
 )
 
 @HiltViewModel
@@ -52,6 +55,24 @@ class SubscriptionViewModel @Inject constructor(
                 updatePrices()
             }
         }
+
+        viewModelScope.launch {
+            subscriptionRepository.isTrialActive.collect { active ->
+                _uiState.update { it.copy(isTrialActive = active) }
+            }
+        }
+
+        viewModelScope.launch {
+            subscriptionRepository.hasTrialBeenUsed.collect { used ->
+                _uiState.update { it.copy(hasTrialBeenUsed = used) }
+            }
+        }
+
+        viewModelScope.launch {
+            subscriptionRepository.trialRemainingMs.collect { remaining ->
+                _uiState.update { it.copy(trialRemainingMs = remaining) }
+            }
+        }
     }
 
     private fun updatePrices() {
@@ -77,6 +98,12 @@ class SubscriptionViewModel @Inject constructor(
             _uiState.update {
                 it.copy(purchaseError = "Could not start purchase. Please try again.")
             }
+        }
+    }
+
+    fun startFreeTrial() {
+        viewModelScope.launch {
+            subscriptionRepository.startFreeTrial()
         }
     }
 

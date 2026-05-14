@@ -33,6 +33,8 @@ class SubscriptionRepository @Inject constructor(
         private val KEY_DEEP_ANALYSIS_COUNT = intPreferencesKey("deep_analysis_count_this_month")
         private val KEY_DEEP_ANALYSIS_MONTH = intPreferencesKey("deep_analysis_reset_month")
         private val KEY_DEEP_ANALYSIS_YEAR = intPreferencesKey("deep_analysis_reset_year")
+        private val KEY_TRIAL_START = longPreferencesKey("free_trial_start_ms")
+        private const val TRIAL_DURATION_MS = 3L * 24 * 60 * 60 * 1000 // 3 days
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -47,13 +49,56 @@ class SubscriptionRepository @Inject constructor(
         }
     }
 
-    val currentTier: Flow<SubscriptionTier> = context.subscriptionDataStore.data.map { prefs ->
+    // --- Free trial ---
+
+    /** Flow that emits the trial start timestamp, or 0 if never started. */
+    val trialStartMs: Flow<Long> = context.subscriptionDataStore.data.map { prefs ->
+        prefs[KEY_TRIAL_START] ?: 0L
+    }
+
+    /** Whether the free trial is currently active. */
+    val isTrialActive: Flow<Boolean> = trialStartMs.map { start ->
+        start > 0L && System.currentTimeMillis() - start < TRIAL_DURATION_MS
+    }
+
+    /** Whether the trial has been used (started) regardless of expiry. */
+    val hasTrialBeenUsed: Flow<Boolean> = trialStartMs.map { it > 0L }
+
+    /** Remaining trial time in milliseconds, or 0 if expired / not started. */
+    val trialRemainingMs: Flow<Long> = trialStartMs.map { start ->
+        if (start <= 0L) 0L
+        else (TRIAL_DURATION_MS - (System.currentTimeMillis() - start)).coerceAtLeast(0L)
+    }
+
+    /** Start the 3-day free trial. No-op if already used. */
+    suspend fun startFreeTrial() {
+        context.subscriptionDataStore.edit { prefs ->
+            if ((prefs[KEY_TRIAL_START] ?: 0L) == 0L) {
+                prefs[KEY_TRIAL_START] = System.currentTimeMillis()
+                Log.d(TAG, "Free trial started")
+            } else {
+                Log.d(TAG, "Free trial already used — ignoring")
+            }
+        }
+    }
+
+    // --- Effective tier (includes trial) ---
+
+    private val baseTier: Flow<SubscriptionTier> = context.subscriptionDataStore.data.map { prefs ->
         val tierName = prefs[KEY_TIER] ?: SubscriptionTier.FREE.name
         try {
             SubscriptionTier.valueOf(tierName)
         } catch (_: Exception) {
             SubscriptionTier.FREE
         }
+    }
+
+    /**
+     * The effective subscription tier, accounting for free trial.
+     * During an active trial, FREE users are upgraded to PRO.
+     */
+    val currentTier: Flow<SubscriptionTier> = combine(baseTier, isTrialActive) { tier, trial ->
+        if (tier == SubscriptionTier.FREE && trial) SubscriptionTier.PRO else tier
     }
 
     suspend fun getCurrentTierOnce(): SubscriptionTier = currentTier.first()
