@@ -11,6 +11,7 @@ data class CaregiverEntity(
     val phone: String = "",
     val email: String = "",
     val relationship: String = "", // family, friend, doctor, nurse, other
+    val photoUri: String? = null,
     val notifyOnMissed: Boolean = true,
     val notifyOnTaken: Boolean = false,
     val notifyOnCancelled: Boolean = false,

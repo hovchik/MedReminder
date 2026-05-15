@@ -123,6 +123,9 @@ dependencies {
     implementation("androidx.hilt:hilt-work:1.1.0")
     ksp("androidx.hilt:hilt-compiler:1.1.0")
 
+    // Image loading
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
     // ML Kit Text Recognition (OCR) — 16.0.1+ ships 16 KB-aligned native libs
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("com.google.mlkit:text-recognition-chinese:16.0.1")

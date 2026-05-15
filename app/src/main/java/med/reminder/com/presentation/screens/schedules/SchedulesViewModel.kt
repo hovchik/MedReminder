@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import med.reminder.com.R
 import med.reminder.com.alarm.AlarmScheduler
+import med.reminder.com.data.preferences.UserPreferencesManager
 import med.reminder.com.domain.model.Medication
 import med.reminder.com.domain.model.Schedule
 import med.reminder.com.domain.repository.MedicationRepository
@@ -19,6 +20,7 @@ import javax.inject.Inject
 data class UserMedicationGroup(
     val userId: Long?,          // null = self
     val userName: String,
+    val photoUri: String? = null,
     val medications: List<Medication>
 )
 
@@ -40,6 +42,7 @@ data class PendingDelete(
 class SchedulesViewModel @Inject constructor(
     private val repository: MedicationRepository,
     private val alarmScheduler: AlarmScheduler,
+    private val userPreferencesManager: UserPreferencesManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -67,11 +70,18 @@ class SchedulesViewModel @Inject constructor(
                 val active = meds.filter { it.isActive }
                 val grouped = active.groupBy { it.assignedToId }
                 val selfLabel = context.getString(R.string.my_medications_label)
+                val selfPhotoUri = userPreferencesManager.userPhotoUri.first()
 
                 val groups = grouped.map { (userId, userMeds) ->
+                    val photoUri = if (userId == null) {
+                        selfPhotoUri
+                    } else {
+                        repository.getFamilyMemberById(userId)?.photoUri
+                    }
                     UserMedicationGroup(
                         userId = userId,
                         userName = if (userId == null) selfLabel else userMeds.first().assignedToName,
+                        photoUri = photoUri,
                         medications = userMeds
                     )
                 }.sortedBy { if (it.userId == null) 0 else 1 }

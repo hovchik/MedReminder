@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -38,6 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import androidx.hilt.navigation.compose.hiltViewModel
+import android.net.Uri
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import med.reminder.com.R
@@ -270,6 +275,7 @@ fun HomeScreen(
                 UserSectionHeader(
                     userName = group.userName,
                     isSelf = group.userId == null,
+                    photoUri = group.photoUri,
                     doseCount = group.totalCount,
                     expanded = isExpanded,
                     onToggle = { expandedGroups[groupKey] = !isExpanded }
@@ -411,6 +417,7 @@ private fun AllDoneCard() {
 fun UserSectionHeader(
     userName: String,
     isSelf: Boolean,
+    photoUri: String? = null,
     doseCount: Int,
     expanded: Boolean = true,
     onToggle: () -> Unit = {}
@@ -450,18 +457,30 @@ fun UserSectionHeader(
                 Box(
                     modifier = Modifier
                         .size(36.dp)
+                        .clip(CircleShape)
                         .background(
-                            accentColor.copy(alpha = 0.15f),
-                            CircleShape
+                            accentColor.copy(alpha = 0.15f)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = if (isSelf) Icons.Default.Person else Icons.Default.Face,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = accentColor
-                    )
+                    if (photoUri != null) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(Uri.parse(photoUri))
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = userName,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            imageVector = if (isSelf) Icons.Default.Person else Icons.Default.Face,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = accentColor
+                        )
+                    }
                 }
                 Text(
                     text = userName,

@@ -145,6 +145,7 @@ fun SchedulesScreen(
                     ScheduleUserHeader(
                         userName = group.userName,
                         isSelf = group.userId == null,
+                        photoUri = group.photoUri,
                         medicationCount = group.medications.size,
                         expanded = isExpanded,
                         onToggle = { expandedGroups[groupKey] = !isExpanded }
@@ -214,6 +215,7 @@ fun SchedulesScreen(
 private fun ScheduleUserHeader(
     userName: String,
     isSelf: Boolean,
+    photoUri: String? = null,
     medicationCount: Int,
     expanded: Boolean,
     onToggle: () -> Unit
@@ -254,15 +256,30 @@ private fun ScheduleUserHeader(
                 Box(
                     modifier = Modifier
                         .size(36.dp)
-                        .background(accentColor.copy(alpha = 0.15f), CircleShape),
+                        .clip(CircleShape)
+                        .background(accentColor.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = if (isSelf) Icons.Default.Person else Icons.Default.Face,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = accentColor
-                    )
+                    if (photoUri != null) {
+                        coil.compose.AsyncImage(
+                            model = coil.request.ImageRequest.Builder(
+                                androidx.compose.ui.platform.LocalContext.current
+                            )
+                                .data(android.net.Uri.parse(photoUri))
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = userName,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            imageVector = if (isSelf) Icons.Default.Person else Icons.Default.Face,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = accentColor
+                        )
+                    }
                 }
                 Text(
                     text = userName,

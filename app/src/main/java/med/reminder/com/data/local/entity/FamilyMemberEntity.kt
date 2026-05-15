@@ -10,6 +10,7 @@ data class FamilyMemberEntity(
     val name: String,
     val age: Int,
     val relation: String, // parent, child, spouse, sibling, other
+    val photoUri: String? = null,
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis()
 )

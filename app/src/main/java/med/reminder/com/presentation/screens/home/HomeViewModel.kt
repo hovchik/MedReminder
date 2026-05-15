@@ -23,6 +23,7 @@ import javax.inject.Inject
 data class UserDoseGroup(
     val userId: Long?,       // null = self
     val userName: String,    // display name ("Me" for self, family member name otherwise)
+    val photoUri: String? = null,
     val doses: List<DoseLog>,
     val takenCount: Int,
     val totalCount: Int
@@ -86,14 +87,21 @@ class HomeViewModel @Inject constructor(
             }
         }.thenBy { it.scheduledTime })
 
-    private fun buildUserDoseGroups(doses: List<DoseLog>): List<UserDoseGroup> {
+    private suspend fun buildUserDoseGroups(doses: List<DoseLog>): List<UserDoseGroup> {
         val grouped = doses.groupBy { it.assignedToId }
         val selfLabel = context.getString(R.string.my_medications_label)
+        val selfPhotoUri = userPreferencesManager.userPhotoUri.first()
         return grouped.map { (userId, userDoses) ->
             val sorted = sortDoses(userDoses)
+            val photoUri = if (userId == null) {
+                selfPhotoUri
+            } else {
+                repository.getFamilyMemberById(userId)?.photoUri
+            }
             UserDoseGroup(
                 userId = userId,
                 userName = if (userId == null) selfLabel else userDoses.first().assignedToName,
+                photoUri = photoUri,
                 doses = sorted,
                 takenCount = userDoses.count { it.status == DoseStatus.TAKEN },
                 totalCount = userDoses.size

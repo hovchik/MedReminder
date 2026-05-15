@@ -12,18 +12,22 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.FileProvider
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -76,9 +80,12 @@ class SettingsViewModel @Inject constructor(
     val userAge: StateFlow<Int> = userPreferencesManager.userAge
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    fun saveUserProfile(name: String, age: Int) {
+    val userPhotoUri: StateFlow<String?> = userPreferencesManager.userPhotoUri
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun saveUserProfile(name: String, age: Int, photoUri: String? = null) {
         viewModelScope.launch {
-            userPreferencesManager.saveUserProfile(name, age)
+            userPreferencesManager.saveUserProfile(name, age, photoUri)
         }
     }
 
@@ -360,6 +367,7 @@ fun SettingsScreen(
 
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     val userAge by viewModel.userAge.collectAsStateWithLifecycle()
+    val userPhotoUri by viewModel.userPhotoUri.collectAsStateWithLifecycle()
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
@@ -407,10 +415,11 @@ fun SettingsScreen(
         EditProfileDialog(
             currentName = userName,
             currentAge = userAge,
+            currentPhotoUri = userPhotoUri,
             onDismiss = { showEditProfileDialog = false },
-            onSave = { name, age ->
+            onSave = { name, age, photoUri ->
                 showEditProfileDialog = false
-                viewModel.saveUserProfile(name, age)
+                viewModel.saveUserProfile(name, age, photoUri)
             }
         )
     }
@@ -535,16 +544,61 @@ fun SettingsScreen(
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(vertical = 4.dp))
 
-        SettingsItem(
-            icon = Icons.Default.Person,
-            title = if (userName.isNotBlank()) userName else stringResource(R.string.your_name),
-            subtitle = if (userAge > 0) {
-                stringResource(R.string.age_display, userAge)
-            } else {
-                stringResource(R.string.tap_to_edit_profile)
-            },
-            onClick = { showEditProfileDialog = true }
-        )
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showEditProfileDialog = true },
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (userPhotoUri != null) {
+                        coil.compose.AsyncImage(
+                            model = coil.request.ImageRequest.Builder(LocalContext.current)
+                                .data(android.net.Uri.parse(userPhotoUri))
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Person, null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        if (userName.isNotBlank()) userName else stringResource(R.string.your_name),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        if (userAge > 0) stringResource(R.string.age_display, userAge)
+                        else stringResource(R.string.tap_to_edit_profile),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(Icons.Default.ChevronRight, null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp))
+            }
+        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -1274,17 +1328,79 @@ fun ActiveModelPickerDialog(
 fun EditProfileDialog(
     currentName: String,
     currentAge: Int,
+    currentPhotoUri: String? = null,
     onDismiss: () -> Unit,
-    onSave: (String, Int) -> Unit
+    onSave: (String, Int, String?) -> Unit
 ) {
     val context = LocalContext.current
     var name by remember { mutableStateOf(currentName) }
     var ageText by remember { mutableStateOf(if (currentAge > 0) currentAge.toString() else "") }
     var nameError by remember { mutableStateOf<String?>(null) }
     var ageError by remember { mutableStateOf<String?>(null) }
+    var photoUri by remember { mutableStateOf(currentPhotoUri) }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let {
+            context.contentResolver.takePersistableUriPermission(
+                it, Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            photoUri = it.toString()
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .clickable {
+                        photoPickerLauncher.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (photoUri != null) {
+                    coil.compose.AsyncImage(
+                        model = coil.request.ImageRequest.Builder(context)
+                            .data(Uri.parse(photoUri))
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        Icons.Outlined.CameraAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(22.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+        },
         title = { Text(stringResource(R.string.edit_profile)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1324,7 +1440,7 @@ fun EditProfileDialog(
                         hasError = true
                     }
                     if (!hasError) {
-                        onSave(trimmedName, age!!)
+                        onSave(trimmedName, age!!, photoUri)
                     }
                 }
             ) {

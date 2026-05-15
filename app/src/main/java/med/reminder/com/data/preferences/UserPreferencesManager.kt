@@ -21,12 +21,16 @@ class UserPreferencesManager @Inject constructor(
         private val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         private val KEY_USER_NAME = stringPreferencesKey("user_name")
         private val KEY_USER_AGE = intPreferencesKey("user_age")
+        private val KEY_USER_PHOTO_URI = stringPreferencesKey("user_photo_uri")
         private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         private val KEY_LEGAL_ACCEPTED_VERSION = intPreferencesKey("legal_accepted_version")
         private val KEY_LEGAL_ACCEPTED_AT = longPreferencesKey("legal_accepted_at")
 
         const val CURRENT_LEGAL_VERSION = 1
     }
+
+    val userPhotoUri: Flow<String?> =
+        context.userPrefsDataStore.data.map { it[KEY_USER_PHOTO_URI] }
 
     val isOnboardingCompleted: Flow<Boolean> =
         context.userPrefsDataStore.data.map { it[KEY_ONBOARDING_COMPLETED] ?: false }
@@ -54,10 +58,19 @@ class UserPreferencesManager @Inject constructor(
         }
     }
 
-    suspend fun saveUserProfile(name: String, age: Int) {
+    suspend fun saveUserProfile(name: String, age: Int, photoUri: String? = null) {
         context.userPrefsDataStore.edit { prefs ->
             prefs[KEY_USER_NAME] = name
             prefs[KEY_USER_AGE] = age
+            if (photoUri != null) {
+                prefs[KEY_USER_PHOTO_URI] = photoUri
+            }
+        }
+    }
+
+    suspend fun saveUserPhoto(uri: String) {
+        context.userPrefsDataStore.edit { prefs ->
+            prefs[KEY_USER_PHOTO_URI] = uri
         }
     }
 

@@ -143,6 +143,7 @@ data class FamilyMember(
     val name: String,
     val age: Int,
     val relation: String = "",
+    val photoUri: String? = null,
     val isActive: Boolean = true
 )
 
@@ -152,6 +153,7 @@ data class Caregiver(
     val phone: String = "",
     val email: String = "",
     val relationship: String = "",
+    val photoUri: String? = null,
     val notifyOnMissed: Boolean = true,
     val notifyOnTaken: Boolean = false,
     val notifyOnCancelled: Boolean = false,
@@ -230,22 +232,26 @@ fun DoseLog.toEntity() = DoseLogEntity(
 
 fun CaregiverEntity.toDomain() = Caregiver(
     id = id, name = name, phone = phone, email = email,
-    relationship = relationship, notifyOnMissed = notifyOnMissed,
+    relationship = relationship, photoUri = photoUri,
+    notifyOnMissed = notifyOnMissed,
     notifyOnTaken = notifyOnTaken, notifyOnCancelled = notifyOnCancelled,
     notifyDelay = notifyDelay, isActive = isActive
 )
 
 fun Caregiver.toEntity() = CaregiverEntity(
     id = id, name = name, phone = phone, email = email,
-    relationship = relationship, notifyOnMissed = notifyOnMissed,
+    relationship = relationship, photoUri = photoUri,
+    notifyOnMissed = notifyOnMissed,
     notifyOnTaken = notifyOnTaken, notifyOnCancelled = notifyOnCancelled,
     notifyDelay = notifyDelay, isActive = isActive
 )
 
 fun FamilyMemberEntity.toDomain() = FamilyMember(
-    id = id, name = name, age = age, relation = relation, isActive = isActive
+    id = id, name = name, age = age, relation = relation,
+    photoUri = photoUri, isActive = isActive
 )
 
 fun FamilyMember.toEntity() = FamilyMemberEntity(
-    id = id, name = name, age = age, relation = relation, isActive = isActive
+    id = id, name = name, age = age, relation = relation,
+    photoUri = photoUri, isActive = isActive
 )

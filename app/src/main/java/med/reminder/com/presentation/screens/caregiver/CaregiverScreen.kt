@@ -3,6 +3,7 @@ package med.reminder.com.presentation.screens.caregiver
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,15 +19,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import android.net.Uri
 import med.reminder.com.R
 import med.reminder.com.domain.model.Caregiver
 import med.reminder.com.domain.model.FamilyMember
@@ -429,7 +438,7 @@ fun FamilyMemberCard(
                     .padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Avatar with unique gradient per member
+                // Avatar with photo or gradient fallback
                 Box(
                     modifier = Modifier
                         .size(56.dp)
@@ -441,12 +450,24 @@ fun FamilyMemberCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        member.name.take(1).uppercase(),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = androidx.compose.ui.graphics.Color.White
-                    )
+                    if (member.photoUri != null) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(Uri.parse(member.photoUri))
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = member.name,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            member.name.take(1).uppercase(),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = androidx.compose.ui.graphics.Color.White
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -596,12 +617,24 @@ fun CaregiverCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        caregiver.name.take(1).uppercase(),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = androidx.compose.ui.graphics.Color.White
-                    )
+                    if (caregiver.photoUri != null) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(Uri.parse(caregiver.photoUri))
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = caregiver.name,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            caregiver.name.take(1).uppercase(),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = androidx.compose.ui.graphics.Color.White
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -809,17 +842,73 @@ fun AddCaregiverDialog(
     var phone by remember { mutableStateOf(existing?.phone ?: "") }
     var email by remember { mutableStateOf(existing?.email ?: "") }
     var relationship by remember { mutableStateOf(existing?.relationship ?: "") }
+    var photoUri by remember { mutableStateOf(existing?.photoUri) }
+
+    val context = LocalContext.current
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let {
+            // Take persistent permission so the URI survives reboots
+            context.contentResolver.takePersistableUriPermission(
+                it, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            photoUri = it.toString()
+        }
+    }
 
     val isValid = name.isNotBlank() && (phone.isNotBlank() || email.isNotBlank())
 
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
-            Icon(
-                if (isEdit) Icons.Default.Edit else Icons.Default.PersonAdd,
-                null,
-                tint = MaterialTheme.colorScheme.primary
-            )
+            // Tappable photo avatar as dialog icon
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .clickable {
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (photoUri != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(Uri.parse(photoUri))
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        Icons.Outlined.CameraAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                // Small edit badge
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(22.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
         },
         title = {
             Text(
@@ -868,14 +957,16 @@ fun AddCaregiverDialog(
                                 name = name.trim(),
                                 phone = phone.trim(),
                                 email = email.trim(),
-                                relationship = relationship.trim()
+                                relationship = relationship.trim(),
+                                photoUri = photoUri
                             )
                         } else {
                             Caregiver(
                                 name = name.trim(),
                                 phone = phone.trim(),
                                 email = email.trim(),
-                                relationship = relationship.trim()
+                                relationship = relationship.trim(),
+                                photoUri = photoUri
                             )
                         }
                         onSave(caregiver)
@@ -903,6 +994,19 @@ fun AddFamilyMemberDialog(
     var age by remember { mutableStateOf(existing?.age?.toString() ?: "") }
     var selectedRelation by remember { mutableStateOf(existing?.relation ?: "") }
     var relationExpanded by remember { mutableStateOf(false) }
+    var photoUri by remember { mutableStateOf(existing?.photoUri) }
+
+    val context = LocalContext.current
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let {
+            context.contentResolver.takePersistableUriPermission(
+                it, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            photoUri = it.toString()
+        }
+    }
 
     val relations = listOf("Parent", "Child", "Spouse", "Sibling", "Other")
     val isValid = name.isNotBlank() && age.isNotBlank() && (age.toIntOrNull() ?: 0) > 0
@@ -910,11 +1014,53 @@ fun AddFamilyMemberDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
-            Icon(
-                if (isEdit) Icons.Default.Edit else Icons.Default.PersonAdd,
-                null,
-                tint = MaterialTheme.colorScheme.primary
-            )
+            // Tappable photo avatar as dialog icon
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .clickable {
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (photoUri != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(Uri.parse(photoUri))
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        Icons.Outlined.CameraAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                // Small edit badge
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(22.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
         },
         title = {
             Text(
@@ -992,13 +1138,15 @@ fun AddFamilyMemberDialog(
                             existing!!.copy(
                                 name = name.trim(),
                                 age = age.toIntOrNull() ?: 0,
-                                relation = selectedRelation
+                                relation = selectedRelation,
+                                photoUri = photoUri
                             )
                         } else {
                             FamilyMember(
                                 name = name.trim(),
                                 age = age.toIntOrNull() ?: 0,
-                                relation = selectedRelation
+                                relation = selectedRelation,
+                                photoUri = photoUri
                             )
                         }
                         onSave(member)

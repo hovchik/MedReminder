@@ -17,7 +17,7 @@ import med.reminder.com.data.local.entity.*
         LocalAiModelEntity::class,
         FamilyMemberEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -43,7 +43,7 @@ abstract class AppDatabase : RoomDatabase() {
                 INSTANCE ?: androidx.room.Room.databaseBuilder(
                     context.applicationContext, AppDatabase::class.java, DATABASE_NAME
                 ).addMigrations(
-                    MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9
+                    MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10
                 ).fallbackToDestructiveMigrationFrom(1)
                 .build().also { INSTANCE = it }
             }
@@ -110,6 +110,13 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_8_9 = object : Migration(8, 9) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE local_ai_models ADD COLUMN supportsVision INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE family_members ADD COLUMN photoUri TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE caregivers ADD COLUMN photoUri TEXT DEFAULT NULL")
             }
         }
     }
