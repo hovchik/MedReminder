@@ -155,17 +155,36 @@ fun HomeScreen(
     ) {
         // Greeting header
         item {
-            Column(modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)) {
-                Text(
-                    text = uiState.greeting,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(Date()),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = uiState.greeting,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(Date()),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                FilledTonalIconButton(
+                    onClick = onNavigateToInsights,
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Psychology,
+                        contentDescription = stringResource(R.string.ai_insights_title),
+                        tint = MaterialTheme.colorScheme.tertiary
+                    )
+                }
             }
         }
 
@@ -182,50 +201,6 @@ fun HomeScreen(
             )
         }
 
-        // AI Insights entry card
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onNavigateToInsights() },
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Psychology,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            stringResource(R.string.ai_insights_title),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            stringResource(R.string.ai_insights_home_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
 
         // All done celebration
         if (uiState.totalCount > 0 && uiState.takenCount == uiState.totalCount && !uiState.isLoading) {
@@ -545,115 +520,123 @@ fun TodaySummaryCard(
         ),
         shape = RoundedCornerShape(20.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            // Top row: progress headline + streak badge
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = stringResource(R.string.today_summary),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                // Circular progress
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(72.dp)
+                ) {
+                    CircularProgressIndicator(
+                        progress = { animatedRate },
+                        modifier = Modifier.fillMaxSize(),
+                        strokeWidth = 6.dp,
+                        trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = stringResource(R.string.percent_complete, rate.toInt()),
-                        style = MaterialTheme.typography.headlineLarge,
+                        text = "${rate.toInt()}%",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Stats grid: 2x2
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        MiniStat(
+                            value = taken.toString(),
+                            label = stringResource(R.string.stat_taken),
+                            color = Color(0xFF2ECC71),
+                            modifier = Modifier.weight(1f)
+                        )
+                        MiniStat(
+                            value = upcoming.toString(),
+                            label = stringResource(R.string.stat_upcoming),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        MiniStat(
+                            value = missed.toString(),
+                            label = stringResource(R.string.stat_missed),
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f)
+                        )
+                        MiniStat(
+                            value = skipped.toString(),
+                            label = stringResource(R.string.stat_canceled),
+                            color = Color(0xFFF39C12),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                // Streak badge
                 if (streak > 0) {
+                    Spacer(modifier = Modifier.width(8.dp))
                     Surface(
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.primary
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("\uD83D\uDD25", fontSize = 18.sp)
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("\uD83D\uDD25", fontSize = 16.sp)
                             Text(
-                                if (streak > 1) stringResource(R.string.days_streak, streak)
-                                else stringResource(R.string.day_streak, streak),
+                                streak.toString(),
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.labelLarge
+                                style = MaterialTheme.typography.titleSmall
                             )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Progress bar
-            LinearProgressIndicator(
-                progress = { animatedRate },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(5.dp)),
-                trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f),
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Stat pills row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                StatPill(
-                    label = stringResource(R.string.stat_taken),
-                    value = taken.toString(),
-                    color = Color(0xFF2ECC71),
-                    modifier = Modifier.weight(1f)
-                )
-                StatPill(
-                    label = stringResource(R.string.stat_upcoming),
-                    value = upcoming.toString(),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
-                )
-                StatPill(
-                    label = stringResource(R.string.stat_missed),
-                    value = missed.toString(),
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.weight(1f)
-                )
-                StatPill(
-                    label = stringResource(R.string.stat_canceled),
-                    value = skipped.toString(),
-                    color = Color(0xFFF39C12),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
             // Next dose info
             if (nextDoseTime != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                Spacer(modifier = Modifier.height(10.dp))
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.08f)
                 ) {
-                    Icon(
-                        Icons.Default.Schedule,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = stringResource(R.string.next_dose_at, DateUtils.formatTimeOnly(nextDoseTime)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = stringResource(R.string.next_dose_at, DateUtils.formatTimeOnly(nextDoseTime)),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                        )
+                    }
                 }
             }
         }
@@ -661,24 +644,25 @@ fun TodaySummaryCard(
 }
 
 @Composable
-private fun StatPill(
-    label: String,
+private fun MiniStat(
     value: String,
+    label: String,
     color: Color,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         color = color.copy(alpha = 0.12f)
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = color
             )
