@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
@@ -34,6 +35,75 @@ import med.reminder.com.presentation.theme.MedicationColors
 import med.reminder.com.presentation.util.translatedName
 import med.reminder.com.util.DateUtils
 import java.util.*
+
+// ---------------------------------------------------------------------------
+// Reusable collapsible section
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun CollapsibleSection(
+    title: String,
+    icon: @Composable () -> Unit,
+    initiallyExpanded: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
+    val rotationAngle by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(300),
+        label = "chevron"
+    )
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        )
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                icon()
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowUp,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    modifier = Modifier
+                        .size(24.dp)
+                        .graphicsLayer { rotationZ = rotationAngle },
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    content = content
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Main Screen
+// ---------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,7 +205,7 @@ fun AddEditMedicationScreen(
                 }
             }
 
-            // Medication for (person selector)
+            // ── Medication for (person selector) ──
             MedicationAssigneeSelector(
                 assignedToId = uiState.assignedToId,
                 assignedToName = uiState.assignedToName,
@@ -143,7 +213,7 @@ fun AddEditMedicationScreen(
                 onAssignedToChange = { id, name -> viewModel.updateAssignedTo(id, name) }
             )
 
-            // Name + AI button
+            // ── Name + AI button ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -199,21 +269,18 @@ fun AddEditMedicationScreen(
                 )
             }
 
-            // AI brief medical info card
+            // AI brief info card
             AnimatedVisibility(
                 visible = uiState.aiMedInfo != null,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
                 uiState.aiMedInfo?.let { info ->
-                    AiBriefInfoCard(
-                        info = info,
-                        onDismiss = { viewModel.dismissAiInfo() }
-                    )
+                    AiBriefInfoCard(info = info, onDismiss = { viewModel.dismissAiInfo() })
                 }
             }
 
-            // Dosage row
+            // ── Dosage row ──
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = uiState.dosage,
@@ -249,25 +316,32 @@ fun AddEditMedicationScreen(
                 }
             }
 
-            // Form selector
-            Text(stringResource(R.string.form), style = MaterialTheme.typography.labelLarge)
+            // ── Form & Color in a compact row ──
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                MedicationForm.entries.forEach { form ->
-                    FilterChip(
-                        selected = uiState.form == form,
-                        onClick = { viewModel.updateForm(form) },
-                        label = { Text(form.translatedName()) },
-                        shape = RoundedCornerShape(10.dp)
-                    )
+                // Form selector (compact)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.form), style = MaterialTheme.typography.labelLarge)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        MedicationForm.entries.forEach { form ->
+                            FilterChip(
+                                selected = uiState.form == form,
+                                onClick = { viewModel.updateForm(form) },
+                                label = { Text(form.translatedName(), style = MaterialTheme.typography.labelSmall) },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
+                    }
                 }
             }
 
-            // Color picker
+            // Color picker (compact)
             Text(stringResource(R.string.color), style = MaterialTheme.typography.labelLarge)
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -290,9 +364,7 @@ fun AddEditMedicationScreen(
                 }
             }
 
-            HorizontalDivider()
-
-            // Schedules
+            // ── Schedules (always visible) ──
             Text(stringResource(R.string.schedules), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
 
             uiState.schedules.forEachIndexed { index, schedule ->
@@ -322,107 +394,134 @@ fun AddEditMedicationScreen(
                 Text(stringResource(R.string.add_another_time))
             }
 
-            HorizontalDivider()
-
-            // Instructions
-            OutlinedTextField(
-                value = uiState.instructions,
-                onValueChange = viewModel::updateInstructions,
-                label = { Text(stringResource(R.string.instructions_hint)) },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            // Stock tracking
-            Text(stringResource(R.string.stock_tracking), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // ── Additional details (collapsible) ──
+            CollapsibleSection(
+                title = stringResource(R.string.additional_details),
+                icon = {
+                    Icon(
+                        Icons.Default.Notes,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                initiallyExpanded = uiState.isEditing && (
+                    uiState.instructions.isNotBlank() || uiState.notes.isNotBlank() ||
+                    uiState.currentStock.isNotBlank()
+                )
+            ) {
+                // Instructions
                 OutlinedTextField(
-                    value = uiState.currentStock,
-                    onValueChange = viewModel::updateStock,
-                    label = { Text(stringResource(R.string.current_stock)) },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
+                    value = uiState.instructions,
+                    onValueChange = viewModel::updateInstructions,
+                    label = { Text(stringResource(R.string.instructions_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
                     shape = RoundedCornerShape(12.dp)
                 )
+
+                // Stock tracking
+                Text(stringResource(R.string.stock_tracking), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = uiState.currentStock,
+                        onValueChange = viewModel::updateStock,
+                        label = { Text(stringResource(R.string.current_stock)) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    OutlinedTextField(
+                        value = uiState.refillThreshold,
+                        onValueChange = viewModel::updateRefillThreshold,
+                        label = { Text(stringResource(R.string.refill_at)) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = uiState.refillReminder,
+                        onCheckedChange = viewModel::updateRefillReminder
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.remind_to_refill), style = MaterialTheme.typography.bodyLarge)
+                }
+
+                // Notes
                 OutlinedTextField(
-                    value = uiState.refillThreshold,
-                    onValueChange = viewModel::updateRefillThreshold,
-                    label = { Text(stringResource(R.string.refill_at)) },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
+                    value = uiState.notes,
+                    onValueChange = viewModel::updateNotes,
+                    label = { Text(stringResource(R.string.notes)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
                     shape = RoundedCornerShape(12.dp)
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(
-                    checked = uiState.refillReminder,
-                    onCheckedChange = viewModel::updateRefillReminder
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.remind_to_refill), style = MaterialTheme.typography.bodyLarge)
-            }
 
-            // Notes
-            OutlinedTextField(
-                value = uiState.notes,
-                onValueChange = viewModel::updateNotes,
-                label = { Text(stringResource(R.string.notes)) },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            HorizontalDivider()
-
-            // Caregiver notifications
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        stringResource(R.string.notify_caregivers),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+            // ── Notifications (collapsible) ──
+            CollapsibleSection(
+                title = stringResource(R.string.notifications_section),
+                icon = {
+                    Icon(
+                        Icons.Default.Notifications,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
-                    Text(
-                        stringResource(R.string.notify_caregivers_description),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Switch(
-                    checked = uiState.notifyCaregivers,
-                    onCheckedChange = viewModel::updateNotifyCaregivers
-                )
-            }
-
-            // Emergency medication
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        stringResource(R.string.emergency_medication),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Text(
-                        stringResource(R.string.emergency_medication_description),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                initiallyExpanded = uiState.isEditing && (uiState.notifyCaregivers || uiState.isEmergency)
+            ) {
+                // Caregiver notifications
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.notify_caregivers),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            stringResource(R.string.notify_caregivers_description),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Switch(
+                        checked = uiState.notifyCaregivers,
+                        onCheckedChange = viewModel::updateNotifyCaregivers
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Switch(
-                    checked = uiState.isEmergency,
-                    onCheckedChange = viewModel::updateIsEmergency,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.error,
-                        checkedTrackColor = MaterialTheme.colorScheme.errorContainer
+
+                // Emergency medication
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.emergency_medication),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            stringResource(R.string.emergency_medication_description),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Switch(
+                        checked = uiState.isEmergency,
+                        onCheckedChange = viewModel::updateIsEmergency,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.error,
+                            checkedTrackColor = MaterialTheme.colorScheme.errorContainer
+                        )
                     )
-                )
+                }
             }
 
-            // AI Analysis button (only shown when editing an existing medication)
+            // AI Analysis button (editing only)
             if (uiState.isEditing && medicationId != null) {
                 OutlinedButton(
                     onClick = { onViewAnalysis(medicationId) },
@@ -434,10 +533,7 @@ fun AddEditMedicationScreen(
                 ) {
                     Icon(Icons.Default.Psychology, null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        stringResource(R.string.view_ai_analysis),
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Text(stringResource(R.string.view_ai_analysis), style = MaterialTheme.typography.titleMedium)
                 }
             }
 
@@ -466,6 +562,10 @@ fun AddEditMedicationScreen(
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Assignee selector
+// ---------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -537,6 +637,10 @@ fun MedicationAssigneeSelector(
     }
 }
 
+// ---------------------------------------------------------------------------
+// Schedule Card – compact with collapsible advanced/duration section
+// ---------------------------------------------------------------------------
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleCard(
@@ -554,6 +658,9 @@ fun ScheduleCard(
     onRemove: () -> Unit
 ) {
     val context = LocalContext.current
+    var showAdvanced by remember {
+        mutableStateOf(schedule.durationType != DurationType.ONGOING || schedule.toleranceMinutes != 10)
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -561,6 +668,7 @@ fun ScheduleCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Header row
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.schedule_number, index + 1), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                 if (canRemove) {
@@ -570,7 +678,7 @@ fun ScheduleCard(
                 }
             }
 
-            // Time picker (start time for EVERY_X_HOURS, or dose time for others)
+            // Time picker
             OutlinedButton(
                 onClick = {
                     TimePickerDialog(context, { _, h, m -> onTimeChange(h, m) },
@@ -590,7 +698,7 @@ fun ScheduleCard(
                 Text(timeLabel, style = MaterialTheme.typography.titleMedium)
             }
 
-            // Frequency
+            // Frequency chips
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -607,7 +715,7 @@ fun ScheduleCard(
                 }
             }
 
-            // Days of week selector
+            // Days of week (if SPECIFIC_DAYS)
             if (schedule.frequency == ScheduleFrequency.SPECIFIC_DAYS) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -636,97 +744,115 @@ fun ScheduleCard(
                 }
             }
 
-            // Interval selector (every X days)
+            // Interval days (if INTERVAL)
             if (schedule.frequency == ScheduleFrequency.INTERVAL) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.every), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.width(8.dp))
-                    NumericTextField(
-                        value = schedule.intervalDays,
-                        onValueCommit = onIntervalChange,
-                        modifier = Modifier.width(72.dp)
-                    )
+                    NumericTextField(value = schedule.intervalDays, onValueCommit = onIntervalChange, modifier = Modifier.width(72.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.days), style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
-            // Every X hours selector
+            // Every X hours (if EVERY_X_HOURS)
             if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.every), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.width(8.dp))
-                    NumericTextField(
-                        value = schedule.intervalHours,
-                        onValueCommit = onIntervalHoursChange,
-                        modifier = Modifier.width(72.dp)
-                    )
+                    NumericTextField(value = schedule.intervalHours, onValueCommit = onIntervalHoursChange, modifier = Modifier.width(72.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.hours), style = MaterialTheme.typography.bodyMedium)
                 }
-
-                // Tolerance
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.tolerance), style = MaterialTheme.typography.bodyMedium)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    NumericTextField(
-                        value = schedule.toleranceMinutes,
-                        onValueCommit = onToleranceChange,
-                        modifier = Modifier.width(72.dp),
-                        defaultValue = 10
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.minutes), style = MaterialTheme.typography.bodyMedium)
-                }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-            // Duration section
-            Text(stringResource(R.string.duration), style = MaterialTheme.typography.labelLarge)
+            // ── Advanced options toggle ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    .clickable { showAdvanced = !showAdvanced }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                DurationType.entries.forEach { type ->
-                    FilterChip(
-                        selected = schedule.durationType == type,
-                        onClick = { onDurationTypeChange(type) },
-                        label = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) },
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                }
+                Icon(
+                    if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    stringResource(R.string.advanced_options),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
             }
 
-            // Duration value input
-            if (schedule.durationType == DurationType.DAYS) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.number_of_days), style = MaterialTheme.typography.bodyMedium)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    NumericTextField(
-                        value = schedule.durationValue,
-                        onValueCommit = onDurationValueChange,
-                        modifier = Modifier.width(80.dp)
-                    )
-                }
-            }
+            AnimatedVisibility(
+                visible = showAdvanced,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Tolerance (for EVERY_X_HOURS)
+                    if (schedule.frequency == ScheduleFrequency.EVERY_X_HOURS) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(R.string.tolerance), style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            NumericTextField(
+                                value = schedule.toleranceMinutes,
+                                onValueCommit = onToleranceChange,
+                                modifier = Modifier.width(72.dp),
+                                defaultValue = 10
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.minutes), style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
 
-            if (schedule.durationType == DurationType.MONTHS) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.number_of_months), style = MaterialTheme.typography.bodyMedium)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    NumericTextField(
-                        value = schedule.durationValue,
-                        onValueCommit = onDurationValueChange,
-                        modifier = Modifier.width(80.dp)
-                    )
+                    // Duration
+                    Text(stringResource(R.string.duration), style = MaterialTheme.typography.labelLarge)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        DurationType.entries.forEach { type ->
+                            FilterChip(
+                                selected = schedule.durationType == type,
+                                onClick = { onDurationTypeChange(type) },
+                                label = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) },
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                        }
+                    }
+
+                    if (schedule.durationType == DurationType.DAYS) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(R.string.number_of_days), style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            NumericTextField(value = schedule.durationValue, onValueCommit = onDurationValueChange, modifier = Modifier.width(80.dp))
+                        }
+                    }
+
+                    if (schedule.durationType == DurationType.MONTHS) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(R.string.number_of_months), style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            NumericTextField(value = schedule.durationValue, onValueCommit = onDurationValueChange, modifier = Modifier.width(80.dp))
+                        }
+                    }
                 }
             }
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 @Composable
 private fun NumericTextField(
