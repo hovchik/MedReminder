@@ -1,5 +1,6 @@
 package med.reminder.com.presentation.screens.schedules
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
@@ -41,7 +43,27 @@ fun SchedulesScreen(
     val expandedGroups = remember { mutableStateMapOf<String, Boolean>() }
     val totalMeds = uiState.userGroups.sumOf { it.medications.size }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val undoLabel = stringResource(R.string.undo)
+    val deletedMsgFormat = stringResource(R.string.medication_deleted, "\u0000")
+
+    // Listen for delete events and show the undo snackbar
+    LaunchedEffect(Unit) {
+        viewModel.deleteEvent.collect { pending ->
+            val message = deletedMsgFormat.replace("\u0000", pending.medication.name)
+            val result = snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = undoLabel,
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDelete()
+            }
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onAddMedication,
@@ -131,13 +153,53 @@ fun SchedulesScreen(
 
                 if (isExpanded) {
                     items(group.medications, key = { it.id }) { medication ->
-                        MedicationScheduleCard(
-                            medication = medication,
-                            onEdit = { onEditMedication(medication.id) },
-                            onToggleSchedule = { scheduleId, enabled ->
-                                viewModel.toggleScheduleEnabled(medication.id, scheduleId, enabled)
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { value ->
+                                if (value == SwipeToDismissBoxValue.EndToStart) {
+                                    viewModel.deleteMedication(medication.id)
+                                    true
+                                } else {
+                                    false
+                                }
                             }
                         )
+
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            backgroundContent = {
+                                val color by animateColorAsState(
+                                    when (dismissState.targetValue) {
+                                        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                        else -> Color.Transparent
+                                    },
+                                    label = "bg"
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(color)
+                                        .padding(horizontal = 24.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = stringResource(R.string.delete),
+                                        tint = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                }
+                            },
+                            enableDismissFromStartToEnd = false,
+                            enableDismissFromEndToStart = true
+                        ) {
+                            MedicationScheduleCard(
+                                medication = medication,
+                                onEdit = { onEditMedication(medication.id) },
+                                onToggleSchedule = { scheduleId, enabled ->
+                                    viewModel.toggleScheduleEnabled(medication.id, scheduleId, enabled)
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -255,7 +317,7 @@ private fun MedicationScheduleCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Medication header
+            // ...existing medication header...
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -321,7 +383,7 @@ private fun MedicationScheduleCard(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Schedule list
+                // Schedule list (plain rows, no swipe)
                 medication.schedules.forEachIndexed { index, schedule ->
                     if (index > 0) Spacer(modifier = Modifier.height(8.dp))
                     ScheduleRow(

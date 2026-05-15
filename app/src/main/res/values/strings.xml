@@ -75,6 +75,11 @@
     <string name="delete_medication_title">Delete medication?</string>
     <string name="delete_medication_message">This will remove the medication and all its history. This cannot be undone.</string>
     <string name="delete">Delete</string>
+    <string name="delete_schedule_title">Delete schedule?</string>
+    <string name="delete_schedule_message">This will remove this schedule and its pending doses.</string>
+    <string name="medication_deleted">%1$s deleted</string>
+    <string name="undo">Undo</string>
+    <string name="delete_last_schedule_message">This is the only schedule. Deleting it will remove the entire medication and all its history.</string>
     <string name="cancel">Cancel</string>
     <string name="back">Back</string>
     <string name="medication_name">Medication name</string>
