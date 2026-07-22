@@ -44,7 +44,12 @@ class BillingManager @Inject constructor(
 
         billingClient = BillingClient.newBuilder(context)
             .setListener(this)
-            .enablePendingPurchases()
+            .enablePendingPurchases(
+                PendingPurchasesParams.newBuilder()
+                    .enableOneTimeProducts()
+                    .enablePrepaidPlans()
+                    .build()
+            )
             .build()
 
         connectToGooglePlay()
@@ -99,11 +104,15 @@ class BillingManager @Inject constructor(
             .setProductList(productList)
             .build()
 
-        billingClient?.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
+        billingClient?.queryProductDetailsAsync(params) { billingResult, queryResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 // Defensive copy — associateBy creates a new map; toMap() ensures immutability.
-                val detailsMap = productDetailsList.associateBy { it.productId }.toMap()
+                val detailsMap = queryResult.productDetailsList.associateBy { it.productId }.toMap()
                 _productDetails.value = detailsMap
+                val unfetched = queryResult.unfetchedProductList
+                if (unfetched.isNotEmpty()) {
+                    Log.w(TAG, "Products not fetched from Play: ${unfetched.map { it.productId }}")
+                }
                 Log.d(TAG, "Loaded ${detailsMap.size} product details")
             } else {
                 Log.e(TAG, "Failed to query product details: ${billingResult.debugMessage}")
